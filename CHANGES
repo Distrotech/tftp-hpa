@@ -14,6 +14,8 @@ Changes in 0.26:
 
 	Add a -v option to tftp to start out in verbose mode.
 	
+	Rewrite the man pages using standard "man" troff macros.
+
 
 Changes in 0.25:
 	Fixed Sorcerer's Apprentice bug in both the client and the
