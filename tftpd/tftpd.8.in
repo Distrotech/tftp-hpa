@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "23 October 2002" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "3 September 2004" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server
@@ -261,6 +261,15 @@ This rule applies to GET (RRQ) requests only.
 .TP
 .B P
 This rule applies to PUT (WRQ) requests only.
+.TP
+.B ~
+Inverse the sense of this rule, i.e. execute the
+.I operation
+only if the
+.I regex
+.I doesn't
+match.  Cannot used together with 
+.BR r .
 .PP
 The following escape sequences are recognized as part of the
 .IR "replacement pattern" :
@@ -289,8 +298,17 @@ Literal backslash.
 \fB\\\fP\fIwhitespace\fP
 Literal whitespace.
 .TP
-\fB\\#\fI
+\fB\\#\fP
 Literal hash mark.
+.TP
+\fB\\U\fP
+Turns all subsequent letters to upper case.
+.TP
+\fB\\L\fP
+Turns all subsequent letters to lower case.
+.TP
+\fB\\E\fP
+Cancels the effect of \fB\\U\fP or \fB\\L\fP.
 .PP
 If the mapping file is changed, you need to send
 .B SIGHUP

@@ -1180,18 +1180,20 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   struct tftphdr *ap;		/* ack packet */
   static u_short block = 1;	/* Static to avoid longjmp funnies */
   u_short ap_opcode, ap_block;
+  unsigned long r_timeout;
   int size, n;
   
   if (oap) {
     timeout = rexmtval;
     (void)sigsetjmp(timeoutbuf,1);
   oack:
+    r_timeout = timeout;
     if (send(peer, oap, oacklen, 0) != oacklen) {
       syslog(LOG_WARNING, "tftpd: oack: %m\n");
       goto abort;
     }
     for ( ; ; ) {
-      n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, &timeout);
+      n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, &r_timeout);
       if (n < 0) {
 	syslog(LOG_WARNING, "tftpd: read: %m\n");
 	goto abort;
@@ -1226,13 +1228,14 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     timeout = rexmtval;
     (void) sigsetjmp(timeoutbuf,1);
     
+    r_timeout = timeout;
     if (send(peer, dp, size + 4, 0) != size + 4) {
       syslog(LOG_WARNING, "tftpd: write: %m");
       goto abort;
     }
     read_ahead(file, pf->f_convert);
     for ( ; ; ) {
-      n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, &timeout);
+      n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, &r_timeout);
       if (n < 0) {
 	syslog(LOG_WARNING, "tftpd: read(ack): %m");
 	goto abort;
@@ -1286,6 +1289,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   static u_short block = 0;
   static int acksize;
   u_short dp_opcode, dp_block;
+  unsigned long r_timeout;
 
   dp = w_init();
   do {
@@ -1303,13 +1307,14 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     block++;
     (void) sigsetjmp(timeoutbuf,1);
   send_ack:
+    r_timeout = timeout;
     if (send(peer, ackbuf, acksize, 0) != acksize) {
       syslog(LOG_WARNING, "tftpd: write(ack): %m");
       goto abort;
     }
     write_behind(file, pf->f_convert);
     for ( ; ; ) {
-      n = recv_time(peer, dp, PKTSIZE, 0, &timeout);
+      n = recv_time(peer, dp, PKTSIZE, 0, &r_timeout);
       if (n < 0) {		/* really? */
 	syslog(LOG_WARNING, "tftpd: read: %m");
 	goto abort;

@@ -1,7 +1,7 @@
 /* $Id$ */
 /* ----------------------------------------------------------------------- *
  *   
- *   Copyright 2001-2002 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2004 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -33,6 +33,7 @@
 #define RULE_ABORT	0x10	/* Terminate processing with an error */
 #define RULE_GETONLY	0x20	/* Applicable to GET only */
 #define RULE_PUTONLY	0x40	/* Applicable to PUT only */
+#define RULE_INVERSE	0x80	/* Execute if regex *doesn't* match */
 
 struct rule {
   struct rule *next;
@@ -42,12 +43,28 @@ struct rule {
   const char *pattern;
 };
 
+static int xform_null(int c)
+{
+  return c;
+}
+
+static int xform_toupper(int c)
+{
+  return toupper(c);
+}
+
+static int xform_tolower(int c)
+{
+  return tolower(c);
+}
+
 /* Do \-substitution.  Call with string == NULL to get length only. */
 static int genmatchstring(char *string, const char *pattern, const char *input,
 			  const regmatch_t *pmatch, match_pattern_callback macrosub)
 {
+  int (*xform)(int) = xform_null;
   int len = 0;
-  int n, mlen;
+  int n, mlen, sublen;
   int endbytes;
 
   /* Get section before match; note pmatch[0] is the whole match */
@@ -60,9 +77,13 @@ static int genmatchstring(char *string, const char *pattern, const char *input,
 
   /* Transform matched section */
   while ( *pattern ) {
+    mlen = 0;
+
     if ( *pattern == '\\' && pattern[1] != '\0' ) {
       char macro = pattern[1];
-      if ( macro >= '0' && macro <= '9' ) {
+      switch ( macro ) {
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
 	n = pattern[1] - '0';
 	
 	if ( pmatch[n].rm_so != -1 ) {
@@ -73,24 +94,41 @@ static int genmatchstring(char *string, const char *pattern, const char *input,
 	    string += mlen;
 	  }
 	}
-      } else {
-	int sublen;
+	break;
+
+      case 'L':
+	xform = xform_tolower;
+	break;
+
+      case 'U':
+	xform = xform_toupper;
+	break;
+
+      case 'E':
+	xform = xform_null;
+	break;
+
+      default:
 	if ( macrosub &&
 	     (sublen = macrosub(macro, string)) >= 0 ) {
-	  len += sublen;
-	  if ( string )
-	    string += sublen;
+	  while ( sublen-- ) {
+	    len++;
+	    if ( string ) {
+	      *string = xform(*string);
+	      string++;
+	    }
+	  }
 	} else {
 	  len++;
 	  if ( string )
-	    *string++ = pattern[1];
+	    *string++ = xform(pattern[1]);
 	}
       }
       pattern += 2;
     } else {
       len++;
       if ( string )
-	*string++ = *pattern;
+	*string++ = xform(*pattern);
       pattern++;
     }
   }
@@ -181,6 +219,9 @@ static int parseline(char *line, struct rule *r, int lineno)
     case 'P':
       r->rule_flags |= RULE_PUTONLY;
       break;
+    case '~':
+      r->rule_flags |= RULE_INVERSE;
+      break;
     default:
       syslog(LOG_ERR, "Remap command \"%s\" on line %d contains invalid char \"%c\"",
 	     buffer, lineno, *p);
@@ -192,6 +233,11 @@ static int parseline(char *line, struct rule *r, int lineno)
   /* RULE_GLOBAL only applies when RULE_REWRITE specified */
   if ( !(r->rule_flags & RULE_REWRITE) )
     r->rule_flags &= ~RULE_GLOBAL;
+
+  if ( r->rule_flags & (RULE_INVERSE|RULE_REWRITE) ) {
+    syslog(LOG_ERR, "r rules cannot be inverted, line %d: %s\n", lineno, line);
+    return -1;			/* Error */
+  }
 
   /* Read and compile the regex */
   if ( !readescstring(buffer, &line) ) {
@@ -303,10 +349,18 @@ char *rewrite_string(const char *input, const struct rule *rules,
     }
 
     do {
-      if ( regexec(&ruleptr->rx, current, 10, pmatch, 0) == 0 ) {
+      if ( regexec(&ruleptr->rx, current, 10, pmatch, 0) ==
+	   (ruleptr->rule_flags & RULE_INVERSE ? REG_NOMATCH : 0) ) {
 	/* Match on this rule */
 	was_match = 1;
-	
+
+	if ( ruleptr->rule_flags & RULE_INVERSE ) {
+	  /* No actual match, so clear out the pmatch array */
+	  int i;
+	  for ( i = 0 ; i < 10 ; i++ )
+	    pmatch[i].rm_so = pmatch[i].rm_eo = -1;
+	}
+
 	if ( ruleptr->rule_flags & RULE_ABORT ) {
 	  if ( verbosity >= 3 ) {
 	    syslog(LOG_INFO, "remap: rule %d: abort: %s",

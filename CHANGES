@@ -1,5 +1,12 @@
 $Id$
 
+Changes in 0.39:
+	Support Perl-style \U...\E and \L...\E, as well as allow
+	matching rules to be inverted (execute if rule *doesn't*
+	match.)
+
+	Fix a timeout bug.
+
 Changes in 0.38:
 	Portability fixes.
 
