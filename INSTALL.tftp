@@ -29,3 +29,10 @@ client installing as /usr/bin/tftp and the tftpd server installing as
 "make install" supports specifying an INSTALLROOT, which points to
 what will be the root of the filesystem at runtime; this is typically
 used when preparing packages for package-management systems.
+
+You almost certainly will need GNU make to build tftp-hpa.  If you
+don't already have it, you can find GNU make at:
+
+    ftp://ftp.gnu.org/pub/make/
+or
+    ftp://mirrors.kernel.org/gnu/make/
