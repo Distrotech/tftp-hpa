@@ -696,7 +696,7 @@ struct formats {
   void	(*f_recv)(struct formats *, struct tftphdr *, int);
   int	f_convert;
 } formats[] = {
-  { "netascii",   rewrite_access, validate_access, tftp_sendfile, tftp_recvfile, 1 },
+  { "netascii", rewrite_access, validate_access, tftp_sendfile, tftp_recvfile, 1 },
   { "octet",	rewrite_access, validate_access, tftp_sendfile, tftp_recvfile, 0 },
   { NULL, NULL, NULL, NULL, NULL, 0 }
 };
