@@ -23,8 +23,3 @@ installation instructions.
 This software can be discussed on the SYSLINUX mailing list.  To
 subscribe, send a message containing the word "subscribe" in the body
 to <syslinux-request@linux.kernel.org>.
-
-Please note that my main focus in this work is the tftpd
-server. Although a tftp client is included, it is by and large the
-stock OpenBSD version, with a small handful of portability
-improvements.

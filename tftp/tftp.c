@@ -104,9 +104,10 @@ tftp_sendfile(int fd, char *name, char *mode)
 	struct tftphdr *ap;	   /* data and ack packets */
 	struct tftphdr *dp;
 	int n;
+	volatile int is_request;
 	volatile u_short block;
 	volatile int size, convert;
-	volatile unsigned long amount;
+	volatile off_t amount;
 	struct sockaddr_in from;
 	int fromlen;
 	FILE *file;
@@ -117,13 +118,14 @@ tftp_sendfile(int fd, char *name, char *mode)
 	file = fdopen(fd, "r");
 	convert = !strcmp(mode, "netascii");
 	block = 0;
+	is_request = 1;		/* First packet is the actual WRQ */
 	amount = 0;
 
 	bsd_signal(SIGALRM, timer);
 	do {
-		if (block == 0)
+		if (is_request) {
 			size = makerequest(WRQ, name, dp, mode) - 4;
-		else {
+		} else {
 		/*	size = read(fd, dp->th_data, SEGSIZE);	 */
 			size = readit(file, &dp, convert);
 			if (size < 0) {
@@ -187,8 +189,9 @@ send_data:
 				}
 			}
 		}
-		if (block > 0)
+		if ( !is_request )
 			amount += size;
+		is_request = 0;
 		block++;
 	} while (size == SEGSIZE || block == 1);
 abort:

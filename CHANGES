@@ -5,6 +5,8 @@ Changes in 0.24:
 	wraparound, usually manifesting themselves as failure to
 	handle files over 32 MB in size.
 
+	Officially make the client a part of the tftp-hpa project.
+
 
 Changes in 0.23:
 	Correct memory overwrite bug in the tftp client when compiled
