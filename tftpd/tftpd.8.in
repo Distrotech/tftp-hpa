@@ -111,8 +111,8 @@ option is not specified, or inherited from the invoking process if
 is specified.
 .TP
 .B \-p
-Indicate that no permissions checks beyond the normal system-provided
-permission check for the user specified via the
+Perform no additional permissions checks above the normal
+system-provided access controls for the user specified via the
 .B \-u
 option.
 .TP
