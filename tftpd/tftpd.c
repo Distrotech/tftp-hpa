@@ -78,8 +78,11 @@ static const char *rcsid = "tftp-hpa $Id$";
 
 #ifdef HAVE_TCPWRAPPERS
 #include <tcpd.h>
+
 int deny_severity	= LOG_WARNING;
 int allow_severity	= LOG_INFO;
+
+struct request_info wrap_request;
 #endif
 
 void bsd_signal(int, void (*)(int));
@@ -150,7 +153,7 @@ struct options {
 static void
 usage(void)
 {
-	syslog(LOG_ERR, "Usage: %s [-cs] [-r option...] [directory ...]",
+	syslog(LOG_ERR, "Usage: %s [-c] [-u user] [-r option...] [-s] [directory ...]",
 	       __progname);
 	exit(1);
 }
@@ -168,10 +171,12 @@ main(int argc, char **argv)
 	int pid;
 	int i, j;
 	int c;
+	int setrv;
+	char *user = "nobody";	/* Default user */
 
 	openlog("tftpd", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
-	while ((c = getopt(argc, argv, "csr:")) != -1)
+	while ((c = getopt(argc, argv, "csu:r:")) != -1)
 		switch (c) {
 		case 'c':
 			cancreate = 1;
@@ -179,6 +184,9 @@ main(int argc, char **argv)
 		case 's':
 			secure = 1;
 			break;
+		case 'u':
+		  user = optarg;
+		  break;
 		case 'r':
 		  for ( opt = options ; opt->o_opt ; opt++ ) {
 		    if ( !strcasecmp(optarg, opt->o_opt) ) {
@@ -226,26 +234,17 @@ main(int argc, char **argv)
 		}
 	}
 
-	pw = getpwnam("nobody");
+	pw = getpwnam(user);
 	if (!pw) {
-		syslog(LOG_ERR, "no nobody: %m");
+		syslog(LOG_ERR, "no user %s: %m", user);
 		exit(1);
 	}
-
-	if (secure && chroot(".")) {
-		syslog(LOG_ERR, "chroot: %m");
-		exit(1);
-	}
-
-	(void) setegid(pw->pw_gid);
-	(void) setgid(pw->pw_gid);
-	(void) seteuid(pw->pw_uid);
-	(void) setuid(pw->pw_uid);
 
 	if (ioctl(fd, FIONBIO, &on) < 0) {
 		syslog(LOG_ERR, "ioctl(FIONBIO): %m");
 		exit(1);
 	}
+
 	fromlen = sizeof (from);
 	n = myrecvfrom(fd, buf, sizeof (buf), 0,
 		       (struct sockaddr *)&from, &fromlen,
@@ -258,9 +257,40 @@ main(int argc, char **argv)
 #ifdef HAVE_TCPWRAPPERS
 	/* Verify if this was a legal request for us. */
 
-	if ( hosts_ctl("tftp", STRING_UNKNOWN, inet_ntoa(from.sin_addr), STRING_UNKNOWN) == 0 )
+	request_init(&wrap_request,
+		     RQ_DAEMON, "tftpd",
+		     RQ_FILE, fd,
+		     RQ_CLIENT_SIN, &from,
+		     RQ_SERVER_SIN, &myaddr,
+		     0);
+	if ( hosts_access(wrap_request) == 0 )
 	  exit(1);		/* Access denied */
 #endif
+
+	/* Drop privileges */
+	if (secure && chroot(".")) {
+		syslog(LOG_ERR, "chroot: %m");
+		exit(1);
+	}
+
+#ifdef HAVE_SETREGID
+	setrv = setregid(pw->pw_gid, pw->pw_gid);
+#else
+	setrv = setegid(pw->pw_gid) || setgid(pw->pw_gid);
+#endif
+
+#ifdef HAVE_SETREUID
+	setrv = setrv || setreuid(pw->pw_uid, pw->pw_uid);
+#else
+	/* Important: setuid() must come first */
+	setrv = setrv || setuid(pw->pw_uid) ||
+	  (geteuid() != pw->pw_uid && seteuid(pw->pw_uid));
+#endif
+
+	if ( setrv ) {
+	  syslog(LOG_ERR, "cannot drop privileges: %m");
+	  exit(1);
+	}
 
 	/*
 	 * Now that we have read the message out of the UDP
