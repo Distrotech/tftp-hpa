@@ -42,7 +42,7 @@ General information on the tftp-hpa series:
 
 This is a conglomerate of a number of versions of the BSD TFTP code,
 ported to Linux, although it should work on mostly any POSIX-compliant
-OS with sockets.
+OS with sockets.  You may have to use GNU make to build it.
 
 The core software was taken from OpenBSD (CVS source as of
 1999-09-21).  I believe this was the most secure source base available
