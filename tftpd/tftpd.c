@@ -79,15 +79,17 @@ int allow_severity	= -1;	/* Don't log at all */
 struct request_info wrap_request;
 #endif
 
-#define	TIMEOUT 5		/* Default timeout (seconds) */
-#define TRIES   4		/* Number of attempts to send each packet */
-#define TIMEOUT_LIMIT (TRIES*(TRIES+1)/2)
+#define	TIMEOUT 1000		/* Default timeout (ms) */
+#define TRIES   6		/* Number of attempts to send each packet */
+#define TIMEOUT_LIMIT ((1 << TRIES)-1)
 
 char   *__progname;
 int	peer;
-int	timeout    = TIMEOUT;
-int	rexmtval   = TIMEOUT;
+int	timeout    = TIMEOUT;	/* Current timeout value */
+int     timeout_quit = 0;
+int	rexmtval   = TIMEOUT;	/* Basic timeout value */
 int	maxtimeout = TIMEOUT_LIMIT*TIMEOUT;
+sigjmp_buf	timeoutbuf;
 
 #define	PKTSIZE	MAX_SEGSIZE+4
 char	buf[PKTSIZE];
@@ -121,6 +123,7 @@ int set_blksize(char *, char **);
 int set_blksize2(char *, char **);
 int set_tsize(char *, char **);
 int set_timeout(char *, char **);
+int set_utimeout(char *, char **);
 
 struct options {
   const char    *o_opt;
@@ -130,6 +133,7 @@ struct options {
   { "blksize2",   set_blksize2  },
   { "tsize",      set_tsize },
   { "timeout",	  set_timeout  },
+  { "utimeout",	  set_utimeout  },
   { NULL,         NULL }
 };
 
@@ -141,6 +145,17 @@ static void handle_sighup(int sig)
   caught_sighup = 1;
 }
 
+
+/* Handle timeout signal or timeout event */
+void
+timer(int sig)
+{
+  (void)sig;			/* Suppress unused warning */
+  timeout <<= 1;
+  if (timeout >= maxtimeout || timeout_quit)
+    exit(0);
+  siglongjmp(timeoutbuf, 1);
+}
 
 static void
 usage(void)
@@ -186,6 +201,49 @@ set_socket_nonblock(int fd, int flag)
   if ( err ) {
     syslog(LOG_ERR, "Cannot set nonblock flag on socket: %m");
     exit(EX_OSERR);
+  }
+}
+
+/*
+ * Receive packet with synchronous timeout
+ */
+static int recv_time(int s, void *rbuf, int len, unsigned int flags,
+		     unsigned long timeout_ms)
+{
+  fd_set fdset;
+  struct timeval tmv;
+  int rv, err;
+
+  for ( ; ; ) {
+    FD_ZERO(&fdset);
+    FD_SET(s, &fdset);
+    
+    tmv.tv_sec  = timeout_ms/1000;
+    tmv.tv_usec = (timeout_ms%1000)*1000;
+    
+    do {
+      rv = select(s+1, &fdset, NULL, NULL, &tmv);
+    } while ( rv == -1 && errno == EINTR );
+    
+    if ( rv == 0 ) {
+      timer(0);			/* Should not return */
+      return -1;
+    }
+    
+    set_socket_nonblock(s, 1);
+    rv = recv(s, rbuf, len, flags);
+    err = errno;
+    set_socket_nonblock(s, 0);
+    if ( rv < 0 ) {
+      if ( E_WOULD_BLOCK(err) || err == EINTR ) {
+	continue;		/* Once again, with feeling... */
+      } else {
+	errno = err;
+	return rv;
+      }
+    } else {
+      return rv;
+    }
   }
 }
 
@@ -589,7 +647,6 @@ main(int argc, char **argv)
   
   /* Other basic setup */
   from.sin_family = AF_INET;
-  alarm(0);
   
   /* Process the request... */
   
@@ -810,7 +867,9 @@ set_tsize(char *val, char **ret)
 }
 
 /*
- * Set the timeout (c.f. RFC2349)
+ * Set the timeout (c.f. RFC2349).  This is supposed
+ * to be the (default) retransmission timeout, but being an
+ * integer in seconds it seems a bit limited.
  */
 int
 set_timeout(char *val, char **ret)
@@ -824,14 +883,32 @@ set_timeout(char *val, char **ret)
   if ( to < 1 || to > 255 || *vend )
     return 0;
   
-  timeout    = to;
-  rexmtval   = to;
-  maxtimeout = TIMEOUT_LIMIT*to;
+  rexmtval = timeout = to;
+  maxtimeout = rexmtval*TIMEOUT_LIMIT;
   
   sprintf(*ret = b_ret, "%lu", to);
   return(1);
 }
 
+/* Similar, but in microseconds.  We allow down to 10 ms. */
+int
+set_utimeout(char *val, char **ret)
+{
+  static char b_ret[4];
+  unsigned long to;
+  char *vend;
+
+  to = strtoul(val, &vend, 10);
+
+  if ( to < 10000UL || to > 255000000UL || *vend )
+    return 0;
+  
+  rexmtval = timeout = to/1000UL;
+  maxtimeout = rexmtval*TIMEOUT_LIMIT;
+  
+  sprintf(*ret = b_ret, "%lu", to);
+  return(1);
+}
 /*
  * Parse RFC2347 style options
  */
@@ -1030,20 +1107,6 @@ validate_access(char *filename, int mode, struct formats *pf)
   return (0);
 }
 
-int	timeout;
-sigjmp_buf	timeoutbuf;
-
-/* Handle timeout signal */
-void
-timer(int sig)
-{
-  (void)sig;			/* Suppress unused warning */
-  timeout += rexmtval;
-  if (timeout >= maxtimeout)
-    exit(0);
-  siglongjmp(timeoutbuf, 1);
-}
-
 /*
  * Send the requested file.
  */
@@ -1058,28 +1121,24 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   ap = (struct tftphdr *)ackbuf;
   
   if (oap) {
-    timeout = 0;
+    timeout = rexmtval;
     (void)sigsetjmp(timeoutbuf,1);
   oack:
     if (send(peer, oap, oacklen, 0) != oacklen) {
-      syslog(LOG_ERR, "tftpd: oack: %m\n");
+      syslog(LOG_WARN, "tftpd: oack: %m\n");
       goto abort;
     }
     for ( ; ; ) {
-      set_signal(SIGALRM, timer, SA_RESTART);
-      alarm(rexmtval);
-      n = recv(peer, ackbuf, sizeof(ackbuf), 0);
-      alarm(0);
+      n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, timeout);
       if (n < 0) {
-	syslog(LOG_ERR, "tftpd: read: %m\n");
+	syslog(LOG_WARN, "tftpd: read: %m\n");
 	goto abort;
       }
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
       ap->th_block = ntohs((u_short)ap->th_block);
       
       if (ap->th_opcode == ERROR) {
-	syslog(LOG_ERR, "tftp: client does not accept "
-	       "options\n");
+	syslog(LOG_WARN, "tftp: client does not accept options\n");
 	goto abort;
       }
       if (ap->th_opcode == ACK) {
@@ -1101,21 +1160,18 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     }
     dp->th_opcode = htons((u_short)DATA);
     dp->th_block = htons((u_short)block);
-    timeout = 0;
+    timeout = rexmtval;
     (void) sigsetjmp(timeoutbuf,1);
     
     if (send(peer, dp, size + 4, 0) != size + 4) {
-      syslog(LOG_ERR, "tftpd: write: %m");
+      syslog(LOG_WARN, "tftpd: write: %m");
       goto abort;
     }
     read_ahead(file, pf->f_convert);
     for ( ; ; ) {
-      set_signal(SIGALRM, timer, SA_RESTART);
-      alarm(rexmtval);	/* read the ack */
-      n = recv(peer, ackbuf, sizeof (ackbuf), 0);
-      alarm(0);
+      n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, timeout);
       if (n < 0) {
-	syslog(LOG_ERR, "tftpd: read(ack): %m");
+	syslog(LOG_WARN, "tftpd: read(ack): %m");
 	goto abort;
       }
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
@@ -1168,7 +1224,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 
   dp = w_init();
   do {
-    timeout = 0;
+    timeout = rexmtval;
     
     if (!block && oap) {
       ap = (struct tftphdr *)ackbuf;
@@ -1181,20 +1237,16 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     }
     block++;
     (void) sigsetjmp(timeoutbuf,1);
-    set_signal(SIGALRM, timer, SA_RESTART);
   send_ack:
     if (send(peer, ackbuf, acksize, 0) != acksize) {
-      syslog(LOG_ERR, "tftpd: write(ack): %m");
+      syslog(LOG_WARN, "tftpd: write(ack): %m");
       goto abort;
     }
     write_behind(file, pf->f_convert);
     for ( ; ; ) {
-      set_signal(SIGALRM, timer, SA_RESTART);
-      alarm(rexmtval);
-      n = recv(peer, dp, PKTSIZE, 0);
-      alarm(0);
+      n = recv_time(peer, dp, PKTSIZE, 0, timeout);
       if (n < 0) {		/* really? */
-	syslog(LOG_ERR, "tftpd: read: %m");
+	syslog(LOG_WARN, "tftpd: read: %m");
 	goto abort;
       }
       dp->th_opcode = ntohs((u_short)dp->th_opcode);
@@ -1226,10 +1278,10 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   ap->th_block = htons((u_short)(block));
   (void) send(peer, ackbuf, 4, 0);
   
-  set_signal(SIGALRM, justquit, 0); /* just quit on timeout */
-  alarm(rexmtval);
-  n = recv(peer, buf, sizeof (buf), 0); /* normally times out and quits */
-  alarm(0);
+  timeout_quit = 1;		/* just quit on timeout */
+  n = recv_time(peer, buf, sizeof (buf), 0, timeout); /* normally times out and quits */
+  timeout_quit = 0;
+
   if (n >= 4 &&			/* if read some data */
       dp->th_opcode == DATA &&    /* and got a data block */
       block == dp->th_block) {	/* then my last ack was lost */
@@ -1289,5 +1341,5 @@ nak(int error)
   }
   
   if (send(peer, buf, length, 0) != length)
-    syslog(LOG_ERR, "nak: %m");
+    syslog(LOG_WARN, "nak: %m");
 }
