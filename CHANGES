@@ -5,6 +5,8 @@ Changes in 0.33:
 
 	Work around a suspect Solaris gcc bug.
 
+	Configuration fix: readline needs termcap.
+
 
 Changes in 0.32:
 	Better error messages; including the capability to send a
