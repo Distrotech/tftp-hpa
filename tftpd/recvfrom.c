@@ -26,12 +26,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
-#include "../config.h"
-#include "recvfrom.h"
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+
+#include "../config.h"
+#include "recvfrom.h"
+#include "tftpsubs.h"
 
 #if defined(HAVE_RECVMSG) && defined(HAVE_MSGHDR_MSG_CONTROL)
 

@@ -149,7 +149,7 @@ struct options {
   { "blksize",    set_blksize  },
   { "blksize2",   set_blksize2  },
   { "tsize",      set_tsize },
-  { "timeout",	set_timeout  },
+  { "timeout",	  set_timeout  },
   { NULL,         NULL }
 };
 
@@ -201,12 +201,12 @@ main(int argc, char **argv)
   int n;
   int on = 1;
   int fd = 0;
-  int listen = 0;		/* Standalone (listen) mode */
+  int standalone = 0;		/* Standalone (listen) mode */
   char *address = NULL;		/* Address to listen to */
   int pid;
   int c;
   int setrv;
-  int timeout = 900;		/* Default timeout */
+  int waittime = 900;		/* Default time to wait for a connect*/
   const char *user = "nobody";	/* Default user */
   char *p;
 #ifdef WITH_REGEX
@@ -229,13 +229,13 @@ main(int argc, char **argv)
       secure = 1;
       break;
     case 'l':
-      listen = 1;
+      standalone = 1;
       break;
     case 'a':
       address = optarg;
       break;
     case 't':
-      timeout = atoi(optarg);
+      waittime = atoi(optarg);
       break;
     case 'u':
       user = optarg;
@@ -307,7 +307,7 @@ main(int argc, char **argv)
 #endif
 
   /* If we're running standalone, set up the input port */
-  if ( listen ) {
+  if ( standalone ) {
     fd = socket(PF_INET, SOCK_DGRAM, 0);
     
     memset(&bindaddr, 0, sizeof bindaddr);
@@ -376,8 +376,12 @@ main(int argc, char **argv)
   }
 
   /* This means we don't want to wait() for children */
+#ifdef SA_NOCLDWAIT
+  set_signal(SIGCHLD, SIG_IGN, SA_NOCLDSTOP|SA_NOCLDWAIT);
+#else
   set_signal(SIGCHLD, SIG_IGN, SA_NOCLDSTOP);
-  
+#endif
+
   /* Take SIGHUP and use it to set a variable.  This
      is polled synchronously to make sure we don't
      lose packets as a result. */
@@ -385,12 +389,12 @@ main(int argc, char **argv)
   
   while ( 1 ) {
     fd_set readset;
-    struct timeval tv_timeout;
+    struct timeval tv_waittime;
     int rv;
     
     if ( caught_sighup ) {
       caught_sighup = 0;
-      if ( listen ) {
+      if ( standalone ) {
 #ifdef HAVE_REGEX
 	if ( rewrite_file ) {
 	  freerules(rewrite_rules);
@@ -405,11 +409,11 @@ main(int argc, char **argv)
     
     FD_ZERO(&readset);
     FD_SET(fd, &readset);
-    tv_timeout.tv_sec = timeout;
-    tv_timeout.tv_usec = 0;
+    tv_waittime.tv_sec = waittime;
+    tv_waittime.tv_usec = 0;
     
-    /* Never time out if we're in listen mode */
-    rv = select(fd+1, &readset, NULL, NULL, listen ? NULL : &tv_timeout);
+    /* Never time out if we're in standalone mode */
+    rv = select(fd+1, &readset, NULL, NULL, standalone ? NULL : &tv_waittime);
     if ( rv == -1 && errno == EINTR )
       continue;		/* Signal caught, reloop */
     if ( rv == -1 ) {
@@ -424,7 +428,7 @@ main(int argc, char **argv)
 		   (struct sockaddr *)&from, &fromlen,
 		   &myaddr);
 
-    if ( listen && myaddr.sin_addr.s_addr == INADDR_ANY ) {
+    if ( standalone && myaddr.sin_addr.s_addr == INADDR_ANY ) {
       /* myrecvfrom() didn't capture the source address; but we might
 	 have bound to a specific address, if so we should use it */
       memcpy(&myaddr.sin_addr, &bindaddr.sin_addr, sizeof bindaddr.sin_addr);
@@ -651,9 +655,12 @@ int
 set_blksize(char *val, char **ret)
 {
   static char b_ret[6];
-  unsigned int sz = atoi(val);
+  unsigned int sz;
+  char *vend;
   
-  if ( blksize_set )
+  sz = (unsigned int)strtoul(val, &vend, 10);
+  
+  if ( blksize_set || *vend )
     return 0;
   
   if (sz < 8)
@@ -676,9 +683,12 @@ int
 set_blksize2(char *val, char **ret)
 {
   static char b_ret[6];
-  unsigned int sz = atoi(val);
+  unsigned int sz;
+  char *vend;
   
-  if ( blksize_set )
+  sz = (unsigned int)strtoul(val, &vend, 10);
+  
+  if ( blksize_set || *vend )
     return 0;
   
   if (sz < 8)
@@ -711,15 +721,19 @@ set_blksize2(char *val, char **ret)
 int
 set_tsize(char *val, char **ret)
 {
-  static char b_ret[sizeof(off_t)*CHAR_BIT/3+2];
-  off_t sz = atol(val);
+  static char b_ret[sizeof(uintmax_t)*CHAR_BIT/3+2];
+  uintmax_t sz;
+  char *vend;
+
+  sz = strtoumax(val, &vend, 10);
   
-  if ( !tsize_ok )
+  if ( !tsize_ok || *vend )
     return 0;
   
   if (sz == 0)
-    sz = tsize;
-  sprintf(*ret = b_ret, "%lu", sz);
+    sz = (uintmax_t)tsize;
+
+  sprintf(*ret = b_ret, "%"PRIuMAX, sz);
   return(1);
 }
 
@@ -730,9 +744,12 @@ int
 set_timeout(char *val, char **ret)
 {
   static char b_ret[4];
-  unsigned long to = atol(val);
-  
-  if ( to < 1 || to > 255 )
+  unsigned long to;
+  char *vend;
+
+  to = strtoul(val, &vend, 10);
+
+  if ( to < 1 || to > 255 || *vend )
     return 0;
   
   timeout    = to;

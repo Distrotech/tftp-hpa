@@ -11,8 +11,8 @@ AC_PROG_CC
 AC_C_CONST
 AC_C_INLINE
 
-PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-W)
+PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-Wpointer-arith)
 PA_ADD_CFLAGS(-Wbad-function-cast)
 PA_ADD_CFLAGS(-Wcast-equal)
@@ -22,11 +22,15 @@ PA_ADD_CFLAGS(-Wmissing-declarations)
 PA_ADD_CFLAGS(-Wnested-externs)
 PA_ADD_CFLAGS(-Winline)
 PA_ADD_CFLAGS(-Wwrite-strings)
+PA_ADD_CFLAGS(-Wundef)
+PA_ADD_CFLAGS(-Wshadow)
+PA_ADD_CFLAGS(-Wsign-compare)
 PA_ADD_CFLAGS(-pipe)
 
 AC_CHECK_HEADERS(sysexits.h)
 AC_CHECK_HEADERS(strings.h)
 AC_CHECK_HEADERS(libgen.h)
+AC_CHECK_HEADERS(inttypes.h)
 AC_CHECK_HEADERS(sys/filio.h)
 
 AC_SEARCH_LIBS(socket, socket, , [AC_MSG_ERROR(socket library not found)])
@@ -64,6 +68,7 @@ PA_WITH_BOOL(remap, 1,
 ],:)
 
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
+PA_HAVE_LONG_LONG([AC_DEFINE(HAVE_LONG_LONG)])
 
 LIBXTRA=false
 AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")

@@ -295,7 +295,7 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 	
 	if ( ruleptr->rule_flags & RULE_ABORT ) {
 	  if ( verbosity >= 3 ) {
-	    syslog(LOG_INFO, "remap: rule %d: abort",
+	    syslog(LOG_INFO, "remap: rule %d: abort: %s",
 		   ruleptr->nrule, current);
 	  }
 	  free(current);

@@ -32,6 +32,24 @@ AC_DEFUN(PA_SIGSETJMP,
  $2)])
 
 dnl --------------------------------------------------------------------------
+dnl PA_HAVE_LONG_LONG
+dnl
+dnl Does the C compiler support long long?
+dnl --------------------------------------------------------------------------
+AC_DEFUN(PA_HAVE_LONG_LONG,
+[AC_MSG_CHECKING([if C compiler supports long long])
+ AC_TRY_LINK(
+ [],
+ [long long foo = 1LL;
+  unsigned long long bar = 1ULL;
+  return (int)(foo-bar);
+ ],
+ AC_MSG_RESULT([yes])
+ $1,
+ AC_MSG_RESULT([no])
+ $2)])
+
+dnl --------------------------------------------------------------------------
 dnl PA_MSGHDR_MSG_CONTROL
 dnl
 dnl Does struct msghdr have the msg_control field?

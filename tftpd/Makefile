@@ -16,6 +16,7 @@ tftpsubs.h:
 $(OBJS): tftpsubs.h
 
 install: tftpd
+	mkdir -p $(INSTALLROOT)$(SBINDIR) $(INSTALLROOT)$(MANDIR)/man8
 	$(INSTALL_PROGRAM) tftpd $(INSTALLROOT)$(SBINDIR)/in.tftpd
 	$(INSTALL_DATA)    tftpd.8 $(INSTALLROOT)$(MANDIR)/man8/in.tftpd.8
 	ln -sf in.tftpd.8 $(INSTALLROOT)$(MANDIR)/man8/tftpd.8

@@ -349,7 +349,6 @@ put(int argc, char *argv[])
 	}
 	targ = argv[argc - 1];
 	if (strchr(argv[argc - 1], ':')) {
-		char *cp;
 		struct hostent *hp;
 
 		for (n = 1; n < argc - 1; n++)
