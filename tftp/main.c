@@ -220,15 +220,47 @@ main(int argc, char *argv[])
 
 char    *hostname;
 
+/* Called when a command is incomplete; modifies
+   the global variable "line" */
+static void
+getmoreargs(const char *partial, const char *mprompt)
+{
+#ifdef WITH_READLINE
+  char *eline;
+  int len, elen;
+  
+  len = strlen(partial);
+  eline = readline(mprompt);
+  if (!eline)
+	  exit(0);		/* EOF */
+  
+  elen = strlen(eline);
+
+  if (line)
+	  free(line);
+  line = xmalloc(len+elen+1);
+  strcpy(line, partial);
+  strcpy(line+len, eline);
+
+  add_history(line);
+#else
+  int len = strlen(partial);
+  
+  strcpy(line, partial);
+  fputs(mprompt, stdout);
+  if ( fgets(line+len, LBUFLEN-len, stdin) == 0 )
+	  if ( feof(stdin) )
+		  exit(0);	/* EOF */
+#endif
+}
+
 void
 setpeer(int argc, char *argv[])
 {
 	struct hostent *host;
 
 	if (argc < 2) {
-		strcpy(line, "Connect ");
-		printf("(to) ");
-		fgets(&line[strlen(line)], LBUFLEN-strlen(line), stdin);
+		getmoreargs("connect ", "(to) ");
 		makeargv();
 		argc = margc;
 		argv = margv;
@@ -344,9 +376,7 @@ put(int argc, char *argv[])
 	char *cp, *targ;
 
 	if (argc < 2) {
-		strcpy(line, "send ");
-		printf("(file) ");
-		fgets(&line[strlen(line)], LBUFLEN-strlen(line), stdin);
+		getmoreargs("send ", "(file) ");
 		makeargv();
 		argc = margc;
 		argv = margv;
@@ -434,9 +464,7 @@ get(int argc, char *argv[])
 	char *src;
 
 	if (argc < 2) {
-		strcpy(line, "get ");
-		printf("(files) ");
-		fgets(&line[strlen(line)], LBUFLEN-strlen(line), stdin);
+		getmoreargs("get ", "(files) ");
 		makeargv();
 		argc = margc;
 		argv = margv;
@@ -515,9 +543,7 @@ setrexmt(int argc, char *argv[])
 	int t;
 
 	if (argc < 2) {
-		strcpy(line, "Rexmt-timeout ");
-		printf("(value) ");
-		fgets(&line[strlen(line)], LBUFLEN-strlen(line), stdin);
+		getmoreargs("rexmt-timeout ", "(value) ");
 		makeargv();
 		argc = margc;
 		argv = margv;
@@ -541,9 +567,7 @@ settimeout(int argc, char *argv[])
 	int t;
 
 	if (argc < 2) {
-		strcpy(line, "Maximum-timeout ");
-		printf("(value) ");
-		fgets(&line[strlen(line)], LBUFLEN-strlen(line), stdin);
+		getmoreargs("maximum-timeout ", "(value) ");
 		makeargv();
 		argc = margc;
 		argv = margv;
@@ -610,10 +634,10 @@ command(void)
 	for (;;) {
 #ifdef WITH_READLINE
 	        if ( line )
-		     free(line);
+			free(line);
 	        line = readline(prompt);
 		if ( !line )
-		     exit(0);	/* EOF */
+			exit(0); /* EOF */
 #else
 	        fputs(prompt, stdout);
 		if (fgets(line, LBUFLEN, stdin) == 0) {
