@@ -79,17 +79,17 @@ int allow_severity	= -1;	/* Don't log at all */
 struct request_info wrap_request;
 #endif
 
-#define	TIMEOUT 1000		/* Default timeout (ms) */
+#define	TIMEOUT 1000000		/* Default timeout (us) */
 #define TRIES   6		/* Number of attempts to send each packet */
 #define TIMEOUT_LIMIT ((1 << TRIES)-1)
 
-char   *__progname;
-int	peer;
-int	timeout    = TIMEOUT;	/* Current timeout value */
-int     timeout_quit = 0;
-int	rexmtval   = TIMEOUT;	/* Basic timeout value */
-int	maxtimeout = TIMEOUT_LIMIT*TIMEOUT;
-sigjmp_buf	timeoutbuf;
+const char    *__progname;
+int	      peer;
+unsigned long timeout    = TIMEOUT;	/* Current timeout value */
+unsigned long rexmtval   = TIMEOUT;	/* Basic timeout value */
+unsigned long maxtimeout = TIMEOUT_LIMIT*TIMEOUT;
+int           timeout_quit = 0;
+sigjmp_buf    timeoutbuf;
 
 #define	PKTSIZE	MAX_SEGSIZE+4
 char	buf[PKTSIZE];
@@ -160,7 +160,7 @@ timer(int sig)
 static void
 usage(void)
 {
-  syslog(LOG_ERR, "Usage: %s [-vcl][-a address][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
+  syslog(LOG_ERR, "Usage: %s [-vcl][-a address][-m mappings][-u user][-t inetd_timeout][-T pkt_timeout][-r option...] [-s] [directory ...]",
 	 __progname);
   exit(EX_USAGE);
 }
@@ -208,7 +208,7 @@ set_socket_nonblock(int fd, int flag)
  * Receive packet with synchronous timeout
  */
 static int recv_time(int s, void *rbuf, int len, unsigned int flags,
-		     unsigned long timeout_ms)
+		     unsigned long timeout_us)
 {
   fd_set fdset;
   struct timeval tmv;
@@ -218,8 +218,8 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
     FD_ZERO(&fdset);
     FD_SET(s, &fdset);
     
-    tmv.tv_sec  = timeout_ms/1000;
-    tmv.tv_usec = (timeout_ms%1000)*1000;
+    tmv.tv_sec  = timeout_us / 1000000;
+    tmv.tv_usec = timeout_us % 1000000;
     
     do {
       rv = select(s+1, &fdset, NULL, NULL, &tmv);
@@ -278,7 +278,7 @@ main(int argc, char **argv)
   
   openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
   
-  while ((c = getopt(argc, argv, "cspvVla:u:U:r:t:m:")) != -1)
+  while ((c = getopt(argc, argv, "cspvVla:u:U:r:t:T:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
@@ -297,6 +297,18 @@ main(int argc, char **argv)
       break;
     case 't':
       waittime = atoi(optarg);
+      break;
+    case 'T':
+      {
+	char *vp;
+	unsigned long tov = strtoul(optarg, &vp, 10);
+	if ( tov < 10000UL || tov > 255000000UL || *vp ) {
+	  syslog(LOG_ERR, "Bad timeout value: %s", optarg);
+	  exit(EX_USAGE);
+	}
+	rexmtval = timeout = tov;
+	maxtimeout = rexmtval*TIMEOUT_LIMIT;
+      }
       break;
     case 'u':
       user = optarg;
@@ -888,7 +900,7 @@ set_timeout(char *val, char **ret)
   if ( to < 1 || to > 255 || *vend )
     return 0;
   
-  rexmtval = timeout = to;
+  rexmtval = timeout = to*1000000UL;
   maxtimeout = rexmtval*TIMEOUT_LIMIT;
   
   sprintf(*ret = b_ret, "%lu", to);
@@ -908,7 +920,7 @@ set_utimeout(char *val, char **ret)
   if ( to < 10000UL || to > 255000000UL || *vend )
     return 0;
   
-  rexmtval = timeout = to/1000UL;
+  rexmtval = timeout = to;
   maxtimeout = rexmtval*TIMEOUT_LIMIT;
   
   sprintf(*ret = b_ret, "%lu", to);

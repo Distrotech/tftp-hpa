@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "16 November 2001" "tftp-hpa @@VERSION@@" "UNIX System Manager's Manual"
+.TH TFTPD 8 "23 October 2002" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server
@@ -125,6 +125,14 @@ before terminating the server.
 will then respawn the server when another request comes in.  The
 default is 900 (15 minutes.)
 .TP
+\fB\-T\fP \fItimeout\fP
+Determine the default timeout, in microseconds, before the first
+packet is retransmitted.  This can be modified by the client if the
+.B timeout
+or
+.B utimeout
+option is negotiated.  The default is 1000000 (1 second.)
+.TP
 \fB\-m\fP \fIremap-file\fP
 Specify the use of filename remapping.  The
 .I remap-file
@@ -149,25 +157,44 @@ exit gracefully.
 This version of
 .B tftpd
 supports RFC 2347 option negotation.  Currently implemented options
-are
-.B blksize
-(RFC 2348),
-.B blksize2
-(nonstandard),
+are:
+.TP
+\fBblksize\fP (RFC 2348)
+Set the transfer block size to anything less than or equal to the
+specified option.  This version of
+.B tftpd
+can support any block size up to the theoretical maximum of 65464
+bytes.
+.TP
+\fBblksize2\fP (nonstandard)
+Set the transfer block size to anything less than or equal to the
+specified option, but restrict the possible responses to powers of 2.
+The maximum is 32768 bytes (the largest power of 2 less than or equal
+to 65464.)
+.TP
+\fBtsize\fP (RFC 2349)
+Report the size of the file that is about to be transferred.  This
+version of
+.B tftpd
+only supports the
 .B tsize
-(RFC 2349), and
-.B timeout
-(RFC 2349).  The nonstandard
-.B blksize2
-TFTP option is functionally identical to the
-.B blksize
-option, with the additional constraint that the
-blocksize is constrained to be a power of 2.
+option for binary (octet) mode transfers.
+.TP
+\fBtimeout\fP (RFC 2349)
+Set the time before the server retransmits a packet, in seconds.
+.TP
+\fButimeout\fP (nonstandard)
+Set the time before the server retransmits a packet, in microseconds.
+and
 .PP
 The
 .B \-r
 option can be used to disable specific options; this may be necessary
-to work around bugs in specific TFTP client implementations.
+to work around bugs in specific TFTP client implementations.  For
+example, some TFTP clients have been found to request the
+.B blksize
+option, but crash with an error if they actually get the option
+accepted by the server.
 .SH "FILENAME REMAPPING"
 The
 .B \-m

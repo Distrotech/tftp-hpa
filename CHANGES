@@ -1,5 +1,14 @@
 $Id$
 
+Changes in 0.31:
+	Put in a check to make sure xinetd (in particular) doesn't
+	pass us an IPv6 socket.
+
+	Fix some problems related to timeout negotiation.
+
+	Allow the user to set the default timeout speed.
+
+
 Changes in 0.30:
 	(Hopefully) better timeout algorithm.
 
