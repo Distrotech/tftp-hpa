@@ -55,6 +55,33 @@ AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
         AC_MSG_RESULT([no])
 ])])
 
+dnl ------------------------------------------------------------------------
+dnl  PA_STRUCT_IN_PKTINFO
+dnl
+dnl Look for definition of struct in_pktinfo.  Some versions of glibc
+dnl lack struct in_pktinfo; if so we need to include the definition
+dnl ourselves -- but we only want to do that if absolutely necessary!
+dnl ------------------------------------------------------------------------
+AC_DEFUN(PA_STRUCT_IN_PKTINFO,
+[AC_MSG_CHECKING([for definition of struct in_pktinfo])
+ AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+],
+[
+	struct in_pktinfo pktinfo;
+	int foo = sizeof(struct in_pktinfo);
+	void *quux = (void *)(&pktinfo.ipi_addr);
+],
+[
+        AC_DEFINE(HAVE_STRUCT_IN_PKTINFO)
+        AC_MSG_RESULT([yes])
+],
+[
+        AC_MSG_RESULT([no])
+])])
+
 dnl --------------------------------------------------------------------------
 dnl PA_HAVE_TCPWRAPPERS
 dnl

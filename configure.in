@@ -10,6 +10,7 @@ AC_C_INLINE
 
 AC_CHECK_FUNCS(recvmsg)
 PA_MSGHDR_MSG_CONTROL
+PA_STRUCT_IN_PKTINFO
 
 PA_WITH_BOOL(tcpwrappers, 1,
 [ --without-tcpwrappers	Disable tcpwrapper permissions checking],

@@ -19,9 +19,9 @@ all:      MCONFIG $(patsubst %, %.build, $(SUB))
 
 install:  MCONFIG $(patsubst %, %.install, $(SUB))
 
-clean:    MCONFIG $(patsubst %, %.clean, $(SUB))
+clean:    $(patsubst %, %.clean, $(SUB))
 
-spotless: MCONFIG $(patsubst %, %.spotless, $(SUB))
+spotless: $(patsubst %, %.spotless, $(SUB))
 	rm -f MCONFIG config.cache config.log config.h *~ \#*
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
 
