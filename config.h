@@ -134,9 +134,9 @@
 #ifdef HAVE_LONG_LONG
 typedef long long intmax_t;
 typedef unsigned long long uintmax_t;
-#define PRIdMAX	"Ld"
-#define PRIuMAX "Lu"
-#define PRIxMAX "Lx"
+#define PRIdMAX	"lld"
+#define PRIuMAX "llu"
+#define PRIxMAX "llx"
 #define INTMAX_C(x)  (x##LL)
 #define UINTMAX_C(x) (x##ULL)
 #else
