@@ -2,7 +2,7 @@
 # Extra functions which may not be available everywhere
 #
 
-include ../MCONFIG
+-include ../MCONFIG
 include ../MRULES
 
 all:	libxtra.a

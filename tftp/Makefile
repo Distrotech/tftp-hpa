@@ -1,7 +1,7 @@
 all: tftp
 
 -include ../MCONFIG
--include ../MRULES
+include ../MRULES
 
 OBJS = tftp.o main.o tftpsubs.o
 
