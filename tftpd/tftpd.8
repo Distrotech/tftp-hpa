@@ -1,3 +1,4 @@
+.\"   tftp-hpa: $Id$
 .\"   $OpenBSD: tftpd.8,v 1.7 1999/07/09 13:35:51 aaron Exp $
 .\"
 .\" Copyright (c) 1983, 1991 The Regents of the University of California.
@@ -34,18 +35,19 @@
 .\"	from: @(#)tftpd.8	6.7 (Berkeley) 5/13/91
 .\"	$OpenBSD: tftpd.8,v 1.7 1999/07/09 13:35:51 aaron Exp $
 .\"
-.Dd July 9, 2000
+.Dd Apr 23, 2001
 .Dt TFTPD 8
 .Os
 .Sh NAME
 .Nm tftpd
 .Nd
-.Tn DARPA
-Trivial File Transfer Protocol server
+IPv4 Trivial File Transfer Protocol server
 .Sh SYNOPSIS
-.Nm tftpd
-.Op Fl cs
+.Nm in.tftpd
+.Op Fl c
+.Op Fl u Ar userid
 .Op Fl r Ar option...
+.Op Fl s
 .Op Ar directory
 .Sh DESCRIPTION
 .Nm
@@ -78,7 +80,10 @@ to include
 all users on all hosts that can be reached through the network;
 this may not be appropriate on all systems, and its implications
 should be considered before enabling tftp service.
-The server should have the user ID with the lowest possible privilege.
+The server should have the user ID with the lowest possible privilege
+(see the
+.Fl u
+flag below.)
 .Pp
 Access to files may be restricted by invoking
 .Nm
@@ -102,9 +107,16 @@ flag with a directory name,
 .Nm
 will
 .Xr chroot 2
-on startup; therefore the remote host is not expected to pass the directory
-as part of the file name to transfer.  This option is intended primarily for
-compatibility with SunOS boot ROMs which do not include a directory name.
+on startup; therefore the remote host is not expected to pass the
+directory as part of the file name to transfer.  This option is
+recommended for security, as well as compatibility with boot ROMs
+which do not include a directory name.
+.Pp
+The
+.Fl u
+flag can be used to specify a user ID which
+.Nm
+will run as; the default is ``nobody''.
 .Pp
 This version of
 .Nm
@@ -139,3 +151,7 @@ The
 .Fl r
 flag and RFC 2347 options were added by H. Peter Anvin based on
 patches by Markus Gutschke and Gero Kulhman.
+.Pp
+The
+.Fl u
+flag was added by H. Peter Anvin.

@@ -1,0 +1,33 @@
+Starting in version 0.17, tftp-hpa operates in genuine "wait" mode,
+which means that an in.tftpd process hangs around for some time after
+the last service request has arrived.  This speeds up servicing a
+subsequent request, which apparently has been a problem in the past,
+resulting in "request storms" as the client keeps retrying, resulting
+in multiple connections on the server which the client has already
+abandoned.
+
+This also means that spawning tftp via tcpd is useless (in fact, this
+indirection seems to be part of the reason for these "request
+storms.")  Instead, tftp-hpa supports calling the tcpwrapper library
+directly.  Thus, if your /etc/inetd.conf looks like this (all on one
+line):
+
+tftp	dgram	udp	wait	root	/usr/sbin/tcpd
+/usr/sbin/in.tftpd -s /tftpboot -r blksize
+
+... it's better to change to ...
+
+tftp	dgram	udp	wait	root	/usr/sbin/in.tftpd
+in.tftpd -s /tftpboot -r blksize
+
+You should make sure that you are using "wait" option in tftpd; you
+also need to have tftpd spawned as root in order for chroot (-s) to
+work.  tftpd automatically drops privilege and changes user ID to
+"nobody" by default; the appropriate user ID for tftpd can be
+specified with the -u option (e.g. "-u tftpuser").
+
+If you are running a very busy boot server in a secure (firewalled!)
+configuration, you may want to compile tftpd without tcpwrapper
+support, in order to provide significantly better performance.  To do
+so, specify the --without-tcpwrappers option to configure when
+compiling.

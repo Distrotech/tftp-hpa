@@ -53,6 +53,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <signal.h>
 #include <fcntl.h>
 
@@ -154,7 +155,7 @@ struct options {
 static void
 usage(void)
 {
-	syslog(LOG_ERR, "Usage: %s [-c] [-u user] [-r option...] [-s] [directory ...]",
+	syslog(LOG_ERR, "Usage: %s [-c] [-u user] [-t timeout] [-r option...] [-s] [directory ...]",
 	       __progname);
 	exit(1);
 }
@@ -170,16 +171,16 @@ main(int argc, char **argv)
 	int on = 1;
 	int fd = 0;
 	int pid;
-	int i, j;
 	int c;
 	int setrv;
+	int timeout = 900;	/* Default timeout */
 	char *user = "nobody";	/* Default user */
 
 	__progname = basename(argv[0]);
 
 	openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
-	while ((c = getopt(argc, argv, "csu:r:")) != -1)
+	while ((c = getopt(argc, argv, "csu:r:t:")) != -1)
 		switch (c) {
 		case 'c':
 			cancreate = 1;
@@ -187,6 +188,9 @@ main(int argc, char **argv)
 		case 's':
 			secure = 1;
 			break;
+		case 't':
+		  timeout = atoi(optarg);
+		  break;
 		case 'u':
 		  user = optarg;
 		  break;
@@ -248,37 +252,69 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	fromlen = sizeof (from);
-	n = myrecvfrom(fd, buf, sizeof (buf), 0,
-		       (struct sockaddr *)&from, &fromlen,
-		       &myaddr);
-	if (n < 0) {
-		syslog(LOG_ERR, "recvfrom: %m");
-		exit(1);
-	}
+	/* This means we don't want to wait() for children */
+	bsd_signal(SIGCHLD, SIG_IGN);
+
+	do {
+	  fd_set readset;
+	  struct timeval tv_timeout;
+	  
+
+	  FD_ZERO(&readset);
+	  FD_SET(fd, &readset);
+	  tv_timeout.tv_sec = timeout;
+	  tv_timeout.tv_usec = 0;
+
+	  if ( select(fd+1, &readset, NULL, NULL, &tv_timeout) == 0 )
+	    exit(0);		/* Timeout, return to inetd */
+
+	  fromlen = sizeof (from);
+	  n = myrecvfrom(fd, buf, sizeof (buf), 0,
+			 (struct sockaddr *)&from, &fromlen,
+			 &myaddr);
+
+	  if (n < 0) {
+	    syslog(LOG_ERR, "recvfrom: %m");
+	    exit(1);
+	  }
 
 #ifdef HAVE_TCPWRAPPERS
 	/* Verify if this was a legal request for us.  This has to be
 	   done before the chroot, while /etc is still accessible. */
-	request_init(&wrap_request,
-		     RQ_DAEMON, __progname,
-		     RQ_FILE, fd,
-		     RQ_CLIENT_SIN, &from,
-		     RQ_SERVER_SIN, &myaddr,
-		     0);
-	sock_methods(&wrap_request);
-	if ( hosts_access(&wrap_request) == 0 ) {
-	  if ( deny_severity != -1 )
-	    syslog(deny_severity, "connection refused from %s",
+	  request_init(&wrap_request,
+		       RQ_DAEMON, __progname,
+		       RQ_FILE, fd,
+		       RQ_CLIENT_SIN, &from,
+		       RQ_SERVER_SIN, &myaddr,
+		       0);
+	  sock_methods(&wrap_request);
+	  if ( hosts_access(&wrap_request) == 0 ) {
+	    if ( deny_severity != -1 )
+	      syslog(deny_severity, "connection refused from %s",
+		     inet_ntoa(from.sin_addr));
+	    exit(1);		/* Access denied */
+	  } else if ( allow_severity != -1 ) {
+	    syslog(allow_severity, "connect from %s",
 		   inet_ntoa(from.sin_addr));
-	  exit(1);		/* Access denied */
-	} else if ( allow_severity != -1 ) {
-	  syslog(allow_severity, "connect from %s",
-		 inet_ntoa(from.sin_addr));
-	}
+	  }
 #endif
 
-	/* Drop privileges */
+	/*
+	 * Now that we have read the message out of the UDP
+	 * socket, we fork and go back to listening to the
+	 * socket.
+	 */
+	  pid = fork();
+	  if (pid < 0) {
+	    syslog(LOG_ERR, "fork: %m");
+	    exit(1);		/* Return to inetd, just in case */
+	  }
+	} while ( pid > 0 );	/* Parent process continues... */
+
+	/* Child process: handle the actual request here */
+
+	/* Chroot and drop privileges */
+
 	if (secure && chroot(".")) {
 		syslog(LOG_ERR, "chroot: %m");
 		exit(1);
@@ -303,54 +339,14 @@ main(int argc, char **argv)
 	  exit(1);
 	}
 
-	/*
-	 * Now that we have read the message out of the UDP
-	 * socket, we fork and exit.  Thus, inetd will go back
-	 * to listening to the tftp port, and the next request
-	 * to come in will start up a new instance of tftpd.
-	 *
-	 * We do this so that inetd can run tftpd in "wait" mode.
-	 * The problem with tftpd running in "nowait" mode is that
-	 * inetd may get one or more successful "selects" on the
-	 * tftp port before we do our receive, so more than one
-	 * instance of tftpd may be started up.  Worse, if tftpd
-	 * break before doing the above "recvfrom", inetd would
-	 * spawn endless instances, clogging the system.
-	 */
-	for (i = 1; i < 20; i++) {
-		pid = fork();
-		if (pid < 0) {
-			sleep(i);
-			/*
-			 * flush out to most recently sent request.
-			 *
-			 * This may drop some request, but those
-			 * will be resent by the clients when
-			 * they timeout.  The positive effect of
-			 * this flush is to (try to) prevent more
-			 * than one tftpd being started up to service
-			 * a single request from a single client.
-			 */
-			j = sizeof from;
-			i = myrecvfrom(fd, buf, sizeof (buf), 0,
-			    (struct sockaddr *)&from, &j, &myaddr);
-			if (i > 0) {
-				n = i;
-				fromlen = j;
-			}
-		} else
-			break;
-	}
-	if (pid < 0) {
-		syslog(LOG_ERR, "fork: %m");
-		exit(1);
-	} else if (pid != 0)
-		exit(0);
+	/* Close file descriptors we don't need */
 
 	from.sin_family = AF_INET;
 	alarm(0);
 	close(fd);
 	close(1);
+
+	/* Process the request... */
 
 	peer = socket(AF_INET, SOCK_DGRAM, 0);
 	if (peer < 0) {

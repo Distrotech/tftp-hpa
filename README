@@ -1,12 +1,24 @@
 This is tftp-hpa-0.17; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
 
+===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
+===> CHANGES IN THIS VERSION!!!!!!!!!
+
 Changes in 0.17:
 
 	Add support for tcpwrapper checking (/etc/hosts.allow;
 	/etc/hosts.deny) in tftpd.
 
 	Compile correctly on glibc 2.1.2.
+
+	Add -u option to specify the user id to run as (default
+	"nobody".)
+
+	Operate in "daemon mode" as long as we keep getting requests.
+	This should speed up handling large amounts of requests at
+	once, as can happen when a client starts up, and avoids inetd
+	misconfiguration problems.
+	
 
 Changes in 0.16:
 
