@@ -22,7 +22,7 @@ install:  MCONFIG $(patsubst %, %.install, $(SUB))
 clean:    $(patsubst %, %.clean, $(SUB))
 
 distclean: $(patsubst %, %.distclean, $(SUB))
-	rm -f MCONFIG config.cache config.log config.h *~ \#*
+	rm -f MCONFIG config.status config.cache config.log config.h *~ \#*
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
 
 spotless: distclean
