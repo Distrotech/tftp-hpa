@@ -978,7 +978,6 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     timeout = 0;
     (void) sigsetjmp(timeoutbuf,1);
     
-  send_data:
     if (send(peer, dp, size + 4, 0) != size + 4) {
       syslog(LOG_ERR, "tftpd: write: %m");
       goto abort;
@@ -1005,9 +1004,11 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	}
 				/* Re-synchronize with the other side */
 	(void) synchnet(peer);
-	if (ap->th_block == (block -1)) {
-	  goto send_data;
-	}
+	/*
+	 * RFC1129/RFC1350: We MUST NOT re-send the DATA
+	 * packet in response to an invalid ACK.  Doing so
+	 * would cause the Sorcerer's Apprentice bug.
+	 */
       }
       
     }

@@ -1,5 +1,10 @@
 $Id$
 
+Changes in 0.25:
+	Fixed Sorcerer's Apprentice bug in both the client and the
+	server.  These bugs were inherited from the original BSD code.
+
+
 Changes in 0.24:
 	Fix bugs in both client and server dealing with block number
 	wraparound, usually manifesting themselves as failure to

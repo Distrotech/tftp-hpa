@@ -137,7 +137,7 @@ tftp_sendfile(int fd, char *name, char *mode)
 		}
 		timeout = 0;
 		(void) sigsetjmp(timeoutbuf,1);
-send_data:
+
 		if (trace)
 			tpacket("sent", dp, size + 4);
 		n = sendto(f, dp, size + 4, 0,
@@ -184,9 +184,11 @@ send_data:
 					printf("discarded %d packets\n",
 							j);
 				}
-				if (ap->th_block == (block-1)) {
-					goto send_data;
-				}
+				/*
+				 * RFC1129/RFC1350: We MUST NOT re-send the DATA
+				 * packet in response to an invalid ACK.  Doing so
+				 * would cause the Sorcerer's Apprentice bug.
+				 */
 			}
 		}
 		if ( !is_request )
