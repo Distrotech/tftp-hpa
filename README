@@ -18,6 +18,13 @@ improvements.
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
 ===> CHANGES ENACTED IN VERSION 0.17!!!!!!!!!
 
+Changes in 0.22:
+	Even more portability improvements: FreeBSD and
+	Tru64/Digital Unix.
+
+	Some minor source cleanups.
+
+
 Changes in 0.21:
 	Support running in standalone mode, without inetd.
 
