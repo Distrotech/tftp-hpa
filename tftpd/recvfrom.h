@@ -16,12 +16,7 @@
  *
  */
 
-#define _XPG4_2			/* Needed on Solaris */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
+#include "config.h"
 
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,

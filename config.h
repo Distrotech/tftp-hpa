@@ -21,15 +21,6 @@
 /* Must be included before we include any system headers! */
 #include "acconfig.h"
 
-/* This is necessary on Solaris with gcc */
-#define _XPG4_2
-#define _XOPEN_SOURCE
-#define __EXTENSIONS__
-
-/* This is necessary on glibc systems */
-#define _BSD_SOURCE
-#define _ISO9X_SOURCE
-
 /* Standard includes */
 
 #include <stdio.h>
@@ -181,8 +172,12 @@ typedef unsigned long u_long;
 #endif
 #endif
 
-/* arpa/tftp.h, and possible missing pieces */
+/* arpa/{inet,tftp}.h, and possible missing pieces */
 
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+/* If we don't have arpa/tftp.h we have problems... */
 #include <arpa/tftp.h>
 
 #ifndef OACK
