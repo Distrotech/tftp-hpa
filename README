@@ -27,6 +27,9 @@ Changes in 0.21:
 
 	Clean and modernize some really ugly old code.
 
+	Fix a potential illegal memory access when running in "totally
+	insecure mode" - no -s, no directories listed.
+
 
 Changes in 0.20:
 	Portability improvements.  Now known to compile and run on
