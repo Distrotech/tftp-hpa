@@ -304,8 +304,10 @@ main(int argc, char **argv)
     exit(EX_OSERR);
   }
 
+#ifdef WITH_REGEX
   if ( rewrite_file )
     rewrite_rules = read_remap_rules(rewrite_file);
+#endif
 
   /* If we're running standalone, set up the input port */
   if ( listen ) {
