@@ -19,10 +19,20 @@ PA_WITH_BOOL(tcpwrappers, 1,
 [
 	AC_SEARCH_LIBS(yp_get_default_domain, [nsl resolv])
 	PA_HAVE_TCPWRAPPERS
-],
+],:)
+
+PA_WITH_BOOL(remap, 1,
+[ --without-remap       Disable regex-based filename remapping],
 [
-	:
-])
+	AC_CHECK_HEADER(regex.h,
+	[
+		AC_SEARCH_LIBS(regcomp, [regex rx],
+		[
+			AC_DEFINE(WITH_REGEX)
+			TFTPDOBJS="remap.o $TFTPDOBJS"
+		])
+	])
+],:)
 
 PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-W)
@@ -39,17 +49,18 @@ PA_ADD_CFLAGS(-pipe)
 
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
-LIBXTRA=0
+LIBXTRA=false
 
-AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=1 LIBOBJS="$LIBOBJS xmalloc.o")
-AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=1 LIBOBJS="$LIBOBJS xstrdup.o")
-AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=1 LIBOBJS="$LIBOBJS bsdsignal.o")
+AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")
+AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xstrdup.o")
+AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true LIBOBJS="$LIBOBJS bsdsignal.o")
 
-if test "$LIBXTRA" -eq 1; then
+if $LIBXTRA; then
 	LIBS="../lib/libxtra.a $LIBS"
 fi
 
 AC_SUBST(LIBOBJS)
+AC_SUBST(TFTPDOBJS)
 
 AC_PROG_RANLIB
 AC_PROG_INSTALL

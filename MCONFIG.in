@@ -32,6 +32,9 @@ LIBS    = @LIBS@
 # Additional library we need to build
 LIBOBJS	= @LIBOBJS@
 
+# Additional tftpd objects we need to build
+TFTPDOBJS = @TFTPDOBJS@
+
 # ar and ranlib (for making libraries)
 AR	= ar cq
 RANLIB	= @RANLIB@

@@ -10,16 +10,19 @@
  * ----------------------------------------------------------------------- */
 
 /*
- * config.h.in
+ * remap.h
  *
- * Pattern file for configurations
+ * Prototypes for regular-expression based filename remapping.
  */
 
-#undef HAVE_SIGSETJMP
-#undef HAVE_MSGHDR_MSG_CONTROL
-#undef HAVE_RECVMSG
-#undef HAVE_TCPWRAPPERS
-#undef HAVE_STRUCT_IN_PKTINFO
-#undef HAVE_SETREUID
-#undef HAVE_SETREGID
-#undef WITH_REGEX
+#include <stdlib.h>
+#include <stdio.h>
+
+/* Opaque type */
+struct rule;
+
+/* Read a rule file */
+struct rule *parserulefile(FILE *);
+
+/* Execute a rule set on a string; returns a malloc'd new string. */
+char *rewrite_string(const char *input, const struct rule *rules, int is_put);

@@ -42,6 +42,8 @@
  * Prototypes for read-ahead/write-behind subroutines for tftp user and
  * server.
  */
+#include <stdlib.h>
+
 struct tftphdr *r_init(void);
 void	read_ahead(FILE *, int);
 int	readit(FILE *, struct tftphdr **, int);
@@ -55,3 +57,8 @@ int	writeit(FILE *, struct tftphdr **, int, int);
 extern int segsize;
 #define MAX_SEGSIZE	65464
 
+/*
+ * Prototype for xmalloc/xstrdup
+ */
+extern void *xmalloc(size_t);
+extern char *xstrdup(const char *);
