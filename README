@@ -1,0 +1,24 @@
+This is tftp-hpa-0.12; this version was put out by H. Peter Anvin
+<hpa@zytor.com>.
+
+This is a conglomerate of a number of versions of the BSD TFTP code,
+ported to Linux, although it should work on mostly any POSIX-compliant
+OS with sockets.
+
+The core software was taken from OpenBSD (CVS source as of
+1999-09-21).  I believe this was the most secure source base available
+at the time I obtained this code, and it included support for the -s
+and -c options.
+
+The un-BSD-ized Makefiles and a lot of the configure macros were taken
+from netkit-tftp-0.10 by David Holland; I also followed this example
+and modernized the code style throughout.
+
+Patches by Markus Gutschke and Gero Kuhlmann were the basis for the
+option negotiation as well as the "blksize" and "tsize" option
+support, although I made a fair amount of mostly stylistic changes to
+their code.
+
+Adding the -r option (disable a specific option), the "timeout"
+option, and converting to using autoconf for setup was my own code, as
+are any bugs introduced in this merge.
