@@ -17,7 +17,6 @@
 
 #include "config.h"		/* Must be included first! */
 #include <syslog.h>
-#include <signal.h>
 #include "tftpd.h"
 
 /*

@@ -56,15 +56,7 @@ static const char *rcsid UNUSED =
 			Jim Guyton 10/85
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/tftp.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 #define PKTSIZE MAX_SEGSIZE+4       /* should be moved to tftp.h */
 

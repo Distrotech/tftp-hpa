@@ -54,28 +54,14 @@ static const char *rcsid UNUSED =
  * This version includes many modifications by Jim Guyton <guyton@rand-unix>
  */
 
-#include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <signal.h>
 #include <fcntl.h>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/tftp.h>
 #include <netdb.h>
-
-#include <setjmp.h>
-#include <syslog.h>
-#include <stdio.h>
-#include <errno.h>
 #include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
 #include <pwd.h>
-#include <unistd.h>
 #include <limits.h>
+#include <syslog.h>
 
 #include "tftpsubs.h"
 #include "recvfrom.h"

@@ -50,21 +50,6 @@ static const char *rcsid UNUSED =
 /*
  * TFTP User Program -- Protocol Machines
  */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-
-#include <netinet/in.h>
-
-#include <arpa/tftp.h>
-
-#include <errno.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "extern.h"
 
 extern  struct sockaddr_in peeraddr;	/* filled in by main */

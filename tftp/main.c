@@ -51,23 +51,9 @@ static const char *rcsid UNUSED =
 /*
  * TFTP User Program -- Command Interface.
  */
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/file.h>
-
-#include <netinet/in.h>
-
-#include <arpa/inet.h>
-
 #include <ctype.h>
-#include <errno.h>
 #include <netdb.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #ifdef WITH_READLINE
 #include <readline/readline.h>

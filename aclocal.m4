@@ -21,8 +21,10 @@ dnl for these particular functions.)
 dnl --------------------------------------------------------------------------
 AC_DEFUN(PA_SIGSETJMP,
 [AC_MSG_CHECKING([for sigsetjmp])
- AC_TRY_LINK(
- [#include <setjmp.h>],
+ AC_TRY_LINK([
+#ifdef HAVE_SETJMP_H
+#include <setjmp.h>
+#endif],
  [sigjmp_buf buf;
   sigsetjmp(buf,1);
   siglongjmp(buf,2);],
