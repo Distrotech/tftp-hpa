@@ -558,15 +558,15 @@ main(int argc, char **argv)
 #endif
 
   /* Chroot and drop privileges */
-  
-  if (secure && chroot(".")) {
-    syslog(LOG_ERR, "chroot: %m");
-    exit(EX_OSERR);
-  }
-
+  if (secure) {
+    if (chroot(".")) {
+      syslog(LOG_ERR, "chroot: %m");
+      exit(EX_OSERR);
+    }
 #ifdef __CYGWIN__
-  chdir("/");			/* Cygwin chroot() bug workaround */
+    chdir("/");			/* Cygwin chroot() bug workaround */
 #endif
+  }
 
 #ifdef HAVE_SETREGID
   setrv = setregid(pw->pw_gid, pw->pw_gid);
