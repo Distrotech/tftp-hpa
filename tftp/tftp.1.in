@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTP 1 "13 November 2001" "tftp-hpa @@VERSION@@" "UNIX User's Manual"
+.TH TFTP 1 "2 February 2003" "tftp-hpa @@VERSION@@" "User's Manual"
 .SH NAME
 .B tftp
 \- IPv4 Trivial File Transfer Protocol client
@@ -54,6 +54,12 @@ as the default host for future transfers (see the
 .B connect
 command below.)
 .SH OPTIONS
+.TP
+\fB\-c\fP \fIcommand\fP
+Execute \fIcommand\fP as if it had been entered on the tftp prompt.
+.TP
+\fB\-m\fP \fImode\fP
+Set the default transfer mode to \fImode\fP.  This is usually used with \-c.
 .TP
 .B \-v
 Default to verbose mode.

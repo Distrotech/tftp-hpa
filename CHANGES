@@ -7,6 +7,11 @@ Changes in 0.33:
 
 	Configuration fix: readline needs termcap.
 
+	Support running the tftp client from the command line.  For
+	example:
+
+		tftp -m binary -c get hostname:file
+
 
 Changes in 0.32:
 	Better error messages; including the capability to send a

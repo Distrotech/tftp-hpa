@@ -186,70 +186,110 @@ char *xstrdup(const char *);
 int
 main(int argc, char *argv[])
 {
-	struct sockaddr_in s_in;
-	int c;
-	int pargc;
-	char **pargv;
+  struct sockaddr_in s_in;
+  int o;
+  int pargc;
+  int iscmd = 0;
+  char **pargv;
 
-	while ((c = getopt(argc, argv, "Vv")) != -1) {
-	  switch (c) {
-	  case 'v':
-	    verbose = 1;
+  mode = MODE_DEFAULT;
+  
+  while ((o = getopt(argc, argv, "chm:Vv")) != -1) {
+    switch (o) {
+    case 'v':
+      verbose = 1;
+      break;
+    case 'V':
+      /* Print version and configuration to stdout and exit */
+      printf("%s\n", TFTP_CONFIG_STR);
+      exit(0);
+    case 'm':
+      {
+	const struct modes *p;
+
+	for ( p = modes ; p->m_name ; p++ ) {
+	  if (!strcmp(optarg, p->m_name))
 	    break;
-	  case 'V':
-	    /* Print version and configuration to stdout and exit */
-	    printf("%s\n", TFTP_CONFIG_STR);
-	    exit(0);
-	  default:
-	    fprintf(stderr, "Usage: %s [-v] [host]\n", argv[0]);
-	    exit(EX_USAGE);
-	  }
 	}
+	if (p->m_name) {
+	  settftpmode(p);
+	} else {
+	  fprintf(stderr, "%s: invalid mode: %s\n", argv[0], optarg);
+	  exit(EX_USAGE);
+	}
+      }
+      break;
+    case 'c':
+      iscmd = 1;
+      break;
+    case 'h':
+    default:
+      fprintf(stderr, "Usage: %s [-v][-m mode] [-c command|host]\n", argv[0]);
+      exit(o == 'h' ? 0 : EX_USAGE);
+    }
+  }
+  
+  pargc = argc - (optind-1);
+  pargv = argv + (optind-1);
+  
+  sp = getservbyname("tftp", "udp");
+  if (sp == 0) {
+    /* Use canned values */
+    if (verbose)
+      fprintf(stderr, "tftp: tftp/udp: unknown service, faking it...\n");
+    sp = xmalloc(sizeof(struct servent));
+    sp->s_name    = (char *)"tftp";
+    sp->s_aliases = NULL;
+    sp->s_port    = htons(IPPORT_TFTP);
+    sp->s_proto   = (char *)"udp";
+  }
+  port = sp->s_port;		/* Default port */
+  f = socket(AF_INET, SOCK_DGRAM, 0);
+  if (f < 0) {
+    perror("tftp: socket");
+    exit(EX_OSERR);
+  }
+  bzero((char *)&s_in, sizeof (s_in));
+  s_in.sin_family = AF_INET;
+  if (bind(f, (struct sockaddr *)&s_in, sizeof (s_in)) < 0) {
+    perror("tftp: bind");
+    exit(EX_OSERR);
+  }
+  bsd_signal(SIGINT, intr);
+  if (pargc > 1) {
+    if ( iscmd ) {
+      /* -c specified; execute command and exit */
+      struct cmd *c;
 
-	pargc = argc - (optind-1);
-	pargv = argv + (optind-1);
+      if (sigsetjmp(toplevel,1) != 0)
+	exit(EX_UNAVAILABLE);
 
-	sp = getservbyname("tftp", "udp");
-	if (sp == 0) {
-		/* Use canned values */
-		fprintf(stderr, "tftp: tftp/udp: unknown service, faking it...\n");
-		sp = xmalloc(sizeof(struct servent));
-		sp->s_name    = (char *)"tftp";
-		sp->s_aliases = NULL;
-		sp->s_port    = htons(IPPORT_TFTP);
-		sp->s_proto   = (char *)"udp";
-		exit(1);
-	}
-	f = socket(AF_INET, SOCK_DGRAM, 0);
-	if (f < 0) {
-		perror("tftp: socket");
-		exit(3);
-	}
-	bzero((char *)&s_in, sizeof (s_in));
-	s_in.sin_family = AF_INET;
-	if (bind(f, (struct sockaddr *)&s_in, sizeof (s_in)) < 0) {
-		perror("tftp: bind");
-		exit(1);
-	}
-	mode = MODE_DEFAULT;
-	bsd_signal(SIGINT, intr);
-	if (pargc > 1) {
-		if (sigsetjmp(toplevel,1) != 0)
-			exit(0);
-		setpeer(pargc, pargv);
-	}
-	if (sigsetjmp(toplevel,1) != 0)
-		(void)putchar('\n');
-
+      c = getcmd(pargv[1]);
+      if ( c == (struct cmd *)-1 || c == (struct cmd *)0 ) {
+	fprintf(stderr, "%s: invalid command: %s\n", argv[0], pargv[1]);
+	exit(EX_USAGE);
+      }	
+      (*c->handler)(pargc-1, pargv+1);
+      exit(0);
+    } else {
+      /* No -c */
+      if (sigsetjmp(toplevel,1) != 0)
+	exit(0);
+      setpeer(pargc, pargv);
+    }
+  }
+  if (sigsetjmp(toplevel,1) != 0)
+    (void)putchar('\n');
+  
 #ifdef WITH_READLINE
 #ifdef HAVE_READLINE_HISTORY_H
-	using_history();
+  using_history();
 #endif
 #endif
-
-	command();
-
-	return 0;		/* Never reached */
+  
+  command();
+  
+  return 0;		/* Never reached */
 }
 
 char    *hostname;
@@ -438,7 +478,7 @@ put(int argc, char *argv[])
 			herror((char *)NULL);
 			return;
 		}
-		bcopy(hp->h_addr, (caddr_t)&peeraddr.sin_addr, hp->h_length);
+		bcopy(hp->h_addr, &peeraddr.sin_addr, hp->h_length);
 		peeraddr.sin_family = hp->h_addrtype;
 		connected = 1;
 		hostname = xstrdup(hp->h_name);
