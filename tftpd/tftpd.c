@@ -76,6 +76,12 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include "tftpsubs.h"
 #include "recvfrom.h"
 
+#ifdef HAVE_TCPWRAPPERS
+#include <tcpd.h>
+int deny_severity	= LOG_WARNING;
+int allow_severity	= LOG_INFO;
+#endif
+
 void bsd_signal(int, void (*)(int));
 
 #ifndef HAVE_SIGSETJMP
@@ -248,6 +254,14 @@ main(int argc, char **argv)
 		syslog(LOG_ERR, "recvfrom: %m");
 		exit(1);
 	}
+
+#ifdef HAVE_TCPWRAPPERS
+	/* Verify if this was a legal request for us. */
+
+	if ( hosts_ctl("tftp", STRING_UNKNOWN, inet_ntoa(from.sin_addr), STRING_UNKNOWN) == 0 )
+	  exit(1);		/* Access denied */
+#endif
+
 	/*
 	 * Now that we have read the message out of the UDP
 	 * socket, we fork and exit.  Thus, inetd will go back
@@ -296,6 +310,7 @@ main(int argc, char **argv)
 	alarm(0);
 	close(fd);
 	close(1);
+
 	peer = socket(AF_INET, SOCK_DGRAM, 0);
 	if (peer < 0) {
 		syslog(LOG_ERR, "socket: %m");

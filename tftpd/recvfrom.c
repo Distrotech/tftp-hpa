@@ -33,11 +33,26 @@
 
 #include <sys/uio.h>
 
+#ifdef IP_PKTINFO
+# ifndef HAVE_STRUCT_IN_PKTINFO
+#  ifdef __linux__
+/* Assume this version of glibc simply lacks the definition */
+struct in_pktinfo {
+  int ipi_ifindex;
+  struct in_addr ipi_spec_dst;
+  struct in_addr ipi_addr;
+};
+#  else
+#   undef IP_PKTINFO		/* No definition, no way to get it */
+#  endif
+# endif
+#endif
+
 #ifndef CMSG_LEN
-#define CMSG_LEN(size)	 (sizeof(struct cmsghdr) + (size))
+# define CMSG_LEN(size)	 (sizeof(struct cmsghdr) + (size))
 #endif
 #ifndef CMSG_SPACE
-#define CMSG_SPACE(size) (sizeof(struct cmsghdr) + (size))
+# define CMSG_SPACE(size) (sizeof(struct cmsghdr) + (size))
 #endif
 
 int
