@@ -6,6 +6,8 @@ Changes in 0.17:
 	Add support for tcpwrapper checking (/etc/hosts.allow;
 	/etc/hosts.deny) in tftpd.
 
+	Compile correctly on glibc 2.1.2.
+
 Changes in 0.16:
 
 	Correct massive lossage from 0.15: apparently 0.15 was based
