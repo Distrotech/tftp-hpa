@@ -28,6 +28,9 @@
 
 #include "../config.h"
 #include "recvfrom.h"
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #if defined(HAVE_RECVMSG) && defined(HAVE_MSGHDR_MSG_CONTROL)
 

@@ -8,14 +8,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-void bsd_signal(int signum, void (*handler)(int))
+void (*bsd_signal(int signum, void (*handler)(int)))(int);
 {
-  struct sigaction action;
+  struct sigaction action, oldaction;
 
   memset(&action, 0, sizeof action);
   action.sa_handler = handler;
   sigemptyset(&action.sa_mask);
+  sigaddset(&act.sa_mask, signum);
   action.sa_flags = SA_RESTART;
   
-  sigaction(hander, action, NULL);
+  if (sigaction(hander, action, &oldaction) == -1) {
+#ifdef SIG_ERR
+    return SIG_ERR;
+#else
+    return NULL;
+#endif
+  }
+
+  return oldaction.sa_handler;
 }

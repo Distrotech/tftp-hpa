@@ -59,11 +59,13 @@ static const char *rcsid UNUSED =
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/tftp.h>
-
 #include <stdio.h>
 #include <unistd.h>
+
+#include "../config.h"
 
 #define PKTSIZE MAX_SEGSIZE+4       /* should be moved to tftp.h */
 
@@ -254,20 +256,28 @@ skipit:
 int
 synchnet(int f)		/* socket to flush */
 {
-	int i, j = 0;
-	char rbuf[PKTSIZE];
-	struct sockaddr_in from;
-	int fromlen;
+  int pktcount = 0;
+  char rbuf[PKTSIZE];
+  struct sockaddr_in from;
+  int fromlen;
+  fd_set socketset;
+  struct timeval notime;
+  
+  while ( 1 ) {
+    notime.tv_sec = notime.tv_usec = 0;
+    
+    FD_ZERO(&socketset);
+    FD_SET(f, &socketset);
+    
+    if ( select(f, &socketset, NULL, NULL, &notime) <= 0 )
+      break;			/* Nothing to read */
+	
+    /* Otherwise drain the packet */
+    pktcount++;
+    fromlen = sizeof from;
+    (void) recvfrom(f, rbuf, sizeof (rbuf), 0,
+		    (struct sockaddr *)&from, &fromlen);
+  }
 
-	while (1) {
-		(void) ioctl(f, FIONREAD, &i);
-		if (i) {
-			j++;
-			fromlen = sizeof from;
-			(void) recvfrom(f, rbuf, sizeof (rbuf), 0,
-				(struct sockaddr *)&from, &fromlen);
-		} else {
-			return(j);
-		}
-	}
+  return pktcount;		/* Return packets drained */
 }

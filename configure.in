@@ -9,6 +9,16 @@ AC_PROG_CC
 AC_C_CONST
 AC_C_INLINE
 
+AC_CHECK_HEADERS(sysexits.h)
+AC_CHECK_HEADERS(strings.h)
+AC_CHECK_HEADERS(libgen.h)
+AC_CHECK_HEADERS(sys/filio.h)
+
+AC_SEARCH_LIBS(socket, socket, , [AC_MSG_ERROR(socket library not found)])
+AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not found)])
+AC_SEARCH_LIBS(inet_aton, [nsl resolv], , [AC_MSG_ERROR(inet_aton not found)])
+AC_SEARCH_LIBS(herror, [nsl resolv], , [AC_MSG_ERROR(herror not found)])
+
 AC_CHECK_FUNCS(recvmsg)
 AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setregid)
@@ -50,14 +60,10 @@ PA_ADD_CFLAGS(-pipe)
 
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
-AC_CHECK_HEADERS(sysexits.h)
-
 LIBXTRA=false
-
 AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")
 AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xstrdup.o")
 AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true LIBOBJS="$LIBOBJS bsdsignal.o")
-
 if $LIBXTRA; then
 	LIBS="../lib/libxtra.a $LIBS"
 fi

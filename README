@@ -18,6 +18,11 @@ improvements.
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
 ===> CHANGES ENACTED IN VERSION 0.17!!!!!!!!!
 
+Changes in 0.20:
+	Portability improvements.  Now known to compile and run on
+	Solaris 8.
+
+
 Changes in 0.19:
 	Fork before performing tcpwrappers check.
 

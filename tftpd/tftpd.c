@@ -89,6 +89,12 @@ int allow_severity	= -1;	/* Don't log at all */
 
 struct request_info wrap_request;
 #endif
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>		/* Necessary for basename() on Solaris */
+#endif
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>		/* Necessary for FIONBIO on Solaris */
+#endif
 
 #define	TIMEOUT 5		/* Default timeout (seconds) */
 #define TRIES   4		/* Number of attempts to send each packet */
@@ -101,7 +107,7 @@ struct request_info wrap_request;
 #define EOPTNEG	8
 #endif
 
-extern	char *__progname;
+char   *__progname;
 int	peer;
 int	timeout    = TIMEOUT;
 int	rexmtval   = TIMEOUT;
@@ -444,7 +450,7 @@ tftp(struct tftphdr *tp, int size)
   
   ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
   
-  origfilename = cp = tp->th_stuff;
+  origfilename = cp = (char *) &(tp->th_stuff);
   argn = 0;
   
   while ( cp < buf + size && *cp ) {

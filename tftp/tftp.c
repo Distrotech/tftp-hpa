@@ -68,7 +68,9 @@ static const char *rcsid UNUSED =
 #include "../config.h"
 #include "extern.h"
 
-void bsd_signal(int, void (*)(int));
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #ifndef HAVE_SIGSETJMP
 #define sigsetjmp(x,y)  setjmp(x)
@@ -322,7 +324,7 @@ makerequest(int request, const char *name,
 	char *cp;
 
 	tp->th_opcode = htons((u_short)request);
-	cp = tp->th_stuff;
+	cp = (char *) &(tp->th_stuff);
 	strcpy(cp, name);
 	cp += strlen(name);
 	*cp++ = '\0';
@@ -397,7 +399,7 @@ tpacket(const char *s, struct tftphdr *tp, int n)
 	case RRQ:
 	case WRQ:
 		n -= 2;
-		file = cp = tp->th_stuff;
+		file = cp = (char *) &(tp->th_stuff);
 		cp = strchr(cp, '\0');
 		printf("<file=%s, mode=%s>\n", file, cp + 1);
 		break;

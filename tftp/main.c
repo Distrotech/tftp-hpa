@@ -68,8 +68,13 @@ static const char *rcsid UNUSED =
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "extern.h"
+#include "../config.h"
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #define	TIMEOUT		5		/* secs between rexmt's */
 #define	LBUFLEN		200		/* size of input buffer */

@@ -75,7 +75,7 @@ extern char *xstrdup(const char *);
 /*
  * Signal-related stuff
  */
-void bsd_signal(int, void (*)(int));
+void (*bsd_signal(int, void (*)(int)))(int);
 
 #ifndef HAVE_SIGSETJMP
 #define sigsetjmp(x,y)  setjmp(x)
