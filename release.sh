@@ -5,7 +5,8 @@
 #
 
 CVS='cvs-real -d hpa@terminus.zytor.com:/home/hpa/cvsroot'
-MODULE=tftp-hpa
+MODULE=tftp
+PACKAGE=tftp-hpa
 
 if [ -z "$1" ]; then
   echo "Usage: $0 release-id" 1>&2
@@ -13,8 +14,8 @@ if [ -z "$1" ]; then
 fi
 
 release="$1"
-cvsrelease=$MODULE-`echo "$release" | tr '.' '_'`
-releasedir=$MODULE-$release
+cvsrelease=$PACKAGE-`echo "$release" | tr '.' '_'`
+releasedir=$PACKAGE-$release
 
 echo $release > version
 $CVS commit -m 'Update version for release' version
@@ -33,5 +34,6 @@ cd $releasedir
 make release
 rm -f release.sh
 cd ..
-tar cvvf $here/../$releasedir.tar $releasedir
-gzip -9 $here/../$releasedir.tar
+tar cvvf $releasedir.tar $releasedir
+gzip -9 $releasedir.tar
+mv -f $releasedir.tar.gz $here/..
