@@ -138,11 +138,13 @@ fi)])
 dnl --------------------------------------------------------------------------
 dnl  PA_HEADER_DEFINES
 dnl
-dnl  PA_HEADER_DEFINES(headers, type, value)
+dnl  PA_HEADER_DEFINES(header, type, value)
 dnl --------------------------------------------------------------------------
 AC_DEFUN(PA_HEADER_DEFINES,
-[AC_MSG_CHECKING([for definition of $3])
- AC_TRY_COMPILE([$1],
+[AC_MSG_CHECKING([if $1 defines $3])
+ AC_TRY_COMPILE([
+#include <$1>
+],
 [
 int main()
 {

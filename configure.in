@@ -39,7 +39,7 @@ AC_CHECK_FUNCS(setregid)
 PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
 
-PA_HEADER_DEFINES([#include <netinet/in.h>], int, IPPORT_TFTP)
+PA_HEADER_DEFINES(netinet/in.h, int, IPPORT_TFTP)
 
 PA_WITH_BOOL(tcpwrappers, 1,
 [ --without-tcpwrappers	Disable tcpwrapper permissions checking],
