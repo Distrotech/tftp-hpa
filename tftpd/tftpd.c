@@ -543,6 +543,11 @@ main(int argc, char **argv)
       }
     }
 
+    if ( from.sin_family != AF_INET ) {
+      syslog(LOG_ERR, "received address was not AF_INET, please check your inetd config");
+      exit(EX_PROTOCOL);
+    }
+
     if ( standalone && myaddr.sin_addr.s_addr == INADDR_ANY ) {
       /* myrecvfrom() didn't capture the source address; but we might
 	 have bound to a specific address, if so we should use it */
