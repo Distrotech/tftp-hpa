@@ -75,6 +75,14 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include "tftpsubs.h"
 #include "recvfrom.h"
 
+void bsd_signal(int, void (*)(int));
+
+#ifndef HAVE_SIGSETJMP
+#define sigsetjmp(x,y)  setjmp(x)
+#define siglongjmp(x,y) longjmp(x,y)
+#define sigjmp_buf jmp_buf
+#endif
+
 #define	TIMEOUT 5		/* Default timeout (seconds) */
 #define TRIES   4		/* Number of attempts to send each packet */
 #define TIMEOUT_LIMIT (TRIES*(TRIES+1)/2)
@@ -86,8 +94,8 @@ static const char *rcsid = "tftp-hpa $Id$";
 #define EOPTNEG	8
 #endif
 
-extern	int errno;
 extern	char *__progname;
+struct	sockaddr_in s_in;
 int	peer;
 int	timeout    = TIMEOUT;
 int	rexmtval   = TIMEOUT;
@@ -147,7 +155,6 @@ main(int argc, char **argv)
 	struct tftphdr *tp;
 	struct passwd *pw;
 	struct options *opt;
-	struct sockaddr_in myaddr;
 	int n = 0;
 	int on = 1;
 	int fd = 0;
@@ -625,7 +632,7 @@ validate_access(char *filename, int mode, struct formats *pf)
 }
 
 int	timeout;
-jmp_buf	timeoutbuf;
+sigjmp_buf	timeoutbuf;
 
 void
 timer(int sig)
@@ -634,7 +641,7 @@ timer(int sig)
 	timeout += rexmtval;
 	if (timeout >= maxtimeout)
 		exit(0);
-	longjmp(timeoutbuf, 1);
+	siglongjmp(timeoutbuf, 1);
 }
 
 /*
@@ -647,18 +654,18 @@ sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	struct tftphdr *ap;    /* ack packet */
 	int block = 1, size, n;
 
-	signal(SIGALRM, timer);
 	ap = (struct tftphdr *)ackbuf;
 
         if (oap) {
 	     timeout = 0;
-	     (void)setjmp(timeoutbuf);
+	     (void)sigsetjmp(timeoutbuf,1);
 oack:
 	     if (send(peer, oap, oacklen, 0) != oacklen) {
 		  syslog(LOG_ERR, "tftpd: oack: %m\n");
 		  goto abort;
 	     }
 	     for ( ; ; ) {
+	          bsd_signal(SIGALRM, timer);
 		  alarm(rexmtval);
 		  n = recv(peer, ackbuf, sizeof(ackbuf), 0);
 		  alarm(0);
@@ -694,7 +701,7 @@ oack:
 		dp->th_opcode = htons((u_short)DATA);
 		dp->th_block = htons((u_short)block);
 		timeout = 0;
-		(void) setjmp(timeoutbuf);
+		(void) sigsetjmp(timeoutbuf,1);
 
 send_data:
 		if (send(peer, dp, size + 4, 0) != size + 4) {
@@ -703,6 +710,7 @@ send_data:
 		}
 		read_ahead(file, pf->f_convert);
 		for ( ; ; ) {
+		        bsd_signal(SIGALRM, timer);
 			alarm(rexmtval);	/* read the ack */
 			n = recv(peer, ackbuf, sizeof (ackbuf), 0);
 			alarm(0);
@@ -751,12 +759,11 @@ recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	struct tftphdr *ap;    /* ack buffer */
 	int block = 0, acksize, n, size;
 
-	signal(SIGALRM, timer);
 	dp = w_init();
 	do {
 		timeout = 0;
 		
-		if (!block++ && oap) {
+		if (!block && oap) {
 		     ap = (struct tftphdr *)ackbuf;
 		     acksize = oacklen;
 		} else {
@@ -765,7 +772,9 @@ recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 		     ap->th_block = htons((u_short)block);
 		     acksize = 4;
 		}
-		(void) setjmp(timeoutbuf);
+		block++;
+		(void) sigsetjmp(timeoutbuf,1);
+		bsd_signal(SIGALRM, timer);
 send_ack:
 		if (send(peer, ackbuf, acksize, 0) != acksize) {
 			syslog(LOG_ERR, "tftpd: write(ack): %m");
@@ -773,6 +782,7 @@ send_ack:
 		}
 		write_behind(file, pf->f_convert);
 		for ( ; ; ) {
+		        bsd_signal(SIGALRM, timer);
 			alarm(rexmtval);
 			n = recv(peer, dp, PKTSIZE, 0);
 			alarm(0);
@@ -809,7 +819,7 @@ send_ack:
 	ap->th_block = htons((u_short)(block));
 	(void) send(peer, ackbuf, 4, 0);
 
-	signal(SIGALRM, justquit);      /* just quit on timeout */
+	bsd_signal(SIGALRM, justquit);      /* just quit on timeout */
 	alarm(rexmtval);
 	n = recv(peer, buf, sizeof (buf), 0); /* normally times out and quits */
 	alarm(0);
