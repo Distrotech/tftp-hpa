@@ -503,9 +503,9 @@ tftp(struct tftphdr *tp, int size)
   
   if ( ap != (ackbuf+2) ) {
     if ( tp->th_opcode == WRQ )
-      (*pf->f_recv)(pf, ackbuf, ap-ackbuf);
+      (*pf->f_recv)(pf, (struct tftphdr *)ackbuf, ap-ackbuf);
     else
-      (*pf->f_send)(pf, ackbuf, ap-ackbuf);
+      (*pf->f_send)(pf, (struct tftphdr *)ackbuf, ap-ackbuf);
   } else {
     if (tp->th_opcode == WRQ)
       (*pf->f_recv)(pf, NULL, 0);
