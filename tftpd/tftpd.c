@@ -395,10 +395,10 @@ main(int argc, char **argv)
       caught_sighup = 0;
       if ( listen ) {
 #ifdef HAVE_REGEX
-	/* This is unfortunately a memory leak.  Hopefully
-	   SIGHUPs aren't too common. */
-	if ( rewrite_file )
+	if ( rewrite_file ) {
+	  freerules(rewrite_rules);
 	  rewrite_rules = read_remap_rules(rewrite_file);
+	}
 #endif
       } else {
 	/* Return to inetd for respawn */

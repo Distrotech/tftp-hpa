@@ -30,6 +30,9 @@ struct rule;
 /* Read a rule file */
 struct rule *parserulefile(FILE *);
 
+/* Destroy a rule file data structure */
+void freerules(struct rule *);
+
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *, const struct rule *, int);
 

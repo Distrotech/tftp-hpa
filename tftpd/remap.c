@@ -239,6 +239,26 @@ struct rule *parserulefile(FILE *f)
   return first_rule;
 }
 
+/* Destroy a rule file data structure */
+void freerules(struct rule *r)
+{
+  struct rule *next;
+
+  while ( r ) {
+    next = r->next;
+
+    regfree(&r->rx);
+
+    /* "" patterns aren't allocated by malloc() */
+    if ( r->pattern && *r->pattern )
+      free(r->pattern);
+  
+    free(r);
+
+    r = next;
+  }
+}
+
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 {
