@@ -775,8 +775,9 @@ void
 sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
   struct tftphdr *dp;
-  struct tftphdr *ap;    /* ack packet */
-  int block = 1, size, n;
+  struct tftphdr *ap;		/* ack packet */
+  static int block = 1;		/* Static to avoid longjmp funnies */
+  int size, n;
   
   ap = (struct tftphdr *)ackbuf;
   
@@ -814,7 +815,7 @@ sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
       }
     }
   }
-  
+
   dp = r_init();
   do {
     size = readit(file, &dp, pf->f_convert);
@@ -882,8 +883,10 @@ void
 recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
   struct tftphdr *dp;
-  struct tftphdr *ap;    /* ack buffer */
-  int block = 0, acksize, n, size;
+  int n, size;
+  /* These are "static" to avoid longjmp funnies */
+  static struct tftphdr *ap;    /* ack buffer */
+  static int block = 0, acksize;
   
   dp = w_init();
   do {

@@ -36,10 +36,13 @@
  * SUCH DAMAGE.
  */
 
+#include "tftpsubs.h"
+
 #ifndef lint
 /* static char sccsid[] = "@(#)tftpsubs.c	8.1 (Berkeley) 6/6/93"; */
 /* static char rcsid[] = "$OpenBSD: tftpsubs.c,v 1.2 1996/06/26 05:40:36 deraadt Exp $"; */
-static const char *rcsid = "tftp-hpa: $Id$";
+static const char *rcsid UNUSED =
+"tftp-hpa: $Id$";
 #endif /* not lint */
 
 /* Simple minded read-ahead/write-behind subroutines for tftp user and
@@ -61,8 +64,6 @@ static const char *rcsid = "tftp-hpa: $Id$";
 
 #include <stdio.h>
 #include <unistd.h>
-
-#include "tftpsubs.h"
 
 #define PKTSIZE MAX_SEGSIZE+4       /* should be moved to tftp.h */
 

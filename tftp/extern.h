@@ -38,5 +38,10 @@
  *	@(#)extern.h	8.1 (Berkeley) 6/6/93
  */
 
+#ifndef RECVFILE_H
+#define RECVFILE_H
+
 void	recvfile (int, char *, char *);
 void	sendfile (int, char *, char *);
+
+#endif

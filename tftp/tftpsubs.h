@@ -47,6 +47,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+#include <setjmp.h>
+#include "../config.h"
 
 struct tftphdr;
 
@@ -68,6 +71,17 @@ extern int segsize;
  */
 extern void *xmalloc(size_t);
 extern char *xstrdup(const char *);
+
+/*
+ * Signal-related stuff
+ */
+void bsd_signal(int, void (*)(int));
+
+#ifndef HAVE_SIGSETJMP
+#define sigsetjmp(x,y)  setjmp(x)
+#define siglongjmp(x,y) longjmp(x,y)
+#define sigjmp_buf jmp_buf
+#endif
 
 /*
  * How to annotate unused variables

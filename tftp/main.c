@@ -34,13 +34,16 @@
  * SUCH DAMAGE.
  */
 
+#include "tftpsubs.h"
+
 #ifndef lint
-static const char *copyright =
+static const char *copyright UNUSED =
 "@(#) Copyright (c) 1983, 1993\n\
 	The Regents of the University of California.  All rights reserved.\n";
 /* static char sccsid[] = "@(#)main.c	8.1 (Berkeley) 6/6/93"; */
 /* static char rcsid[] = "$OpenBSD: main.c,v 1.4 1997/01/17 07:13:30 millert Exp $"; */
-static const char *rcsid = "tftp-hpa $Id$";
+static const char *rcsid UNUSED =
+ "tftp-hpa $Id$";
 #endif /* not lint */
 
 /* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
@@ -66,16 +69,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <string.h>
 #include <unistd.h>
 
-#include "../config.h"
 #include "extern.h"
-
-void bsd_signal(int, void (*)(int));
-
-#ifndef HAVE_SIGSETJMP
-#define sigsetjmp(x,y)  setjmp(x)
-#define siglongjmp(x,y) longjmp(x,y)
-#define sigjmp_buf jmp_buf
-#endif
 
 #define	TIMEOUT		5		/* secs between rexmt's */
 #define	LBUFLEN		200		/* size of input buffer */
