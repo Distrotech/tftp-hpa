@@ -24,6 +24,8 @@ Changes in 0.22:
 
 	Some minor source cleanups.
 
+	Fix tsize option on systems on which off_t is "long long".
+
 
 Changes in 0.21:
 	Support running in standalone mode, without inetd.
