@@ -4,7 +4,7 @@
 # Script for generating a release
 #
 
-CVS='cvs-real -d hpa@terminus.zytor.com:/home/hpa/cvsroot'
+CVS='cvs -d hpa@terminus.zytor.com:/home/hpa/cvsroot'
 MODULE=tftp
 PACKAGE=tftp-hpa
 
