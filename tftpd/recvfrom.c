@@ -57,7 +57,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 	   struct sockaddr_in *myaddr)
 {
   struct msghdr msg;
-  struct iovec iov[1];
+  struct iovec iov;
   int n;
   struct cmsghdr *cmptr;
   union {
@@ -82,15 +82,16 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
   setsockopt(s, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on));
 #endif
 
+  bzero(&msg, sizeof msg);	/* Clear possible system-dependent fields */
   msg.msg_control = control_un.control;
   msg.msg_controllen = sizeof(control_un.control);
   msg.msg_flags = 0;
 
   msg.msg_name = from;
   msg.msg_namelen = *fromlen;
-  iov[0].iov_base = buf;
-  iov[0].iov_len  = len;
-  msg.msg_iov = iov;
+  iov.iov_base = buf;
+  iov.iov_len  = len;
+  msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
 
   if ( (n = recvmsg(s, &msg, flags)) < 0 )

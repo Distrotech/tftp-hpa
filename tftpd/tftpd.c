@@ -458,7 +458,7 @@ main(int argc, char **argv)
 	exit(EX_OSERR);
       }
       nfd = open("/dev/null", O_RDWR);
-      if ( nfd >= 0 ) {
+      if ( nfd >= 3 ) {
 #ifdef HAVE_DUP2
 	dup2(nfd, 0);
 	dup2(nfd, 1);
@@ -469,7 +469,7 @@ main(int argc, char **argv)
 	close(2); dup(nfd);
 #endif
 	close(nfd);
-      } else {
+      } else if ( nfd < 0 ) {
 	close(0); close(1); close(2);
       }
 #ifdef HAVE_SETSID
@@ -684,14 +684,14 @@ main(int argc, char **argv)
 }
 
 char   *rewrite_access(char *, int, const char **);
-int	validate_access(char *, int, struct formats *);
+int	validate_access(char *, int, struct formats *, const char **);
 void	tftp_sendfile(struct formats *, struct tftphdr *, int);
 void	tftp_recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
   const char *f_mode;
   char	*(*f_rewrite)(char *, int, const char **);
-  int	(*f_validate)(char *, int, struct formats *);
+  int	(*f_validate)(char *, int, struct formats *, const char **);
   void	(*f_send)(struct formats *, struct tftphdr *, int);
   void	(*f_recv)(struct formats *, struct tftphdr *, int);
   int	f_convert;
@@ -707,25 +707,27 @@ struct formats {
 int
 tftp(struct tftphdr *tp, int size)
 {
-  char *cp;
+  char *cp, *end;
   int argn, ecode;
   struct formats *pf = NULL;
   char *origfilename;
   char *filename, *mode = NULL;
-  const char *maperrmsg;
+  const char *errmsgptr;
   
   char *val = NULL, *opt = NULL;
   char *ap = ackbuf + 2;
-  
+
   ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
   
   origfilename = cp = (char *) &(tp->th_stuff);
   argn = 0;
   
-  while ( cp < buf + size && *cp ) {
+  end = (char *)tp + size;
+
+  while ( cp < end && *cp ) {
     do {
       cp++;
-    } while (cp < buf + size && *cp);
+    } while (cp < end && *cp);
     
     if ( *cp ) {
       nak(EBADOP, "Request not null-terminated");
@@ -747,8 +749,8 @@ tftp(struct tftphdr *tp, int size)
 	exit(0);
       }
       if ( !(filename =
-	     (*pf->f_rewrite)(origfilename, tp->th_opcode, &maperrmsg)) ) {
-	nak(EACCESS, maperrmsg); /* File denied by mapping rule */
+	     (*pf->f_rewrite)(origfilename, tp->th_opcode, &errmsgptr)) ) {
+	nak(EACCESS, errmsgptr); /* File denied by mapping rule */
 	exit(0);
       }
       if ( verbosity >= 1 ) {
@@ -761,9 +763,9 @@ tftp(struct tftphdr *tp, int size)
 		 tp->th_opcode == WRQ ? "WRQ" : "RRQ",
 		 inet_ntoa(from.sin_addr), origfilename, filename);
       }		   
-      ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
+      ecode = (*pf->f_validate)(filename, tp->th_opcode, pf, &errmsgptr);
       if (ecode) {
-	nak(ecode, NULL);
+	nak(ecode, errmsgptr);
 	exit(0);
       }
       opt = ++cp;
@@ -1034,7 +1036,8 @@ FILE *file;
  * given as we have no login directory.
  */
 int
-validate_access(char *filename, int mode, struct formats *pf)
+validate_access(char *filename, int mode,
+		struct formats *pf, const char **errmsg)
 {
   struct stat stbuf;
   int   i, len;
@@ -1044,10 +1047,14 @@ validate_access(char *filename, int mode, struct formats *pf)
   char stdio_mode[3];
   
   tsize_ok = 0;
+  *errmsg = NULL;
   
   if (!secure) {
-    if (*filename != '/')
+    if (*filename != '/') {
+      *errmsg = "Only absolute filenames allowed";
       return (EACCESS);
+    }
+
     /*
      * prevent tricksters from getting around the directory
      * restrictions
@@ -1055,15 +1062,19 @@ validate_access(char *filename, int mode, struct formats *pf)
     len = strlen(filename);
     for ( i = 1 ; i < len-3 ; i++ ) {
       cp = filename + i;
-      if ( *cp == '.' && memcmp(cp-1, "/../", 4) == 0)
+      if ( *cp == '.' && memcmp(cp-1, "/../", 4) == 0 ) {
+	*errmsg = "Reverse path not allowed";
 	return(EACCESS);
+      }
     }
 
     for (dirp = dirs; *dirp; dirp++)
       if (strncmp(filename, *dirp, strlen(*dirp)) == 0)
 	break;
-    if (*dirp==0 && dirp!=dirs)
+    if (*dirp==0 && dirp!=dirs) {
+      *errmsg = "Forbidden directory";
       return (EACCESS);
+    }
   }
   
   /*
@@ -1088,7 +1099,7 @@ validate_access(char *filename, int mode, struct formats *pf)
     case EEXIST:
       return EEXISTS;
     default:
-      return EACCESS;
+      return errno+100;
     }
   }
 
@@ -1096,20 +1107,26 @@ validate_access(char *filename, int mode, struct formats *pf)
     exit(EX_OSERR);		/* This shouldn't happen */
 
   if (mode == RRQ) {
-    if ( !unixperms && (stbuf.st_mode & (S_IREAD >> 6)) == 0 )
+    if ( !unixperms && (stbuf.st_mode & (S_IREAD >> 6)) == 0 ) {
+      *errmsg = "File must have global read permissions";
       return (EACCESS);
+    }
     tsize = stbuf.st_size;
     /* We don't know the tsize if conversion is needed */
     tsize_ok = !pf->f_convert;
   } else {
     if ( !unixperms ) {
-      if ( (stbuf.st_mode & (S_IWRITE >> 6)) == 0 )
+      if ( (stbuf.st_mode & (S_IWRITE >> 6)) == 0 ) {
+	*errmsg = "File must have global write permissions";
 	return (EACCESS);
+      }
 
       /* We didn't get to truncate the file at open() time */
 #ifdef HAVE_FTRUNCATE
-      if ( ftruncate(fd, (off_t)0) )
+      if ( ftruncate(fd, (off_t)0) ) {
+	*errmsg = "Cannot reset file size";
 	return(EACCESS);
+      }
 #endif
     }
     tsize = 0;
@@ -1138,8 +1155,6 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   static u_short block = 1;	/* Static to avoid longjmp funnies */
   int size, n;
   
-  ap = (struct tftphdr *)ackbuf;
-  
   if (oap) {
     timeout = rexmtval;
     (void)sigsetjmp(timeoutbuf,1);
@@ -1154,6 +1169,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	syslog(LOG_WARNING, "tftpd: read: %m\n");
 	goto abort;
       }
+      ap = (struct tftphdr *)ackbuf;
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
       ap->th_block = ntohs((u_short)ap->th_block);
       
@@ -1194,6 +1210,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	syslog(LOG_WARNING, "tftpd: read(ack): %m");
 	goto abort;
       }
+      ap = (struct tftphdr *)ackbuf;
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
       ap->th_block = ntohs((u_short)ap->th_block);
       
