@@ -1098,7 +1098,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   ap->th_block = htons((u_short)(block));
   (void) send(peer, ackbuf, 4, 0);
   
-  set_signal(SIGALRM, justquit, SA_RESETHAND); /* just quit on timeout */
+  set_signal(SIGALRM, justquit, 0); /* just quit on timeout */
   alarm(rexmtval);
   n = recv(peer, buf, sizeof (buf), 0); /* normally times out and quits */
   alarm(0);
