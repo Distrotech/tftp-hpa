@@ -1,5 +1,7 @@
 all: tftp
 
+SRCROOT = ..
+
 -include ../MCONFIG
 include ../MRULES
 

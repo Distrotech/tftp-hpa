@@ -2,14 +2,19 @@ dnl
 dnl autoconf input file to generate MCONFIG
 dnl
 
-AC_PREREQ(2.13)
+AC_PREREQ(2.52)
 AC_REVISION([$Id$])
 AC_INIT(MCONFIG.in)
 AC_PREFIX_DEFAULT(/usr)
 
+AC_ISC_POSIX
+AC_AIX
+AC_MINIX
 AC_PROG_CC
 AC_C_CONST
 AC_C_INLINE
+
+AC_SYS_LARGEFILE
 
 PA_ADD_CFLAGS(-W)
 PA_ADD_CFLAGS(-Wall)
@@ -27,11 +32,24 @@ PA_ADD_CFLAGS(-Wshadow)
 PA_ADD_CFLAGS(-Wsign-compare)
 PA_ADD_CFLAGS(-pipe)
 
-AC_CHECK_HEADERS(sysexits.h)
-AC_CHECK_HEADERS(strings.h)
-AC_CHECK_HEADERS(libgen.h)
+AC_HEADER_STDC
 AC_CHECK_HEADERS(inttypes.h)
+AC_CHECK_HEADERS(libgen.h)
+AC_CHECK_HEADERS(memory.h)
+AC_CHECK_HEADERS(stddef.h)
+AC_CHECK_HEADERS(stdint.h)
+AC_CHECK_HEADERS(stdlib.h)
+AC_CHECK_HEADERS(string.h)
+AC_CHECK_HEADERS(strings.h)
+AC_CHECK_HEADERS(sysexits.h)
+AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/filio.h)
+AC_CHECK_HEADERS(sys/stat.h)
+AC_CHECK_HEADERS(sys/types.h)
+
+AC_CHECK_TYPES(intmax_t)
+AC_CHECK_TYPES(long long)
+AC_TYPE_PID_T
 
 AC_SEARCH_LIBS(socket, socket, , [AC_MSG_ERROR(socket library not found)])
 AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not found)])
@@ -45,6 +63,8 @@ AC_CHECK_FUNCS(setregid)
 PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
 
+AH_TEMPLATE([HAVE_IPPORT_TFTP_DEFINITION],
+[Define to 1 if netinet/in.h defines IPPORT_TFTP.])
 PA_HEADER_DEFINES(netinet/in.h, int, IPPORT_TFTP)
 
 PA_WITH_BOOL(tcpwrappers, 1,
@@ -53,6 +73,9 @@ PA_WITH_BOOL(tcpwrappers, 1,
 	AC_SEARCH_LIBS(yp_get_default_domain, [nsl resolv])
 	PA_HAVE_TCPWRAPPERS
 ],:)
+
+AH_TEMPLATE([WITH_REGEX],
+[Define to 1 if we are compiling with regex filename remapping.])
 
 PA_WITH_BOOL(remap, 1,
 [ --without-remap       Disable regex-based filename remapping],
@@ -67,8 +90,9 @@ PA_WITH_BOOL(remap, 1,
 	])
 ],:)
 
+AH_TEMPLATE([HAVE_SIGSETJMP],
+[Define to 1 if we have sigsetjmp, siglongjmp and sigjmp_buf.])
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
-PA_HAVE_LONG_LONG([AC_DEFINE(HAVE_LONG_LONG)])
 
 LIBXTRA=false
 AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")
@@ -84,5 +108,5 @@ AC_SUBST(TFTPDOBJS)
 AC_PROG_RANLIB
 AC_PROG_INSTALL
 
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(acconfig.h)
 AC_OUTPUT(MCONFIG)

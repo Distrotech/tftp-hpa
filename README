@@ -22,9 +22,12 @@ Changes in 0.22:
 	Even more portability improvements: FreeBSD and
 	Tru64/Digital Unix.
 
-	Some minor source cleanups.
-
 	Fix tsize option on systems on which off_t is "long long".
+
+	Support large files on systems which need _LARGE_FILE_BITS or
+	similar.
+
+	Some source cleanups; change to autoconf 2.52.
 
 
 Changes in 0.21:

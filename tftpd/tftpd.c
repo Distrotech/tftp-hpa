@@ -35,6 +35,7 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"		/* Must be included first */
 #include "tftpd.h"
 
 #ifndef lint
@@ -203,7 +204,7 @@ main(int argc, char **argv)
   int fd = 0;
   int standalone = 0;		/* Standalone (listen) mode */
   char *address = NULL;		/* Address to listen to */
-  int pid;
+  pid_t pid;
   int c;
   int setrv;
   int waittime = 900;		/* Default time to wait for a connect*/
@@ -218,7 +219,7 @@ main(int argc, char **argv)
   p = strrchr(argv[0], '/');
   __progname = (p && p[1]) ? p+1 : argv[0];
   
-  openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+  openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
   
   while ((c = getopt(argc, argv, "csvla:u:r:t:m:")) != -1)
     switch (c) {
@@ -358,7 +359,7 @@ main(int argc, char **argv)
 
     /* Daemonize this process */
     {
-      int f = fork();
+      pid_t f = fork();
       if ( f > 0 )
 	exit(0);
       if ( f < 0 ) {

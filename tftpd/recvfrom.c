@@ -18,19 +18,7 @@
  *
  */
 
-#define _XPG4_2			/* Needed on Solaris */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#include "../config.h"
+#include "config.h"		/* Must be included first! */
 #include "recvfrom.h"
 #include "tftpsubs.h"
 

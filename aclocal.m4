@@ -32,28 +32,13 @@ AC_DEFUN(PA_SIGSETJMP,
  $2)])
 
 dnl --------------------------------------------------------------------------
-dnl PA_HAVE_LONG_LONG
-dnl
-dnl Does the C compiler support long long?
-dnl --------------------------------------------------------------------------
-AC_DEFUN(PA_HAVE_LONG_LONG,
-[AC_MSG_CHECKING([if C compiler supports long long])
- AC_TRY_LINK(
- [],
- [long long foo = 1LL;
-  unsigned long long bar = 1ULL;
-  return (int)(foo-bar);
- ],
- AC_MSG_RESULT([yes])
- $1,
- AC_MSG_RESULT([no])
- $2)])
-
-dnl --------------------------------------------------------------------------
 dnl PA_MSGHDR_MSG_CONTROL
 dnl
 dnl Does struct msghdr have the msg_control field?
 dnl --------------------------------------------------------------------------
+AH_TEMPLATE([HAVE_MSGHDR_MSG_CONTROL],
+[Define to 1 if struct msghdr has the msg_control field.])
+
 AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
 [AC_MSG_CHECKING([for msg_control in struct msghdr])
  AC_TRY_COMPILE(
@@ -82,6 +67,9 @@ dnl Look for definition of struct in_pktinfo.  Some versions of glibc
 dnl lack struct in_pktinfo; if so we need to include the definition
 dnl ourselves -- but we only want to do that if absolutely necessary!
 dnl ------------------------------------------------------------------------
+AH_TEMPLATE([HAVE_STRUCT_IN_PKTINFO],
+[Define to 1 if struct in_pktinfo is defined.])
+
 AC_DEFUN(PA_STRUCT_IN_PKTINFO,
 [AC_MSG_CHECKING([for definition of struct in_pktinfo])
  AC_TRY_COMPILE(
@@ -112,6 +100,9 @@ dnl
 dnl Do we have the tcpwrappers -lwrap?  This can't be done using AC_CHECK_LIBS
 dnl due to the need to provide "allow_severity" and "deny_severity" variables
 dnl --------------------------------------------------------------------------
+AH_TEMPLATE([HAVE_TCPWRAPPERS],
+[Define to 1 if we have tcpwrappers (-lwrap) and <tcpd.h>.])
+
 AC_DEFUN(PA_HAVE_TCPWRAPPERS,
 [AC_CHECK_LIB([wrap], [main])
  AC_MSG_CHECKING([for tcpwrappers])

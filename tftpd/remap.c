@@ -15,20 +15,16 @@
  * Perform regular-expression based filename remapping.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "config.h"		/* Must be included first! */
 #include <ctype.h>
 #include <syslog.h>
-#include <sys/types.h>		/* FreeBSD 3.3 need this before regex.h */
 #include <regex.h>
-#include <syslog.h>
 
 #include "tftpd.h"
 #include "remap.h"
 
 #define DEADMAN_MAX_STEPS	1024    /* Timeout after this many steps */
-#define LINE_MAX 		16384   /* Truncate a line at this many bytes */
+#define MAXLINE 		16384   /* Truncate a line at this many bytes */
 
 #define RULE_REWRITE	0x01	/* This is a rewrite rule */
 #define RULE_GLOBAL	0x02	/* Global rule (repeat until no match) */
@@ -134,7 +130,7 @@ static int readescstring(char *buf, char **str)
 /* Parse a line into a set of instructions */
 static int parseline(char *line, struct rule *r, int lineno)
 {
-  char buffer[LINE_MAX];
+  char buffer[MAXLINE];
   char *p;
   int rv;
   int rxflags = REG_EXTENDED;
@@ -211,7 +207,7 @@ static int parseline(char *line, struct rule *r, int lineno)
 /* Read a rule file */
 struct rule *parserulefile(FILE *f)
 {
-  char line[LINE_MAX];
+  char line[MAXLINE];
   struct rule *first_rule = NULL;
   struct rule **last_rule = &first_rule;
   struct rule *this_rule  = tfmalloc(sizeof(struct rule));
@@ -219,7 +215,7 @@ struct rule *parserulefile(FILE *f)
   int lineno = 0;
   int err = 0;
 
-  while ( lineno++, fgets(line, LINE_MAX, f) ) {
+  while ( lineno++, fgets(line, MAXLINE, f) ) {
     rv = parseline(line, this_rule, lineno);
     if ( rv < 0 )
       err = 1;

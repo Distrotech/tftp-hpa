@@ -15,9 +15,9 @@
  * Minor help routines.
  */
 
+#include "config.h"		/* Must be included first! */
 #include <syslog.h>
 #include <signal.h>
-#include <string.h>
 #include "tftpd.h"
 
 /*

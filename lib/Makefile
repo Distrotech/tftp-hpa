@@ -2,6 +2,8 @@
 # Extra functions which may not be available everywhere
 #
 
+SRCROOT = ..
+
 -include ../MCONFIG
 include ../MRULES
 

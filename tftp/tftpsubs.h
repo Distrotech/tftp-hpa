@@ -45,15 +45,7 @@
 #ifndef TFTPSUBS_H
 #define TFTPSUBS_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
-#include <setjmp.h>
-#include "../config.h"
-
-#ifndef HAVE_IPPORT_TFTP_DEFINITION
-#define IPPORT_TFTP	69
-#endif
+#include "config.h"
 
 struct tftphdr;
 
@@ -80,20 +72,5 @@ extern char *xstrdup(const char *);
  * Signal-related stuff
  */
 void (*bsd_signal(int, void (*)(int)))(int);
-
-#ifndef HAVE_SIGSETJMP
-#define sigsetjmp(x,y)  setjmp(x)
-#define siglongjmp(x,y) longjmp(x,y)
-#define sigjmp_buf jmp_buf
-#endif
-
-/*
- * How to annotate unused variables
- */
-#ifdef __GNUC__
-#define UNUSED __attribute__((unused))
-#else
-#define UNUSED
-#endif
 
 #endif
