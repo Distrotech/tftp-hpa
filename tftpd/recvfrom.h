@@ -16,6 +16,7 @@
  *
  */
 
+#define _XPG4_2			/* Needed on Solaris */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

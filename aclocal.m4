@@ -40,6 +40,7 @@ AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
 [AC_MSG_CHECKING([for msg_control in struct msghdr])
  AC_TRY_COMPILE(
 [
+#define _XPG4_2		/* Needed on Solaris */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
