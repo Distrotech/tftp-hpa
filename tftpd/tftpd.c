@@ -116,15 +116,17 @@ void timer(int);
 void justquit(int);
 void do_opt(char *, char *, char **);
 
-int     set_blksize(char *, char **);
-int     set_tsize(char *, char **);
-int	set_timeout(char *, char **);
+int set_blksize(char *, char **);
+int set_blksize2(char *, char **);
+int set_tsize(char *, char **);
+int set_timeout(char *, char **);
 
 struct options {
         char    *o_opt;
         int     (*o_fnc)(char *, char **);
 } options[] = {
         { "blksize",    set_blksize  },
+        { "blksize2",   set_blksize2  },
         { "tsize",      set_tsize },
 	{ "timeout",	set_timeout  },
         { NULL,         NULL }
@@ -404,7 +406,7 @@ int
 set_blksize(char *val, char **ret)
 {
   	static char b_ret[6];
-        int sz = atoi(val);
+        unsigned int sz = atoi(val);
 
         if (sz < 8)
                 return(0);
@@ -412,10 +414,37 @@ set_blksize(char *val, char **ret)
                 sz = MAX_SEGSIZE;
 
         segsize = sz;
-        sprintf(*ret = b_ret, "%d", sz);
+        sprintf(*ret = b_ret, "%u", sz);
         return(1);
 }
 
+/*
+ * Set a power-of-two block size (nonstandard)
+ */
+int
+set_blksize2(char *val, char **ret)
+{
+  	static char b_ret[6];
+        unsigned int sz = atoi(val);
+
+        if (sz < 8)
+                return(0);
+        else if (sz > MAX_SEGSIZE)
+	        sz = MAX_SEGSIZE;
+
+	/* Convert to a power of two */
+	if ( sz & (sz-1) ) {
+	  unsigned int sz1 = 1;
+	  /* Not a power of two - need to convert */
+	  while ( sz >>= 1 )
+	    sz1 <<= 1;
+	  sz = sz1;
+	}
+
+        segsize = sz;
+        sprintf(*ret = b_ret, "%u", sz);
+        return(1);
+}
 
 /*
  * Return a file size (c.f. RFC2349)
@@ -547,6 +576,7 @@ validate_access(char *filename, int mode, struct formats *pf)
 			if ((stbuf.st_mode&(S_IREAD >> 6)) == 0)
 				return (EACCESS);
 			tsize = stbuf.st_size;
+			/* We don't know the tsize if conversion is needed */
 			tsize_ok = !pf->f_convert;
 		} else {
 			if ((stbuf.st_mode&(S_IWRITE >> 6)) == 0)
