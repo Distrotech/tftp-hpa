@@ -226,7 +226,9 @@ employed.  If appropriately compiled (see the output of
 .B tftpd
 will query the
 .BR hosts_access (5)
-database for access control information.  This may be slow.
+database for access control information.  This may be slow; sites
+requiring maximum performance may want to compile without this option
+and rely on firewalling or kernel-based packet filters instead.
 .PP
 The server should be set to have the user ID with the lowest possible
 privilege; please see the
