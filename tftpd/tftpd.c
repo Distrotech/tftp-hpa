@@ -472,7 +472,7 @@ tftp(struct tftphdr *tp, int size)
 	exit(0);
       }
       if ( !(filename = (*pf->f_rewrite)(origfilename, tp->th_opcode)) ) {
-	nak(EACCES); /* File denied by mapping rule */
+	nak(EACCESS); /* File denied by mapping rule */
 	exit(0);
       }
       if ( verbosity >= 1 ) {

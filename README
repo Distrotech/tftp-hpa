@@ -36,6 +36,8 @@ Changes in 0.19:
 	Add support for debugging remapping rulefiles; if logging with
 	-vvv tftpd will log all rules actions.
 
+	Correct the error code issued by an "abort" rule.
+
 
 Changes in 0.18:
 	Support (almost) arbitrary filename remappings via regular
