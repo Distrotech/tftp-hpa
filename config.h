@@ -187,8 +187,29 @@ typedef unsigned long u_long;
 #define EOPTNEG 8
 #endif
 
-/* tftp-hpa version */
+/* tftp-hpa version and configuration strings */
 
 #include "version.h"
+
+#ifdef WITH_READLINE
+#define WITH_READLINE_STR ", with readline"
+#else
+#define WITH_READLINE_STR ", without readline"
+#endif
+
+#ifdef WITH_REGEX
+#define WITH_REGEX_STR ", with remap"
+#else
+#define WITH_REGEX_STR ", without remap"
+#endif
+
+#ifdef HAVE_LIBWRAP
+#define HAVE_LIBWRAP_STR ", with tcpwrappers"
+#else
+#define HAVE_LIBWRAP_STR ", without tcpwrappers"
+#endif
+
+#define TFTP_CONFIG_STR VERSION WITH_READLINE_STR
+#define TFTPD_CONFIG_STR VERSION WITH_REGEX_STR HAVE_LIBWRAP_STR
 
 #endif

@@ -259,8 +259,8 @@ main(int argc, char **argv)
       verbosity++;
       break;
     case 'V':
-      /* Print version to stdout and exit */
-      printf("%s\n", VERSION);
+      /* Print configuration to stdout and exit */
+      printf("%s\n", TFTPD_CONFIG_STR);
       exit(0);
       break;
     default:

@@ -192,8 +192,8 @@ main(int argc, char *argv[])
 	    verbose = 1;
 	    break;
 	  case 'V':
-	    /* Print version to stdout and exit */
-	    printf("%s\n", VERSION);
+	    /* Print version and configuration to stdout and exit */
+	    printf("%s\n", TFTP_CONFIG_STR);
 	    exit(0);
 	  default:
 	    fprintf(stderr, "Usage: %s [-v] [host]\n", argv[0]);

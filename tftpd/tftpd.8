@@ -107,7 +107,9 @@ default is 900 (15 minutes.)
 Specify the use of filename remapping.  The
 .I remap-file
 is a file containing the remapping rules.  See the section on filename
-remapping below.
+remapping below.  This option may not be compiled in, see
+.B "tftpd \-V"
+to verify whether or not it is available.
 .TP
 .B \-v
 Increase the logging verbosity of
@@ -119,7 +121,8 @@ Indicate that a specific RFC 2347 TFTP option should never be
 accepted.
 .TP
 .B \-V
-Print the version number to standard output, then exit gracefully.
+Print the version number and configuration to standard output, then
+exit gracefully.
 .SH "RFC 2347 OPTION NEGOTIATION"
 This version of
 .B tftpd
@@ -213,12 +216,17 @@ will allow only publicly readable files (o+r) to be accessed.  Files
 may be written only if they already exist and are publicly writable,
 unless the
 .B \-c
-option is specified.
-Note that this extends the concept of ``public'' to include all users
-on all hosts that can be reached through the network; this may not be
-appropriate on all systems, and its implications should be considered
-before enabling TFTP service.  Typically, some kind of firewall or
-packet-filter solution should be employed.
+option is specified.  Note that this extends the concept of ``public''
+to include all users on all hosts that can be reached through the
+network; this may not be appropriate on all systems, and its
+implications should be considered before enabling TFTP service.
+Typically, some kind of firewall or packet-filter solution should be
+employed.  If appropriately compiled (see the output of
+.BR  "tftpd \-V" )
+.B tftpd
+will query the
+.BR hosts_access (5)
+database for access control information.  This may be slow.
 .PP
 The server should be set to have the user ID with the lowest possible
 privilege; please see the
@@ -277,5 +285,6 @@ added patches by Markus Gutschke and Gero Kulhman.
 .SH "SEE ALSO"
 .BR tftp (1),
 .BR egrep (1),
+.BR hosts_access (5),
 .BR regex (7),
 .BR inetd (8).
