@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
 #include "../config.h"
+#include "recvfrom.h"
 
 #if defined(HAVE_RECVMSG) && defined(HAVE_MSGHDR_MSG_CONTROL)
 

@@ -66,6 +66,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <string.h>
 #include <unistd.h>
 
+#include "../config.h"
 #include "extern.h"
 
 void bsd_signal(int, void (*)(int));

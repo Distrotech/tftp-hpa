@@ -22,4 +22,5 @@ install:  $(patsubst %, %.install, $(SUB))
 clean:    $(patsubst %, %.clean, $(SUB))
 
 spotless: $(patsubst %, %.spotless, $(SUB))
-	rm -f MCONFIG config.* *~
+	rm -f MCONFIG config.cache config.log config.h *~ \#*
+	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f

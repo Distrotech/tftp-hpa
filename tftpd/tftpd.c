@@ -72,6 +72,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <unistd.h>
 #include <limits.h>
 
+#include "../config.h"
 #include "tftpsubs.h"
 #include "recvfrom.h"
 
@@ -95,7 +96,6 @@ void bsd_signal(int, void (*)(int));
 #endif
 
 extern	char *__progname;
-struct	sockaddr_in s_in;
 int	peer;
 int	timeout    = TIMEOUT;
 int	rexmtval   = TIMEOUT;
@@ -155,6 +155,7 @@ main(int argc, char **argv)
 	struct tftphdr *tp;
 	struct passwd *pw;
 	struct options *opt;
+	struct sockaddr_in myaddr;
 	int n = 0;
 	int on = 1;
 	int fd = 0;
@@ -329,7 +330,7 @@ struct formats {
 } formats[] = {
 	{ "netascii",	validate_access,	sendfile,	recvfile, 1 },
 	{ "octet",	validate_access,	sendfile,	recvfile, 0 },
-	{ NULL }
+	{ NULL, NULL, NULL, NULL, 0 }
 };
 
 /*

@@ -62,6 +62,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <string.h>
 #include <unistd.h>
 
+#include "../config.h"
 #include "extern.h"
 #include "tftpsubs.h"
 

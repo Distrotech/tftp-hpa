@@ -15,5 +15,6 @@
  * Pattern file for configurations
  */
 
+#undef HAVE_SIGSETJMP
 #undef HAVE_MSGHDR_MSG_CONTROL
 #undef HAVE_RECVMSG
