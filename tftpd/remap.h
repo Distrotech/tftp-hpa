@@ -17,12 +17,17 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "../config.h"
 
 /* Opaque type */
 struct rule;
+
+#ifdef WITH_REGEX
 
 /* Read a rule file */
 struct rule *parserulefile(FILE *);
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
-char *rewrite_string(const char *input, const struct rule *rules, int is_put);
+char *rewrite_string(const char *, const struct rule *, int);
+
+#endif

@@ -77,9 +77,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include "../config.h"
 #include "tftpsubs.h"
 #include "recvfrom.h"
-#ifdef WITH_REGEX
 #include "remap.h"
-#endif
 
 #ifdef HAVE_TCPWRAPPERS
 #include <tcpd.h>
@@ -130,6 +128,7 @@ int	secure = 0;
 int	cancreate = 0;
 
 struct formats;
+static struct rule *rewrite_rules = NULL;
 
 int tftp(struct tftphdr *, int);
 void nak(int);
@@ -158,7 +157,7 @@ struct options {
 static void
 usage(void)
 {
-	syslog(LOG_ERR, "Usage: %s [-c] [-u user] [-t timeout] [-r option...] [-s] [directory ...]",
+	syslog(LOG_ERR, "Usage: %s [-c] [-m mappings] [-u user] [-t timeout] [-r option...] [-s] [directory ...]",
 	       __progname);
 	exit(1);
 }
@@ -183,7 +182,7 @@ main(int argc, char **argv)
 
 	openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
-	while ((c = getopt(argc, argv, "csu:r:t:")) != -1)
+	while ((c = getopt(argc, argv, "csu:r:t:m:")) != -1)
 		switch (c) {
 		case 'c':
 			cancreate = 1;
@@ -209,7 +208,24 @@ main(int argc, char **argv)
 			exit(1);
 		  }
 		  break;
-
+#ifdef WITH_REGEX
+		case 'm':
+		  {
+		    FILE *f;
+		    if ( rewrite_rules ) {
+		      syslog(LOG_ERR, "Multiple -m options");
+		      exit(1);
+		    }
+		    f = fopen(optarg, "rt");
+		    if ( !f ) {
+		      syslog(LOG_ERR, "Cannot open map file: %s: %m", optarg);
+		      exit(1);
+		    }
+		    rewrite_rules = parserulefile(f);
+		    fclose(f);
+		  }
+		  break;
+#endif
 		default:
 			usage();
 			break;
@@ -372,20 +388,22 @@ main(int argc, char **argv)
 	exit(0);
 }
 
+char   *rewrite_access(char *, int);
 int	validate_access(char *, int, struct formats *);
 void	sendfile(struct formats *, struct tftphdr *, int);
 void	recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
 	char	*f_mode;
+  	char	*(*f_rewrite)(char *, int);
 	int	(*f_validate)(char *, int, struct formats *);
 	void	(*f_send)(struct formats *, struct tftphdr *, int);
 	void	(*f_recv)(struct formats *, struct tftphdr *, int);
 	int	f_convert;
 } formats[] = {
-	{ "netascii",	validate_access,	sendfile,	recvfile, 1 },
-	{ "octet",	validate_access,	sendfile,	recvfile, 0 },
-	{ NULL, NULL, NULL, NULL, 0 }
+	{ "netascii",   rewrite_access, validate_access, sendfile, recvfile, 1 },
+	{ "octet",	rewrite_access, validate_access, sendfile, recvfile, 0 },
+	{ NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
 /*
@@ -429,6 +447,10 @@ tftp(struct tftphdr *tp, int size)
 		  }
 		  if (!pf->f_mode) {
 		       nak(EBADOP);
+		       exit(0);
+		  }
+		  if ( !(filename = (*pf->f_rewrite)(filename, tp->th_opcode)) ) {
+		       nak(EACCES); /* File denied by mapping rule */
 		       exit(0);
 		  }
 		  ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
@@ -599,9 +621,22 @@ do_opt(char *opt, char *val, char **ap)
      return;
 }
 
+/*
+ * Modify the filename, if applicable.  If it returns NULL, deny the access.
+ */
+char *
+rewrite_access(char *filename, int mode)
+{
+#ifdef WITH_REGEX
+  if ( rewrite_rules ) {
+    char *newname = rewrite_string(filename, rewrite_rules, mode != RRQ);
+    filename = newname;
+  }
+#endif
+  return filename;
+}
 
 FILE *file;
-
 /*
  * Validate file access.  Since we
  * have no uid or gid, for now require
