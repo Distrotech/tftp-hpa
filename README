@@ -33,6 +33,9 @@ Changes in 0.19:
 
 	Use <sysexits.h> for exit codes, if it exists.
 
+	Add support for debugging remapping rulefiles; if logging with
+	-vvv tftpd will log all rules actions.
+
 
 Changes in 0.18:
 	Support (almost) arbitrary filename remappings via regular
