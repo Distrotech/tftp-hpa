@@ -151,15 +151,14 @@ PA_WITH_BOOL(readline, 1,
 [  --without-readline      disable the use of readline command-line editing],
 [
 	USE_READLINE=true
-	AC_CHECK_HEADER(readline/readline.h, [], [USE_READLINE=false])
-	AC_CHECK_HEADER(readline/history.h, [], [USE_READLINE=false])
-	if $USE_READLINE
-	then
+	AC_CHECK_HEADER(readline/readline.h,
+	[
 		AC_SEARCH_LIBS(readline, [readline history],
 		[
 			AC_DEFINE(WITH_READLINE)
 		])
-	fi
+		AC_CHECK_HEADERS(readline/history.h)
+	])
 ],:)
 
 TFTP_LIBS="$LIBS"

@@ -71,7 +71,9 @@ static const char *rcsid UNUSED =
 #include <fcntl.h>
 #ifdef WITH_READLINE
 #include <readline/readline.h>
+#ifdef HAVE_READLINE_HISTORY_H
 #include <readline/history.h>
+#endif
 #endif
 
 #include "extern.h"
@@ -237,7 +239,9 @@ main(int argc, char *argv[])
 		(void)putchar('\n');
 
 #ifdef WITH_READLINE
+#ifdef HAVE_READLINE_HISTORY_H
 	using_history();
+#endif
 #endif
 
 	command();
@@ -269,7 +273,9 @@ getmoreargs(const char *partial, const char *mprompt)
   strcpy(line, partial);
   strcpy(line+len, eline);
 
+#ifdef HAVE_READLINE_HISTORY_H
   add_history(line);
+#endif
 #else
   int len = strlen(partial);
   
@@ -689,7 +695,9 @@ command(void)
 		if ((line[0] == 0) || (line[0] == '\n'))
 			continue;
 #ifdef WITH_READLINE
+#ifdef HAVE_READLINE_HISTORY_H
 		add_history(line);
+#endif
 #endif
 		makeargv();
 		if (margc == 0)

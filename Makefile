@@ -56,8 +56,7 @@ acconfig.h.in: configure.in aclocal.m4
 	autoheader -f
 
 configure: configure.in aclocal.m4
-	rm -f MCONFIG configure config.log acconfig.h
-	rm -rf *.cache
+	rm -f MCONFIG configure config.log acconfig.h config.cache
 	autoconf
 
 version.h: version

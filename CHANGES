@@ -16,6 +16,9 @@ Changes in 0.26:
 	
 	Rewrite the man pages using standard "man" troff macros.
 
+	Enable the (limited) use of readline on systems which don't
+	have readline/history.h.
+
 
 Changes in 0.25:
 	Fixed Sorcerer's Apprentice bug in both the client and the
