@@ -1,5 +1,9 @@
 $Id$
 
+Changes in 0.36:
+	Portability fixes.
+
+
 Changes in 0.35:
 	Add an option to control the maximum value of blksize
 	negotiated.
