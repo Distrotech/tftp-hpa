@@ -21,8 +21,11 @@ improvements.
 Changes in 0.21:
 	Support running in standalone mode, without inetd.
 
-	Even more portability improvements.  Now known to compile
-	and run on Solaris 5, 5.1, 6 and 7 as well as 8.
+	Even more portability improvements.  Now known to compile and
+	run on Linux, Solaris 5, 5.1, 6, 7 and 8, and AIX.  Reports of
+	success or failure on other modern systems always appreciated.
+
+	Clean and modernize some really ugly old code.
 
 
 Changes in 0.20:
