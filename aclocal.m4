@@ -1,3 +1,16 @@
+dnl $Id$
+dnl  -----------------------------------------------------------------------
+dnl    
+dnl    Copyright 1999-2002 H. Peter Anvin - All Rights Reserved
+dnl 
+dnl    This program is free software; you can redistribute it and/or modify
+dnl    it under the terms of the GNU General Public License as published by
+dnl    the Free Software Foundation, Inc., 53 Temple Place Ste 330,
+dnl    Bostom MA 02111-1307, USA; either version 2 of the License, or
+dnl    (at your option) any later version; incorporated herein by reference.
+dnl 
+dnl  -----------------------------------------------------------------------
+
 dnl --------------------------------------------------------------------------
 dnl PA_ADD_CFLAGS()
 dnl
@@ -58,22 +71,36 @@ dnl Look for definition of struct in_pktinfo, which at least has an
 dnl ipi_addr member.  Some versions of glibc lack struct in_pktinfo;
 dnl if so we need to include the definition ourselves -- but we only
 dnl want to do that if absolutely necessary!
+dnl
+dnl We don't use AC_CHECK_MEMBER() here, since at least in autoconf 2.52
+dnl this is broken for a member of structure type.
 dnl ------------------------------------------------------------------------
 AH_TEMPLATE([HAVE_STRUCT_IN_PKTINFO],
 [Define if struct in_pktinfo is defined.])
 
 AC_DEFUN(PA_STRUCT_IN_PKTINFO,
- [AC_CHECK_MEMBER(struct in_pktinfo.ipi_addr,
-  [AC_DEFINE(HAVE_STRUCT_IN_PKTINFO)],
-  [],
-  [
+ [AC_MSG_CHECKING([for definition of struct in_pktinfo])
+  AC_TRY_COMPILE(
+   [
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <sys/uio.h>
-  ])])
+   ],
+   [
+	struct in_pktinfo pktinfo;
+	int foo = sizeof(struct in_pktinfo);
+	void *quux = (void *)(&pktinfo.ipi_addr);
+   ],
+   [
+	AC_DEFINE(HAVE_STRUCT_IN_PKTINFO)
+	AC_MSG_RESULT(yes)
+   ],
+   [
+	AC_MSG_RESULT(no)
+   ])])
 
 dnl --------------------------------------------------------------------------
 dnl PA_HAVE_TCPWRAPPERS
@@ -177,5 +204,3 @@ int main()
 [
  AC_MSG_RESULT(no)
 ])])
-
-dnl --------------------------------------------------------------------------
