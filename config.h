@@ -108,6 +108,13 @@
 #endif
 #endif
 
+#ifdef HAVE_GETOPT_H
+#include <getopt.h>
+#else
+extern char *optarg;
+extern int optind, opterr, optopt;
+#endif
+
 /* Test for EAGAIN/EWOULDBLOCK */
 #ifdef EAGAIN
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
