@@ -225,7 +225,7 @@ The IP address of the requesting host, in dotted-quad notation
 The IP address of the requesting host, in hexadecimal notation
 (e.g. C00002A9).
 .TP
-\fB\\\fP
+\fB\\\\\fP
 Literal backslash.
 .TP
 \fB\\\fP\fIwhitespace\fP
