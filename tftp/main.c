@@ -43,6 +43,10 @@ static const char *copyright =
 static const char *rcsid = "tftp-hpa $Id$";
 #endif /* not lint */
 
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN	256
+#endif
+
 /* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
 
 /*

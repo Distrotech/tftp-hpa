@@ -73,6 +73,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <limits.h>
 
 #include "tftpsubs.h"
+#include "recvfrom.h"
 
 #define	TIMEOUT 5		/* Default timeout (seconds) */
 #define TRIES   4		/* Number of attempts to send each packet */
@@ -87,7 +88,6 @@ static const char *rcsid = "tftp-hpa $Id$";
 
 extern	int errno;
 extern	char *__progname;
-struct	sockaddr_in s_in = { AF_INET };
 int	peer;
 int	timeout    = TIMEOUT;
 int	rexmtval   = TIMEOUT;
@@ -147,6 +147,7 @@ main(int argc, char **argv)
 	struct tftphdr *tp;
 	struct passwd *pw;
 	struct options *opt;
+	struct sockaddr_in myaddr;
 	int n = 0;
 	int on = 1;
 	int fd = 0;
@@ -232,8 +233,9 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	fromlen = sizeof (from);
-	n = recvfrom(fd, buf, sizeof (buf), 0,
-	    (struct sockaddr *)&from, &fromlen);
+	n = myrecvfrom(fd, buf, sizeof (buf), 0,
+		       (struct sockaddr *)&from, &fromlen,
+		       &myaddr);
 	if (n < 0) {
 		syslog(LOG_ERR, "recvfrom: %m");
 		exit(1);
@@ -267,8 +269,8 @@ main(int argc, char **argv)
 			 * a single request from a single client.
 			 */
 			j = sizeof from;
-			i = recvfrom(fd, buf, sizeof (buf), 0,
-			    (struct sockaddr *)&from, &j);
+			i = myrecvfrom(fd, buf, sizeof (buf), 0,
+			    (struct sockaddr *)&from, &j, &myaddr);
 			if (i > 0) {
 				n = i;
 				fromlen = j;
@@ -291,7 +293,8 @@ main(int argc, char **argv)
 		syslog(LOG_ERR, "socket: %m");
 		exit(1);
 	}
-	if (bind(peer, (struct sockaddr *)&s_in, sizeof (s_in)) < 0) {
+	myaddr.sin_port = htons(0); /* We want a new local port */
+	if (bind(peer, (struct sockaddr *)&myaddr, sizeof (myaddr)) < 0) {
 		syslog(LOG_ERR, "bind: %m");
 		exit(1);
 	}

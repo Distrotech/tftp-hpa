@@ -1,0 +1,19 @@
+/* $Id$ */
+/* ----------------------------------------------------------------------- *
+ *   
+ *   Copyright 2001 H. Peter Anvin - All Rights Reserved
+ *
+ *   This program is free software available under the same license
+ *   as the "OpenBSD" operating system, distributed at
+ *   http://www.openbsd.org/.
+ *
+ * ----------------------------------------------------------------------- */
+
+/*
+ * config.h.in
+ *
+ * Pattern file for configurations
+ */
+
+#undef HAVE_MSGHDR_MSG_CONTROL
+#undef HAVE_RECVMSG

@@ -3,7 +3,7 @@ all: tftpd
 include ../MCONFIG
 include ../MRULES
 
-OBJS = tftpd.o tftpsubs.o
+OBJS = tftpd.o tftpsubs.o recvfrom.o
 
 tftpd: $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@

@@ -8,6 +8,26 @@ AC_PROG_CC
 AC_C_CONST
 AC_C_INLINE
 
+AC_CHECK_FUNCS(recvmsg)
+
+AC_MSG_CHECKING([for msg_control in struct msghdr])
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+],
+[
+	struct msghdr msg;
+	void *p = (void *) &msg.msg_control;
+],
+[
+	AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL)
+	AC_MSG_RESULT([yes])
+],
+[
+	AC_MSG_RESULT([no])
+])
+
 PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-W)
 PA_ADD_CFLAGS(-Wpointer-arith)
@@ -25,4 +45,5 @@ PA_BSD_SIGNAL()
 
 AC_PROG_INSTALL
 
+AC_CONFIG_HEADER(config.h)
 AC_OUTPUT(MCONFIG)
