@@ -146,7 +146,7 @@ int set_tsize(char *, char **);
 int set_timeout(char *, char **);
 
 struct options {
-  char    *o_opt;
+  const char    *o_opt;
   int     (*o_fnc)(char *, char **);
 } options[] = {
   { "blksize",    set_blksize  },
@@ -210,7 +210,7 @@ main(int argc, char **argv)
   int c;
   int setrv;
   int timeout = 900;		/* Default timeout */
-  char *user = "nobody";	/* Default user */
+  const char *user = "nobody";	/* Default user */
 #ifdef WITH_REGEX
   char *rewrite_file = NULL;
 #endif
@@ -546,7 +546,7 @@ void	sendfile(struct formats *, struct tftphdr *, int);
 void	recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
-  char	*f_mode;
+  const char *f_mode;
   char	*(*f_rewrite)(char *, int);
   int	(*f_validate)(char *, int, struct formats *);
   void	(*f_send)(struct formats *, struct tftphdr *, int);
@@ -1096,7 +1096,7 @@ recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 
 struct errmsg {
   int	e_code;
-  char	*e_msg;
+  const char *e_msg;
 } errmsgs[] = {
   { EUNDEF,	"Undefined error code" },
   { ENOTFOUND,	"File not found" },

@@ -42,7 +42,7 @@ struct rule {
   int nrule;
   int rule_flags;
   regex_t rx;
-  char *pattern;
+  const char *pattern;
 };
 
 /* Do \-substitution.  Call with string == NULL to get length only. */
@@ -251,7 +251,7 @@ void freerules(struct rule *r)
 
     /* "" patterns aren't allocated by malloc() */
     if ( r->pattern && *r->pattern )
-      free(r->pattern);
+      free((void *)r->pattern);
   
     free(r);
 

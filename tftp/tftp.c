@@ -336,7 +336,7 @@ makerequest(int request, const char *name,
 
 struct errmsg {
 	int	e_code;
-	char	*e_msg;
+	const char *e_msg;
 } errmsgs[] = {
 	{ EUNDEF,	"Undefined error code" },
 	{ ENOTFOUND,	"File not found" },
@@ -385,7 +385,7 @@ nak(int error)
 static void
 tpacket(const char *s, struct tftphdr *tp, int n)
 {
-	static char *opcodes[] =
+	static const char *opcodes[] =
 	   { "#0", "RRQ", "WRQ", "DATA", "ACK", "ERROR", "OACK" };
 	char *cp, *file;
 	u_short op = ntohs(tp->th_opcode);

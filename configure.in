@@ -19,7 +19,7 @@ PA_ADD_CFLAGS(-Wmissing-prototypes)
 PA_ADD_CFLAGS(-Wmissing-declarations)
 PA_ADD_CFLAGS(-Wnested-externs)
 PA_ADD_CFLAGS(-Winline)
-PA_ADD_CFLAGS(-Wcast-align)
+PA_ADD_CFLAGS(-Wwrite-strings)
 PA_ADD_CFLAGS(-pipe)
 
 AC_CHECK_HEADERS(sysexits.h)

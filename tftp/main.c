@@ -89,7 +89,7 @@ char	mode[32];
 char	line[LBUFLEN];
 int	margc;
 char	*margv[20];
-char	*prompt = "tftp";
+const char *prompt = "tftp";
 sigjmp_buf	toplevel;
 void	intr(int);
 struct	servent *sp;
@@ -113,45 +113,60 @@ static void command (void);
 static void getusage (char *);
 static void makeargv (void);
 static void putusage (char *);
-static void settftpmode (char *);
+static void settftpmode (const char *);
 
 #define HELPINDENT (sizeof("connect"))
 
 struct cmd {
-	char	*name;
-	char	*help;
+	const char *name;
+	const char *help;
 	void	(*handler) (int, char **);
 };
 
-char	vhelp[] = "toggle verbose mode";
-char	thelp[] = "toggle packet tracing";
-char	chelp[] = "connect to remote tftp";
-char	qhelp[] = "exit tftp";
-char	hhelp[] = "print help information";
-char	shelp[] = "send file";
-char	rhelp[] = "receive file";
-char	mhelp[] = "set file transfer mode";
-char	sthelp[] = "show current status";
-char	xhelp[] = "set per-packet retransmission timeout";
-char	ihelp[] = "set total retransmission timeout";
-char    ashelp[] = "set mode to netascii";
-char    bnhelp[] = "set mode to octet";
-
 struct cmd cmdtab[] = {
-	{ "connect",	chelp,		setpeer },
-	{ "mode",       mhelp,          modecmd },
-	{ "put",	shelp,		put },
-	{ "get",	rhelp,		get },
-	{ "quit",	qhelp,		quit },
-	{ "verbose",	vhelp,		setverbose },
-	{ "trace",	thelp,		settrace },
-	{ "status",	sthelp,		status },
-	{ "binary",     bnhelp,         setbinary },
-	{ "ascii",      ashelp,         setascii },
-	{ "rexmt",	xhelp,		setrexmt },
-	{ "timeout",	ihelp,		settimeout },
-	{ "?",		hhelp,		help },
-	{ 0, 0, 0 }
+  { "connect",
+    "connect to remote tftp",
+    setpeer },
+  { "mode",
+    "set file transfer mode",
+    modecmd },
+  { "put",
+    "send file",
+    put },
+  { "get",
+    "receive file",
+    get },
+  { "quit",
+    "exit tftp",
+    quit },
+  { "verbose",
+    "toggle verbose mode",
+    setverbose },
+  { "trace",
+    "toggle packet tracing",
+    settrace },
+  { "status",
+    "show current status",
+    status },
+  { "binary",
+    "set mode to octet",
+    setbinary },
+  { "ascii",
+    "set mode to netascii",
+    setascii },
+  { "rexmt",
+    "set per-packet transmission timeout",
+    setrexmt },
+  { "timeout",
+    "set total retransmission timeout",
+    settimeout },
+  { "?",
+    "print help information",
+    help },
+  { "help",
+    "print help information",
+    help },
+  { 0, 0, 0 }
 };
 
 struct	cmd *getcmd(char *);
@@ -242,8 +257,8 @@ setpeer(int argc, char *argv[])
 }
 
 struct	modes {
-	char *m_name;
-	char *m_mode;
+  const char *m_name;
+  const char *m_mode;
 } modes[] = {
 	{ "ascii",	"netascii" },
 	{ "netascii",   "netascii" },
@@ -258,7 +273,7 @@ void
 modecmd(int argc, char *argv[])
 {
 	struct modes *p;
-	char *sep;
+	const char *sep;
 
 	if (argc < 2) {
 		printf("Using %s mode to transfer files.\n", mode);
@@ -302,7 +317,7 @@ setascii(int argc, char *argv[])
 }
 
 static void
-settftpmode(char *newmode)
+settftpmode(const char *newmode)
 {
 	strcpy(mode, newmode);
 	if (verbose)
@@ -615,7 +630,8 @@ command(void)
 struct cmd *
 getcmd(char *name)
 {
-	char *p, *q;
+	const char *p;
+	char *q;
 	struct cmd *c, *found;
 	int nmatches, longest;
 
