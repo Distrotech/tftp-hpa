@@ -26,8 +26,8 @@ work.  tftpd automatically drops privilege and changes user ID to
 "nobody" by default; the appropriate user ID for tftpd can be
 specified with the -u option (e.g. "-u tftpuser").
 
-If you are running a very busy boot server in a secure (firewalled!)
-configuration, you may want to compile tftpd without tcpwrapper
-support, in order to provide significantly better performance.  To do
-so, specify the --without-tcpwrappers option to configure when
-compiling.
+If you are running a busy boot server, I would suggest to instead use
+kernel-based firewalling rules, and to compile tftpd without
+tcpwrapper support, in order to provide significantly better
+performance.  To do so, specify the --without-tcpwrappers option to
+configure when compiling.
