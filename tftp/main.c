@@ -43,10 +43,6 @@ static const char *copyright =
 static const char *rcsid = "tftp-hpa $Id$";
 #endif /* not lint */
 
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN	256
-#endif
-
 /* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
 
 /*
@@ -72,6 +68,14 @@ static const char *rcsid = "tftp-hpa $Id$";
 
 #include "extern.h"
 
+void bsd_signal(int, void (*)(int));
+
+#ifndef HAVE_SIGSETJMP
+#define sigsetjmp(x,y)  setjmp(x)
+#define siglongjmp(x,y) longjmp(x,y)
+#define sigjmp_buf jmp_buf
+#endif
+
 #define	TIMEOUT		5		/* secs between rexmt's */
 #define	LBUFLEN		200		/* size of input buffer */
 
@@ -86,7 +90,7 @@ char	line[LBUFLEN];
 int	margc;
 char	*margv[20];
 char	*prompt = "tftp";
-jmp_buf	toplevel;
+sigjmp_buf	toplevel;
 void	intr(int);
 struct	servent *sp;
 
@@ -153,6 +157,8 @@ struct cmd cmdtab[] = {
 struct	cmd *getcmd(char *);
 char	*tail(char *);
 
+char *xstrdup(const char *);
+
 int
 main(int argc, char *argv[])
 {
@@ -175,13 +181,13 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 	strcpy(mode, "netascii");
-	signal(SIGINT, intr);
+	bsd_signal(SIGINT, intr);
 	if (argc > 1) {
-		if (setjmp(toplevel) != 0)
+		if (sigsetjmp(toplevel,1) != 0)
 			exit(0);
 		setpeer(argc, argv);
 	}
-	if (setjmp(toplevel) != 0)
+	if (sigsetjmp(toplevel,1) != 0)
 		(void)putchar('\n');
 
 	command();
@@ -189,7 +195,7 @@ main(int argc, char *argv[])
 	return 0;		/* Never reached */
 }
 
-char    hostname[MAXHOSTNAMELEN];
+char    *hostname;
 
 void
 setpeer(int argc, char *argv[])
@@ -210,8 +216,7 @@ setpeer(int argc, char *argv[])
 	}
 	if (inet_aton(argv[1], &peeraddr.sin_addr) != 0) {
 		peeraddr.sin_family = AF_INET;
-		(void) strncpy(hostname, argv[1], sizeof hostname);
-		hostname[sizeof(hostname)-1] = '\0';
+		hostname = xstrdup(argv[1]);
 	} else {
 		host = gethostbyname(argv[1]);
 		if (host == 0) {
@@ -221,7 +226,7 @@ setpeer(int argc, char *argv[])
 		}
 		peeraddr.sin_family = host->h_addrtype;
 		bcopy(host->h_addr, &peeraddr.sin_addr, host->h_length);
-		(void) strcpy(hostname, host->h_name);
+		hostname = xstrdup(host->h_name);
 	}
 	port = sp->s_port;
 	if (argc == 3) {
@@ -349,7 +354,7 @@ put(int argc, char *argv[])
 		bcopy(hp->h_addr, (caddr_t)&peeraddr.sin_addr, hp->h_length);
 		peeraddr.sin_family = hp->h_addrtype;
 		connected = 1;
-		strcpy(hostname, hp->h_name);
+		hostname = xstrdup(hp->h_name);
 	}
 	if (!connected) {
 		printf("No target machine specified.\n");
@@ -443,7 +448,7 @@ get(int argc, char *argv[])
 			    hp->h_length);
 			peeraddr.sin_family = hp->h_addrtype;
 			connected = 1;
-			strcpy(hostname, hp->h_name);
+			hostname = xstrdup(hp->h_name);
 		}
 		if (argc < 4) {
 			cp = argc == 3 ? argv[2] : tail(src);
@@ -549,9 +554,9 @@ void
 intr(int sig)
 {
 
-	signal(SIGALRM, SIG_IGN);
+	bsd_signal(SIGALRM, SIG_IGN);
 	alarm(0);
-	longjmp(toplevel, -1);
+	siglongjmp(toplevel, -1);
 }
 
 char *

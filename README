@@ -1,5 +1,12 @@
-This is tftp-hpa-0.15; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.16; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
+
+Changes in 0.16:
+
+	Correct massive lossage from 0.15: apparently 0.15 was based
+	on an out-of-date CVS repository, somehow.
+
+	Fix for ACKs in TFTP PUT; patch by Roger Venning.
 
 Changes in 0.15:
 

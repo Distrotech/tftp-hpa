@@ -65,7 +65,13 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include "extern.h"
 #include "tftpsubs.h"
 
-extern	int errno;
+void bsd_signal(int, void (*)(int));
+
+#ifndef HAVE_SIGSETJMP
+#define sigsetjmp(x,y)  setjmp(x)
+#define siglongjmp(x,y) longjmp(x,y)
+#define sigjmp_buf jmp_buf
+#endif
 
 extern  struct sockaddr_in peeraddr;	/* filled in by main */
 extern  int     f;			/* the opened socket */
@@ -84,8 +90,8 @@ extern  int     maxtimeout;
 #define PKTSIZE    SEGSIZE+4
 char    ackbuf[PKTSIZE];
 int	timeout;
-jmp_buf	toplevel;
-jmp_buf	timeoutbuf;
+sigjmp_buf	toplevel;
+sigjmp_buf	timeoutbuf;
 
 static void nak(int);
 static int makerequest(int, const char *, struct tftphdr *, const char *);
@@ -118,7 +124,7 @@ sendfile(int fd, char *name, char *mode)
 	block = 0;
 	amount = 0;
 
-	signal(SIGALRM, timer);
+	bsd_signal(SIGALRM, timer);
 	do {
 		if (block == 0)
 			size = makerequest(WRQ, name, dp, mode) - 4;
@@ -133,7 +139,7 @@ sendfile(int fd, char *name, char *mode)
 			dp->th_block = htons((u_short)block);
 		}
 		timeout = 0;
-		(void) setjmp(timeoutbuf);
+		(void) sigsetjmp(timeoutbuf,1);
 send_data:
 		if (trace)
 			tpacket("sent", dp, size + 4);
@@ -222,7 +228,7 @@ recvfile(int fd, char *name, char *mode)
 	firsttrip = 1;
 	amount = 0;
 
-	signal(SIGALRM, timer);
+	bsd_signal(SIGALRM, timer);
 	do {
 		if (firsttrip) {
 			size = makerequest(RRQ, name, ap, mode);
@@ -234,7 +240,7 @@ recvfile(int fd, char *name, char *mode)
 			block++;
 		}
 		timeout = 0;
-		(void) setjmp(timeoutbuf);
+		(void) sigsetjmp(timeoutbuf,1);
 send_ack:
 		if (trace)
 			tpacket("sent", ap, size);
@@ -446,8 +452,8 @@ timer(int sig)
 	if (timeout >= maxtimeout) {
 		printf("Transfer timed out.\n");
 		errno = save_errno;
-		longjmp(toplevel, -1);
+		siglongjmp(toplevel, -1);
 	}
 	errno = save_errno;
-	longjmp(timeoutbuf, 1);
+	siglongjmp(timeoutbuf, 1);
 }
