@@ -43,7 +43,8 @@ struct rule {
 };
 
 /* Do \-substitution.  Call with string == NULL to get length only. */
-static int genmatchstring(char *string, const char *pattern, const char *input, const regmatch_t *pmatch)
+static int genmatchstring(char *string, const char *pattern, const char *input,
+			  const regmatch_t *pmatch, match_pattern_callback macrosub)
 {
   int len = 0;
   int n, mlen;
@@ -60,11 +61,8 @@ static int genmatchstring(char *string, const char *pattern, const char *input, 
   /* Transform matched section */
   while ( *pattern ) {
     if ( *pattern == '\\' && pattern[1] != '\0' ) {
-      if ( pattern[1] < '0' || pattern[1] > '9' ) {
-	len++;
-	if ( string )
-	  *string++ = pattern[1];
-      } else {
+      char macro = pattern[1];
+      if ( macro >= '0' && macro <= '9' ) {
 	n = pattern[1] - '0';
 	
 	if ( pmatch[n].rm_so != -1 ) {
@@ -74,6 +72,16 @@ static int genmatchstring(char *string, const char *pattern, const char *input, 
 	    memcpy(string, input+pmatch[n].rm_so, mlen);
 	    string += mlen;
 	  }
+	}
+      } else {
+	int sublen;
+	if ( macrosub &&
+	     (sublen = macrosub(macro, string)) >= 0 ) {
+	  len += sublen;
+	} else {
+	  len++;
+	  if ( string )
+	    *string++ = pattern[1];
 	}
       }
       pattern += 2;
@@ -257,7 +265,8 @@ void freerules(struct rule *r)
 }
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
-char *rewrite_string(const char *input, const struct rule *rules, int is_put)
+char *rewrite_string(const char *input, const struct rule *rules,
+		     int is_put, match_pattern_callback macrosub)
 {
   char *current = tfstrdup(input);
   char *newstr;
@@ -299,9 +308,11 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 	}
 	
 	if ( ruleptr->rule_flags & RULE_REWRITE ) {
-	  len = genmatchstring(NULL, ruleptr->pattern, current, pmatch);
+	  len = genmatchstring(NULL, ruleptr->pattern, current,
+			       pmatch, macrosub);
 	  newstr = tfmalloc(len+1);
-	  genmatchstring(newstr, ruleptr->pattern, current, pmatch);
+	  genmatchstring(newstr, ruleptr->pattern, current,
+			 pmatch, macrosub);
 	  free(current);
 	  current = newstr;
 	  if ( verbosity >= 3 ) {

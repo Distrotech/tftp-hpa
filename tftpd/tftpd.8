@@ -177,12 +177,7 @@ Replace the substring matched by
 .I regex
 by the
 .IR "replacement pattern" .
-The escape sequence
-\\0
-can be used to copy the entire matched string, and the sequences
-\\1 to \\9
-copies parenthesized subexpressions.  To specify a backslash, white
-space or hash mark, you need to \\-escape it.
+The replacement pattern may contain escape sequences; see below.
 .TP
 .B g
 Repeat this rule until it no longer matches.  This is always used with
@@ -209,6 +204,35 @@ This rule applies to GET (RRQ) requests only.
 .TP
 .B P
 This rule applies to PUT (WRQ) requests only.
+.PP
+The following escape sequences are recognized as part of the
+.IR "replacement pattern" :
+.TP
+\fB\\0\fP
+The entire string matched by the
+.IR regex .
+.TP
+\fB\\1\fP to \fB\\9\fP
+Match the first nine parentensized subexpressions, \\( ... \\) of the
+.I regex
+pattern.
+.TP
+\fB\\i\fP
+The IP address of the requesting host, in dotted-quad notation
+(e.g. 192.0.2.169).
+.TP
+\fB\\x\fP
+The IP address of the requesting host, in hexadecimal notation
+(e.g. C00002A9).
+.TP
+\fB\\\fP
+Literal backslash.
+.TP
+\fB\\\fP\fIwhitespace\fP
+Literal whitespace.
+.TP
+\fB\\#\fI
+Literal hash mark.
 .PP
 If the mapping file is changed, you need to send
 .B SIGHUP

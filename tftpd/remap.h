@@ -18,14 +18,16 @@
 #ifndef TFTPD_REMAP_H
 #define TFTPD_REMAP_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "../config.h"
-
 /* Opaque type */
 struct rule;
 
 #ifdef WITH_REGEX
+
+/* This is called when we encounter a substitution like \i.  The
+   macro character is passed as the first argument; the output buffer,
+   if any, is passed as the second argument.  The function should return
+   the number of characters output, or -1 on failure. */
+typedef int (*match_pattern_callback)(char, char *);
 
 /* Read a rule file */
 struct rule *parserulefile(FILE *);
@@ -34,7 +36,8 @@ struct rule *parserulefile(FILE *);
 void freerules(struct rule *);
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
-char *rewrite_string(const char *, const struct rule *, int);
+char *rewrite_string(const char *, const struct rule *, int,
+		     match_pattern_callback);
 
 #endif /* WITH_REGEX */
 #endif /* TFTPD_REMAP_H */

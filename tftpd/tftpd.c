@@ -779,22 +779,63 @@ do_opt(char *opt, char *val, char **ap)
   return;
 }
 
+#ifdef WITH_REGEX
+
+/*
+ * This is called by the remap engine when it encounters macros such
+ * as \i.  It should write the output in "output" if non-NULL, and
+ * return the length of the output (generated or not).
+ *
+ * Return -1 on failure.
+ */
+int
+rewrite_macros(char macro, char *output);
+
+int
+rewrite_macros(char macro, char *output)
+{
+  char *p;
+
+  switch (macro) {
+  case 'i':
+    p = inet_ntoa(from.sin_addr);
+    if ( output )
+      strcpy(output, p);
+    return strlen(p);
+    
+  case 'x':
+    if ( output )
+      sprintf(output, "%08X",
+	      ntohl(from.sin_addr.s_addr));
+    return 8;
+
+  default:
+    return -1;
+  }
+}
+
 /*
  * Modify the filename, if applicable.  If it returns NULL, deny the access.
  */
 char *
 rewrite_access(char *filename, int mode)
 {
-#ifdef WITH_REGEX
   if ( rewrite_rules ) {
-    char *newname = rewrite_string(filename, rewrite_rules, mode != RRQ);
+    char *newname = rewrite_string(filename, rewrite_rules,
+				   mode != RRQ, rewrite_macros);
     filename = newname;
   }
-#else
-  (void)mode;			/* Suppress unused warning */
-#endif
   return filename;
 }
+
+#else
+char *
+rewrite_access(char *filename, int mode)
+{
+  (void)mode;			/* Avoid warning */
+  return filename;
+}
+#endif
 
 FILE *file;
 /*

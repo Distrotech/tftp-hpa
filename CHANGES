@@ -5,7 +5,10 @@ Changes in 0.27:
 	Alan Sundell for helping out with this platform!
 
 	Make the AIX 4.3 platform work again.  Thanks to Josef Siemes
-	for helping me out with this platform!
+	for helping out with this platform!
+
+	Allow replacement patterns to include the IP address of the
+	requesting host (\i).
 
 
 Changes in 0.26:
