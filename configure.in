@@ -119,9 +119,9 @@ AH_TEMPLATE([HAVE_SIGSETJMP],
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
 LIBXTRA=false
-AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.${OBJEXT}")
-AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xstrdup.${OBJEXT}")
-AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true LIBOBJS="$LIBOBJS bsdsignal.${OBJEXT}")
+AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true AC_LIBOBJ(xmalloc))
+AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true AC_LIBOBJ(xstrdup))
+AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true AC_LIBOBJ(bsdsignal))
 if $LIBXTRA; then
 	LIBS="../lib/libxtra.a $LIBS"
 fi
@@ -187,7 +187,6 @@ LIBS="$common_libs"
 
 AC_SUBST(TFTP_LIBS)
 AC_SUBST(TFTPD_LIBS)
-AC_SUBST(LIBOBJS)
 AC_SUBST(TFTPDOBJS)
 
 AC_PROG_LN_S
