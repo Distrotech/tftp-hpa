@@ -22,10 +22,14 @@ tftpd.build: lib.build
 
 install:  MCONFIG $(patsubst %, %.install, $(SUB))
 
-clean:    $(patsubst %, %.clean, $(SUB))
+clean:	localclean $(patsubst %, %.clean, $(SUB))
+
+localclean:
 	rm -f version.h
 
-distclean: $(patsubst %, %.distclean, $(SUB))
+distclean: localdistclean $(patsubst %, %.distclean, $(SUB))
+
+localdistclean:
 	rm -f MCONFIG config.status config.log acconfig.h *~ \#*
 	rm -rf *.cache
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
