@@ -487,9 +487,7 @@ main(int argc, char **argv)
 	close(0); close(1); close(2);
       }
 #ifdef HAVE_SETSID
-#ifndef __CYGWIN__		/* Kills the process on Cygwin? */
       setsid();
-#endif
 #endif
     }
   } else {
