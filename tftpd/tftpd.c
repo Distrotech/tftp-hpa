@@ -70,7 +70,6 @@ static const char *rcsid UNUSED =
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
-#define __USE_GNU		/* Necessary for basename() on glibc systems */
 #include <string.h>
 #include <stdlib.h>
 #include <pwd.h>
@@ -81,6 +80,10 @@ static const char *rcsid UNUSED =
 #include "recvfrom.h"
 #include "remap.h"
 
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>		/* Necessary for FIONBIO on Solaris */
+#endif
+
 #ifdef HAVE_TCPWRAPPERS
 #include <tcpd.h>
 
@@ -88,12 +91,6 @@ int deny_severity	= LOG_WARNING;
 int allow_severity	= -1;	/* Don't log at all */
 
 struct request_info wrap_request;
-#endif
-#ifdef HAVE_LIBGEN_H
-#include <libgen.h>		/* Necessary for basename() on Solaris */
-#endif
-#ifdef HAVE_SYS_FILIO_H
-#include <sys/filio.h>		/* Necessary for FIONBIO on Solaris */
 #endif
 
 #define	TIMEOUT 5		/* Default timeout (seconds) */
@@ -211,11 +208,15 @@ main(int argc, char **argv)
   int setrv;
   int timeout = 900;		/* Default timeout */
   const char *user = "nobody";	/* Default user */
+  char *p;
 #ifdef WITH_REGEX
   char *rewrite_file = NULL;
 #endif
 
-  __progname = basename(argv[0]);
+  /* basename() is way too much of a pain from a portability standpoint */
+
+  p = strrchr(argv[0], '/');
+  __progname = (p && p[1]) ? p+1 : argv[0];
   
   openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
   
@@ -534,8 +535,8 @@ main(int argc, char **argv)
 
 char   *rewrite_access(char *, int);
 int	validate_access(char *, int, struct formats *);
-void	sendfile(struct formats *, struct tftphdr *, int);
-void	recvfile(struct formats *, struct tftphdr *, int);
+void	tftp_sendfile(struct formats *, struct tftphdr *, int);
+void	tftp_recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
   const char *f_mode;
@@ -545,8 +546,8 @@ struct formats {
   void	(*f_recv)(struct formats *, struct tftphdr *, int);
   int	f_convert;
 } formats[] = {
-  { "netascii",   rewrite_access, validate_access, sendfile, recvfile, 1 },
-  { "octet",	rewrite_access, validate_access, sendfile, recvfile, 0 },
+  { "netascii",   rewrite_access, validate_access, tftp_sendfile, tftp_recvfile, 1 },
+  { "octet",	rewrite_access, validate_access, tftp_sendfile, tftp_recvfile, 0 },
   { NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
@@ -903,7 +904,7 @@ timer(int sig)
  * Send the requested file.
  */
 void
-sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
   struct tftphdr *dp;
   struct tftphdr *ap;		/* ack packet */
@@ -1011,7 +1012,7 @@ justquit(int sig)
  * Receive a file.
  */
 void
-recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
   struct tftphdr *dp;
   int n, size;

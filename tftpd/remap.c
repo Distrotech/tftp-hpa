@@ -20,6 +20,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <syslog.h>
+#include <sys/types.h>		/* FreeBSD 3.3 need this before regex.h */
 #include <regex.h>
 #include <syslog.h>
 
