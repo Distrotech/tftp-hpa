@@ -92,8 +92,10 @@ int           timeout_quit = 0;
 sigjmp_buf    timeoutbuf;
 
 #define	PKTSIZE	MAX_SEGSIZE+4
-char	buf[PKTSIZE];
-char	ackbuf[PKTSIZE];
+char		buf[PKTSIZE];
+char		ackbuf[PKTSIZE];
+unsigned int	max_blksize = MAX_SEGSIZE;
+
 struct	sockaddr_in from;
 int	fromlen;
 off_t	tsize;
@@ -279,7 +281,7 @@ main(int argc, char **argv)
   
   openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
   
-  while ((c = getopt(argc, argv, "cspvVla:u:U:r:t:T:m:")) != -1)
+  while ((c = getopt(argc, argv, "cspvVla:B:u:U:r:t:T:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
@@ -298,6 +300,17 @@ main(int argc, char **argv)
       break;
     case 't':
       waittime = atoi(optarg);
+      break;
+    case 'B':
+      {
+	char *vp;
+	max_blksize = (unsigned int)strtoul(optarg, &vp, 10);
+	if ( max_blksize < 512 || max_blksize > MAX_SEGSIZE || *vp ) {
+	  syslog(LOG_ERR, "Bad maximum blocksize value (range 512-%d): %s",
+		 MAX_SEGSIZE, optarg);
+	  exit(EX_USAGE);
+	}
+      }
       break;
     case 'T':
       {
@@ -817,8 +830,8 @@ set_blksize(char *val, char **ret)
   
   if (sz < 8)
     return(0);
-  else if (sz > MAX_SEGSIZE)
-    sz = MAX_SEGSIZE;
+  else if (sz > max_blksize)
+    sz = max_blksize;
   
   segsize = sz;
   sprintf(*ret = b_ret, "%u", sz);
@@ -845,8 +858,8 @@ set_blksize2(char *val, char **ret)
   
   if (sz < 8)
     return(0);
-  else if (sz > MAX_SEGSIZE)
-    sz = MAX_SEGSIZE;
+  else if (sz > max_blksize)
+    sz = max_blksize;
   
   /* Convert to a power of two */
   if ( sz & (sz-1) ) {

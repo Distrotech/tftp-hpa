@@ -96,7 +96,17 @@
 #include <errno.h>
 #include <signal.h>
 
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#else
+#ifdef HAVE_WINSOCK2_H
+#include <winsock2.h>
+#else
+#ifdef HAVE_WINSOCK_H
+#include <winsock.h>
+#endif
+#endif
+#endif
 
 /* Test for EAGAIN/EWOULDBLOCK */
 #ifdef EAGAIN
