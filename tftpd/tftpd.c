@@ -103,6 +103,7 @@ const char **dirs;
 
 int	secure = 0;
 int	cancreate = 0;
+int	unixperms = 0;
 
 int verbosity = 0;
 
@@ -184,11 +185,13 @@ main(int argc, char **argv)
   int standalone = 0;		/* Standalone (listen) mode */
   char *address = NULL;		/* Address to listen to */
   pid_t pid;
+  mode_t my_umask = 0;
+  int spec_umask = 0;
   int c;
   int setrv;
   int waittime = 900;		/* Default time to wait for a connect*/
   const char *user = "nobody";	/* Default user */
-  char *p;
+  char *p, *ep;
 #ifdef WITH_REGEX
   char *rewrite_file = NULL;
 #endif
@@ -200,13 +203,16 @@ main(int argc, char **argv)
   
   openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
   
-  while ((c = getopt(argc, argv, "csvVla:u:r:t:m:")) != -1)
+  while ((c = getopt(argc, argv, "cspvVla:u:U:r:t:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
       break;
     case 's':
       secure = 1;
+      break;
+    case 'p':
+      unixperms = 1;
       break;
     case 'l':
       standalone = 1;
@@ -219,6 +225,14 @@ main(int argc, char **argv)
       break;
     case 'u':
       user = optarg;
+      break;
+    case 'U':
+      my_umask = strtoul(optarg, &ep, 8);
+      if ( *ep ) {
+	syslog(LOG_ERR, "Invalid umask: %s", optarg);
+	exit(EX_USAGE);
+      }
+      spec_umask = 1;
       break;
     case 'r':
       for ( opt = options ; opt->o_opt ; opt++ ) {
@@ -280,6 +294,9 @@ main(int argc, char **argv)
     syslog(LOG_ERR, "no user %s: %m", user);
     exit(EX_NOUSER);
   }
+
+  if ( spec_umask || !unixperms )
+    umask(my_umask);
   
   if (ioctl(fd, FIONBIO, &on) < 0) {
     syslog(LOG_ERR, "ioctl(FIONBIO): %m");
@@ -474,13 +491,29 @@ main(int argc, char **argv)
     exit(EX_IOERR);
   }
 
+  /* Set up the supplementary group access list if possible */
+  /* /etc/group still need to be accessible at this point */
+#ifdef HAVE_INITGROUPS
+  setrv = initgroups(user, pw->pw_gid);
+  if ( setrv ) {
+    syslog(LOG_ERR, "cannot set groups for user %s", user);
+    exit(EX_OSERR);
+  }
+#else
+#ifdef HAVE_SETGROUPS
+  if ( setgroups(0, NULL) ) {
+    syslog(LOG_ERR, "cannot clear group list");
+  }
+#endif
+#endif
+
   /* Chroot and drop privileges */
   
   if (secure && chroot(".")) {
     syslog(LOG_ERR, "chroot: %m");
     exit(EX_OSERR);
   }
-  
+
 #ifdef HAVE_SETREGID
   setrv = setregid(pw->pw_gid, pw->pw_gid);
 #else
@@ -885,47 +918,53 @@ validate_access(char *filename, int mode, struct formats *pf)
    * We use different a different permissions scheme if `cancreate' is
    * set.
    */
-  wmode = O_TRUNC;
-  if (stat(filename, &stbuf) < 0) {
-    if (!cancreate)
-      return (errno == ENOENT ? ENOTFOUND : EACCESS);
-    else {
-      if ((errno == ENOENT) && (mode != RRQ))
-	wmode |= O_CREAT;
-      else
-	return(EACCESS);
+  wmode = O_WRONLY |
+    (cancreate ? O_CREAT : 0) |
+    (unixperms ? O_TRUNC : 0);
+
+  fd = open(filename, mode == RRQ ? O_RDONLY : wmode, 0666);
+  if (fd < 0) {
+    switch (errno) {
+    case ENOENT:
+    case ENOTDIR:
+      return ENOTFOUND;
+    case ENOSPC:
+      return ENOSPACE;
+    case EEXIST:
+      return EEXISTS;
+    default:
+      return EACCESS;
     }
+  }
+
+  if ( fstat(fd, &stbuf) < 0 )
+    exit(EX_OSERR);		/* This shouldn't happen */
+
+  if (mode == RRQ) {
+    if ( !unixperms && (stbuf.st_mode & (S_IREAD >> 6)) == 0 )
+      return (EACCESS);
+    tsize = stbuf.st_size;
+    /* We don't know the tsize if conversion is needed */
+    tsize_ok = !pf->f_convert;
   } else {
-    if (mode == RRQ) {
-      if ((stbuf.st_mode&(S_IREAD >> 6)) == 0)
+    if ( !unixperms ) {
+      if ( (stbuf.st_mode & (S_IWRITE >> 6)) == 0 )
 	return (EACCESS);
-      tsize = stbuf.st_size;
-      /* We don't know the tsize if conversion is needed */
-      tsize_ok = !pf->f_convert;
-    } else {
-      if ((stbuf.st_mode&(S_IWRITE >> 6)) == 0)
-	return (EACCESS);
-      tsize = 0;
-      tsize_ok = 1;
+
+      /* We didn't get to truncate the file at open() time */
+#ifdef HAVE_FTRUNCATE
+      if ( ftruncate(fd, (off_t)0) )
+	return(EACCESS);
+#endif
     }
+    tsize = 0;
+    tsize_ok = 1;
   }
-  fd = open(filename, mode == RRQ ? O_RDONLY : (O_WRONLY|wmode), 0666);
-  if (fd < 0)
-    return (errno + 100);
-  /*
-   * If the file was created, set default permissions.
-   */
-  if ((wmode & O_CREAT) && fchmod(fd, 0666) < 0) {
-    int serrno = errno;
-    
-    close(fd);
-    unlink(filename);
-    
-    return (serrno + 100);
-  }
+
   file = fdopen(fd, (mode == RRQ)? "r":"w");
   if (file == NULL)
-    return (errno + 100);
+    exit(EX_OSERR);		/* Internal error */
+
   return (0);
 }
 

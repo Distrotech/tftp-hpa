@@ -85,6 +85,10 @@
 #endif
 #endif
 
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
+
 #include <errno.h>
 #include <signal.h>
 

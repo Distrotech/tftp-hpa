@@ -10,6 +10,10 @@ Changes in 0.27:
 	Allow replacement patterns to include the IP address of the
 	requesting host (\i).
 
+	Allow relying on Unix permissions rather than o+r magic if the
+	-p option is specified.  As part of this, set all groups if
+	initgroups() is specified on the platform.
+
 
 Changes in 0.26:
 	Fix the configuration process so tftpd doesn't end up

@@ -92,7 +92,23 @@ which cannot be easily made to include a directory name in its request.
 \fB\-u\fP \fIusername\fP
 Specify the username which
 .B tftpd
-will run as; the default is "nobody".
+will run as; the default is "nobody".  The user ID, group ID, and (if
+possible on the platform) the supplementary group IDs will be set to
+the ones specified in the system permission database for this
+username.
+.TP
+\fB\-U\fP \fIumask\fP
+Sets the \fIumask\fP to the specified value.  The default is zero
+if the
+.B \-p
+option is not specified, or unchanged if
+.B \-p is specified.
+.TP
+.B \-p
+Indicate that no permissions checks beyond the normal system-provided
+permission check for the user specified via the
+.B \-u
+option.
 .TP
 \fB\-t\fP \fItimeout\fP
 When run from
@@ -243,9 +259,10 @@ process.
 The use of TFTP services does not require an account or password on
 the server system.  Due to the lack of authentication information,
 .B tftpd
-will allow only publicly readable files (o+r) to be accessed.  Files
-may be written only if they already exist and are publicly writable,
-unless the
+will allow only publicly readable files (o+r) to be accessed, unless the
+.B \-p
+option is specified.  Files may be written only if they already exist
+and are publicly writable, unless the
 .B \-c
 option is specified.  Note that this extends the concept of ``public''
 to include all users on all hosts that can be reached through the
@@ -261,7 +278,7 @@ database for access control information.  This may be slow; sites
 requiring maximum performance may want to compile without this option
 and rely on firewalling or kernel-based packet filters instead.
 .PP
-The server should be set to have the user ID with the lowest possible
+The server should be set to run as the user with the lowest possible
 privilege; please see the
 .B \-u
 flag.
@@ -304,6 +321,7 @@ added patches by Markus Gutschke and Gero Kulhman.
 .SH "SEE ALSO"
 .BR tftp (1),
 .BR egrep (1),
+.BR umask (2),
 .BR hosts_access (5),
 .BR regex (7),
 .BR inetd (8).
