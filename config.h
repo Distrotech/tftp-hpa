@@ -57,7 +57,9 @@
 #endif 
 
 #ifdef HAVE_INTTYPES_H
+#ifdef INTTYPES_H_IS_SANE
 #include <inttypes.h>
+#endif
 #else
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -90,6 +92,37 @@ typedef unsigned long uintmax_t;
 #define PRIxMAX "lx"
 #define INTMAX_C(x)  (x##L)
 #define UINTMAX_C(x) (x##UL)
+#endif
+#endif
+
+/* On some version of AIX, <inttypes.h> is buggy to the point of
+   unusability.  We have to use macros here, not typedefs, to override. */
+#ifdef HAVE_INTTYPES_H
+#ifndef INTTYPES_H_IS_SANE
+#undef PRIdMAX
+#undef PRIuMAX
+#undef PRIxMAX
+#undef INTMAX_C
+#undef UINTMAX_C
+#undef HAVE_STRTOUMAX
+
+#ifdef HAVE_LONG_LONG
+#define intmax_t long long
+#define uintmax_t unsigned long long
+#define PRIdMAX	"Ld"
+#define PRIuMAX "Lu"
+#define PRIxMAX "Lx"
+#define INTMAX_C(x)  (x##LL)
+#define UINTMAX_C(x) (x##ULL)
+#else
+#define intmax_t long
+#define uintmax_t unsigned long
+#define PRIdMAX	"ld"
+#define PRIuMAX "lu"
+#define PRIxMAX "lx"
+#define INTMAX_C(x)  (x##L)
+#define UINTMAX_C(x) (x##UL)
+#endif
 #endif
 #endif
 

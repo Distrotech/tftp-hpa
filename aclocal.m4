@@ -124,6 +124,32 @@ int deny_severity = 0;
 ])])
 
 dnl ------------------------------------------------------------------------
+dnl  PA_CHECK_INTTYPES_H_SANE
+dnl
+dnl  At least some versions of AIX 4 have <inttypes.h> macros which are
+dnl  completely broken.  Try to detect those.
+dnl --------------------------------------------------------------------------
+AH_TEMPLATE([INTTYPES_H_IS_SANE],
+[Define if the macros in <inttypes.h> are usable])
+
+AC_DEFUN(PA_CHECK_INTTYPES_H_SANE,
+[AC_CHECK_HEADERS(inttypes.h,
+ [
+  AC_MSG_CHECKING([if inttypes.h is sane])
+  AC_TRY_LINK(
+  [
+#include <inttypes.h>
+#include <stdio.h>
+  ],
+  [uintmax_t max = UINTMAX_C(0);
+   printf("%"PRIuMAX"\n", max);],
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(INTTYPES_H_IS_SANE),
+  AC_MSG_RESULT([no (AIX, eh?)]))
+ ])
+])
+
+dnl ------------------------------------------------------------------------
 dnl  PA_WITH_BOOL
 dnl
 dnl  PA_WITH_BOOL(option, default, help, enable, disable)
@@ -170,3 +196,4 @@ int main()
  AC_MSG_RESULT(no)
 ])])
 
+dnl --------------------------------------------------------------------------
