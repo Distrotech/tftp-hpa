@@ -68,6 +68,10 @@ AC_DEFUN(PA_STRUCT_IN_PKTINFO,
 [
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <sys/uio.h>
 ],
 [
 	struct in_pktinfo pktinfo;
