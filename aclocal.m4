@@ -54,3 +54,32 @@ AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
 [
         AC_MSG_RESULT([no])
 ])])
+
+dnl --------------------------------------------------------------------------
+dnl PA_HAVE_TCPWRAPPERS
+dnl
+dnl Do we have the tcpwrappers -lwrap?  This can't be done using AC_CHECK_LIBS
+dnl due to the need to provide "allow_severity" and "deny_severity" variables
+dnl --------------------------------------------------------------------------
+AC_DEFUN(PA_HAVE_TCPWRAPPERS,
+[AC_CHECK_LIB([wrap], [main])
+ AC_MSG_CHECKING([for tcpwrappers])
+ AC_TRY_LINK(
+[
+#include <tcpd.h>
+int allow_severity = 0;
+int deny_severity = 0;
+],
+[
+	struct request_info ri;
+
+	request_init(&ri, 0);
+],
+[
+	AC_DEFINE(HAVE_TCPWRAPPERS)
+	AC_MSG_RESULT([yes])
+],
+[
+	AC_MSG_RESULT([no])
+])])
+
