@@ -230,7 +230,8 @@ The entire string matched by the
 .IR regex .
 .TP
 \fB\\1\fP to \fB\\9\fP
-Match the first nine parentensized subexpressions, \\( ... \\) of the
+The strings matched by each of the first nine parenthesized
+subexpressions, \\( ... \\), of the
 .I regex
 pattern.
 .TP
