@@ -3,8 +3,8 @@ $Id$
 Changes in 0.29:
 	Posixly correctness.
 
-	Some preliminary work for compiling under Cygwin (doesn't work
-	yet.)
+	Now works on Win32 systems using Cygwin	(see
+	<http://www.cygwin.com/>).
 
 	Fixed a bug which could cause a standalone server to exit with
 	a "recvfrom: Interrupted system call" log message if signals
@@ -51,8 +51,8 @@ Changes in 0.26:
 	Enable the (limited) use of readline on systems which don't
 	have readline/history.h.
 
-	Support compiling under MacOS X with filk (see
-	<http://filk.sourceforge.net/>).  Thanks for Justin Hallett
+	Support compiling under MacOS X with fink (see
+	<http://fink.sourceforge.net/>).  Thanks for Justin Hallett
 	and Eric Eslinger for their help in getting this working!
 
 
