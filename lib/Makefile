@@ -12,7 +12,7 @@ install:
 clean:
 	-rm -f *.a *.o
 
-spotless: clean
+distclean: clean
 	-rm -f *~
 
 libxtra.a: $(LIBOBJS)

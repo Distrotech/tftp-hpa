@@ -17,5 +17,5 @@ install: tftp
 clean:
 	rm -f *.o tftp
 
-spotless: clean
+distclean: clean
 	rm -f *~

@@ -23,5 +23,5 @@ install: tftpd
 clean:
 	rm -f *.o tftpd tftpsubs.c tftpsubs.h
 
-spotless: clean
+distclean: clean
 	rm -f *~

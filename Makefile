@@ -12,8 +12,8 @@ SUB =   lib tftp tftpd
 %.clean:
 	$(MAKE) -C $(patsubst %.clean, %, $@) clean
 
-%.spotless:
-	$(MAKE) -C $(patsubst %.spotless, %, $@) spotless
+%.distclean:
+	$(MAKE) -C $(patsubst %.distclean, %, $@) distclean
 
 all:      MCONFIG $(patsubst %, %.build, $(SUB))
 
@@ -21,9 +21,12 @@ install:  MCONFIG $(patsubst %, %.install, $(SUB))
 
 clean:    $(patsubst %, %.clean, $(SUB))
 
-spotless: $(patsubst %, %.spotless, $(SUB))
+distclean: $(patsubst %, %.distclean, $(SUB))
 	rm -f MCONFIG config.cache config.log config.h *~ \#*
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
+
+spotless: distclean
+	rm -f configure
 
 config:	MCONFIG
 
