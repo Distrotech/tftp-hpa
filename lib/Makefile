@@ -12,7 +12,7 @@ all:	libxtra.a
 install:
 
 clean:
-	-rm -f *.a *.o
+	-rm -f *.a *.o *.obj *.exe
 
 distclean: clean
 	-rm -f *~

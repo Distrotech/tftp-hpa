@@ -1,14 +1,14 @@
-all: tftp tftp.1
-
 SRCROOT = ..
 VERSION = $(shell cat ../version)
 
 -include ../MCONFIG
 include ../MRULES
 
-OBJS = tftp.o main.o tftpsubs.o
+OBJS = tftp.$(O) main.$(O) tftpsubs.$(O)
 
-tftp: $(OBJS)
+all: tftp$(X) tftp.1
+
+tftp$(X): $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(TFTP_LIBS) -o $@
 
 $(OBJS): tftpsubs.h
@@ -18,11 +18,11 @@ tftp.1: tftp.1.in ../version
 
 install: all
 	mkdir -p $(INSTALLROOT)$(BINDIR) $(INSTALLROOT)$(MANDIR)/man1
-	$(INSTALL_PROGRAM) tftp $(INSTALLROOT)$(BINDIR)
-	$(INSTALL_DATA)    tftp.1  $(INSTALLROOT)$(MANDIR)/man1
+	$(INSTALL_PROGRAM) tftp$(X) $(INSTALLROOT)$(BINDIR)
+	$(INSTALL_DATA)    tftp.1   $(INSTALLROOT)$(MANDIR)/man1
 
 clean:
-	rm -f *.o tftp tftp.1
+	rm -f *.o *.obj *.exe tftp tftp.1
 
 distclean: clean
 	rm -f *~

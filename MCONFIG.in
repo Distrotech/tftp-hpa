@@ -28,6 +28,10 @@ MANDIR  = @mandir@
 # System binaries
 SBINDIR = @sbindir@
 
+# Binary suffixes
+O = @OBJEXT@
+X = @EXEEXT@
+
 # Install into alternate root area, e.g. for package generation
 INSTALLROOT = 
 

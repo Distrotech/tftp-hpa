@@ -56,6 +56,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS(inttypes.h)
 AC_CHECK_HEADERS(stdint.h)
 PA_CHECK_INTTYPES_H_SANE
+AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(grp.h)
 AC_CHECK_HEADERS(libgen.h)
 AC_CHECK_HEADERS(memory.h)
@@ -92,6 +93,7 @@ AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not fo
 AC_SEARCH_LIBS(inet_aton, [nsl resolv], , [AC_MSG_ERROR(inet_aton not found)])
 AC_SEARCH_LIBS(herror, [nsl resolv], , [AC_MSG_ERROR(herror not found)])
 
+AC_CHECK_FUNCS(fcntl)
 AC_CHECK_FUNCS(setsid)
 AC_CHECK_FUNCS(recvmsg)
 AC_CHECK_FUNCS(ftruncate)
@@ -112,9 +114,9 @@ AH_TEMPLATE([HAVE_SIGSETJMP],
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
 LIBXTRA=false
-AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")
-AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xstrdup.o")
-AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true LIBOBJS="$LIBOBJS bsdsignal.o")
+AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.${OBJEXT}")
+AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xstrdup.${OBJEXT}")
+AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true LIBOBJS="$LIBOBJS bsdsignal.${OBJEXT}")
 if $LIBXTRA; then
 	LIBS="../lib/libxtra.a $LIBS"
 fi
@@ -148,7 +150,7 @@ PA_WITH_BOOL(remap, 1,
 		AC_SEARCH_LIBS(regcomp, [regex rx],
 		[
 			AC_DEFINE(WITH_REGEX)
-			TFTPDOBJS="remap.o $TFTPDOBJS"
+			TFTPDOBJS="remap.${OBJEXT} $TFTPDOBJS"
 		])
 	])
 ],:)

@@ -89,10 +89,25 @@
 #include <grp.h>
 #endif
 
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
 #include <errno.h>
 #include <signal.h>
 
 #include <sys/socket.h>
+
+/* Test for EAGAIN/EWOULDBLOCK */
+#ifdef EAGAIN
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+#define E_WOULD_BLOCK(x) ((x) == EAGAIN || (x) == EWOULDBLOCK)
+#else
+#define E_WOULD_BLOCK(x) ((x) == EAGAIN)
+#endif
+#else
+#define E_WOULD_BLOCK(x) ((x) == EWOULDBLOCK)
+#endif
 
 /* If we don't have intmax_t, try creating it */
 

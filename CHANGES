@@ -1,5 +1,16 @@
 $Id$
 
+Changes in 0.29:
+	Posixly correctness.
+
+	Some preliminary work for compiling under Cygwin (doesn't work
+	yet.)
+
+	Fixed a bug which could cause a standalone server to exit with
+	a "recvfrom: Interrupted system call" log message if signals
+	arrive at a particularly inopportune moment.
+
+
 Changes in 0.28:
 	Fix stupid one-liner bug which broke standalone mode (-l).
 

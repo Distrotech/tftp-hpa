@@ -54,7 +54,6 @@ static const char *rcsid UNUSED =
 #include <sys/file.h>
 #include <ctype.h>
 #include <netdb.h>
-#include <fcntl.h>
 #ifdef WITH_READLINE
 #include <readline/readline.h>
 #ifdef HAVE_READLINE_HISTORY_H

@@ -56,7 +56,6 @@ static const char *rcsid UNUSED =
 
 #include <sys/ioctl.h>
 #include <signal.h>
-#include <fcntl.h>
 #include <netdb.h>
 #include <ctype.h>
 #include <pwd.h>
@@ -180,7 +179,6 @@ main(int argc, char **argv)
   struct sockaddr_in myaddr;
   struct sockaddr_in bindaddr;
   int n;
-  int on = 1;
   int fd = 0;
   int standalone = 0;		/* Standalone (listen) mode */
   char *address = NULL;		/* Address to listen to */
@@ -298,10 +296,26 @@ main(int argc, char **argv)
   if ( spec_umask || !unixperms )
     umask(my_umask);
   
-  if (ioctl(fd, FIONBIO, &on) < 0) {
-    syslog(LOG_ERR, "ioctl(FIONBIO): %m");
-    exit(EX_OSERR);
+#if defined(HAVE_FCNTL) && defined(O_NONBLOCK)
+  /* Posixly correct */
+  {
+    int flags;
+    if ( (flags = fcntl(fd, F_GETFL, 0) < 0) ||
+	 (fcntl(fd, F_SETFL, flags|O_NONBLOCK)) ) {
+      syslog(LOG_ERR, "Cannot set nonblocking socket: %m");
+      exit(EX_OSERR);
+    }
   }
+#else
+  /* Old BSD version */
+  {
+    int on = 1;
+    if ( ioctl(fd, FIONBIO, &on) < 0 ) {
+      syslog(LOG_ERR, "Cannot set nonblocking socket: %m");
+      exit(EX_OSERR);
+    }
+  }
+#endif
 
 #ifdef WITH_REGEX
   if ( rewrite_file )
@@ -421,7 +435,7 @@ main(int argc, char **argv)
       continue;		/* Signal caught, reloop */
     if ( rv == -1 ) {
       syslog(LOG_ERR, "select loop: %m");
-      exit(EX_OSERR);
+      exit(EX_IOERR);
     } else if ( rv == 0 ) {
       exit(0);		/* Timeout, return to inetd */
     }
@@ -431,17 +445,22 @@ main(int argc, char **argv)
 		   (struct sockaddr *)&from, &fromlen,
 		   &myaddr);
 
+    if ( n < 0 ) {
+      if ( E_WOULD_BLOCK(errno) || errno == EINTR ) {
+	continue;		/* Again, from the top */
+      } else {
+	syslog(LOG_ERR, "recvfrom: %m");
+	exit(EX_IOERR);
+      }
+    }
+
+
     if ( standalone && myaddr.sin_addr.s_addr == INADDR_ANY ) {
       /* myrecvfrom() didn't capture the source address; but we might
 	 have bound to a specific address, if so we should use it */
       memcpy(&myaddr.sin_addr, &bindaddr.sin_addr, sizeof bindaddr.sin_addr);
     }
 
-    if (n < 0) {
-      syslog(LOG_ERR, "recvfrom: %m");
-      exit(EX_IOERR);
-    }
-    
     /*
      * Now that we have read the request packet from the UDP
      * socket, we fork and go back to listening to the socket.
