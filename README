@@ -1,5 +1,16 @@
-This is tftp-hpa-0.13; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.15; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
+
+Changes in 0.15:
+
+	If the operating system allows, try to obtain the local
+	address used for the request packet, and reply using the same
+	local IP address.  Some embedded TFTP clients are (probably
+	incorrectly) picky about this.
+
+Changes in 0.14:
+
+	Hacks to signal handling to avoid "zombie servers."
 
 Changes in 0.13:
 
@@ -43,4 +54,5 @@ their code.
 Adding the -r option (disable a specific option), the "timeout"
 option, and converting to using autoconf for setup was my own code, as
 are any bugs introduced in this merge, and any features added to the
-Changes list.
+Changes list above.
+
