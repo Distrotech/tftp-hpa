@@ -69,12 +69,12 @@ static const char *rcsid UNUSED =
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifdef WITH_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 
 #include "extern.h"
-#include "../config.h"
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
 
 #define	TIMEOUT		5		/* secs between rexmt's */
 #define	LBUFLEN		200		/* size of input buffer */
@@ -86,10 +86,14 @@ int	trace;
 int	verbose;
 int	connected;
 char	mode[32];
+#ifdef WITH_READLINE
+char   *line = NULL;
+#else
 char	line[LBUFLEN];
+#endif
 int	margc;
 char	*margv[20];
-const char *prompt = "tftp";
+const char *prompt = "tftp> ";
 sigjmp_buf	toplevel;
 void	intr(int);
 struct	servent *sp;
@@ -204,6 +208,10 @@ main(int argc, char *argv[])
 	}
 	if (sigsetjmp(toplevel,1) != 0)
 		(void)putchar('\n');
+
+#ifdef WITH_READLINE
+	using_history();
+#endif
 
 	command();
 
@@ -600,7 +608,14 @@ command(void)
 	struct cmd *c;
 
 	for (;;) {
-		printf("%s> ", prompt);
+#ifdef WITH_READLINE
+	        if ( line )
+		     free(line);
+	        line = readline(prompt);
+		if ( !line )
+		     exit(0);	/* EOF */
+#else
+	        fputs(prompt, stdout);
 		if (fgets(line, LBUFLEN, stdin) == 0) {
 			if (feof(stdin)) {
 				exit(0);
@@ -608,11 +623,16 @@ command(void)
 				continue;
 			}
 		}
+#endif
 		if ((line[0] == 0) || (line[0] == '\n'))
 			continue;
+#ifdef WITH_READLINE
+		add_history(line);
+#endif
 		makeargv();
 		if (margc == 0)
 			continue;
+
 		c = getcmd(margv[0]);
 		if (c == (struct cmd *)-1) {
 			printf("?Ambiguous command\n");

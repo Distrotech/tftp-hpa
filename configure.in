@@ -101,6 +101,24 @@ PA_WITH_BOOL(remap, 1,
 	])
 ],:)
 
+AH_TEMPLATE([WITH_READLINE],
+[Define if we are compiling with readline command-line editing.])
+
+PA_WITH_BOOL(readline, 1,
+[ --without-readline   Disable the use of readline command-line editing],
+[
+	USE_READLINE=true
+	AC_CHECK_HEADER(readline/readline.h, [], [USE_READLINE=false])
+	AC_CHECK_HEADER(readline/history.h, [], [USE_READLINE=false])
+	if $USE_READLINE
+	then
+		AC_SEARCH_LIBS(readline, [readline history],
+		[
+			AC_DEFINE(WITH_READLINE)
+		])
+	fi
+],:)
+
 AH_TEMPLATE([HAVE_SIGSETJMP],
 [Define if we have sigsetjmp, siglongjmp and sigjmp_buf.])
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])

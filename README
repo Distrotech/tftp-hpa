@@ -40,6 +40,8 @@ Changes in 0.22:
 
 	Some source cleanups; change to autoconf 2.52.
 
+	Add support for readline command-line editing in tftp.
+
 
 Changes in 0.21:
 	Support running in standalone mode, without inetd.

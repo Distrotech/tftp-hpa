@@ -66,8 +66,6 @@ static const char *rcsid UNUSED =
 #include <string.h>
 #include <unistd.h>
 
-#include "../config.h"
-
 #define PKTSIZE MAX_SEGSIZE+4       /* should be moved to tftp.h */
 
 int segsize = SEGSIZE;		/* Default segsize */

@@ -65,18 +65,7 @@ static const char *rcsid UNUSED =
 #include <string.h>
 #include <unistd.h>
 
-#include "../config.h"
 #include "extern.h"
-
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#ifndef HAVE_SIGSETJMP
-#define sigsetjmp(x,y)  setjmp(x)
-#define siglongjmp(x,y) longjmp(x,y)
-#define sigjmp_buf jmp_buf
-#endif
 
 extern  struct sockaddr_in peeraddr;	/* filled in by main */
 extern  int     f;			/* the opened socket */
