@@ -154,6 +154,12 @@ struct options {
         { NULL,         NULL }
 };
 
+/* Simple handler for SIGHUP */
+static volatile sig_atomic_t caught_sighup = 0;
+static void handle_sighup(int sig)
+{
+  caught_sighup = 1;
+}
 
 
 static void
@@ -279,18 +285,29 @@ main(int argc, char **argv)
 	/* This means we don't want to wait() for children */
 	bsd_signal(SIGCHLD, SIG_IGN);
 
+	/* Take SIGHUP and use it to set a variable.  This
+	   is polled synchronously to make sure we don't
+	   lose packets as a result. */
+	bsd_signal(SIGHUP, handle_sighup);
+
 	do {
 	  fd_set readset;
 	  struct timeval tv_timeout;
-	  
+	  int rv;
 
 	  FD_ZERO(&readset);
 	  FD_SET(fd, &readset);
 	  tv_timeout.tv_sec = timeout;
 	  tv_timeout.tv_usec = 0;
 
-	  if ( select(fd+1, &readset, NULL, NULL, &tv_timeout) == 0 )
-	    exit(0);		/* Timeout, return to inetd */
+	  if ( caught_sighup )
+	    exit(0);		/* Return to inetd for respawn */
+
+	  rv = select(fd+1, &readset, NULL, NULL, &tv_timeout);
+	  if ( rv == -1 && errno == EINTR )
+	    continue;		/* Signal caught, reloop */
+	  if ( rv <= 0 )
+	    exit(0);		/* Timeout or error, return to inetd */
 
 	  fromlen = sizeof (from);
 	  n = myrecvfrom(fd, buf, sizeof (buf), 0,
@@ -324,9 +341,8 @@ main(int argc, char **argv)
 #endif
 
 	/*
-	 * Now that we have read the message out of the UDP
-	 * socket, we fork and go back to listening to the
-	 * socket.
+	 * Now that we have read the request packet from the UDP
+	 * socket, we fork and go back to listening to the socket.
 	 */
 	  pid = fork();
 	  if (pid < 0) {
@@ -742,6 +758,7 @@ validate_access(char *filename, int mode, struct formats *pf)
 int	timeout;
 sigjmp_buf	timeoutbuf;
 
+/* Handle timeout signal */
 void
 timer(int sig)
 {
@@ -850,6 +867,7 @@ abort:
 	(void) fclose(file);
 }
 
+/* Bail out signal handler */
 void
 justquit(int sig)
 {
