@@ -4,7 +4,7 @@ Version: @@VERSION@@
 Release: 3
 Copyright: BSD
 Group: Applications/Internet
-Source0: http://www.kernel.org/pub/software/network/tftp/tftp-hpa-%{tftp_hpa_version}.tar.gz
+Source0: http://www.kernel.org/pub/software/network/tftp/tftp-hpa-%{version}.tar.gz
 BuildPreReq: tcp_wrappers
 BuildRoot: %{_tmppath}/%{name}-root
 
