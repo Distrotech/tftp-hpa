@@ -42,6 +42,7 @@ AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
 [
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 ],
 [
         struct msghdr msg;
