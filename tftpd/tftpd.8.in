@@ -283,7 +283,10 @@ and rely on firewalling or kernel-based packet filters instead.
 The server should be set to run as the user with the lowest possible
 privilege; please see the
 .B \-u
-flag.
+flag.  It is probably a good idea to set up a specific user account for
+.BR tftpd ,
+rather than letting it run as "nobody", to guard against privilege
+leaks between applications.
 .PP
 Access to files can, and should, be restricted by invoking
 .B tftpd
