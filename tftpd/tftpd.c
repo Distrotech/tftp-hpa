@@ -66,6 +66,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
+#define __USE_GNU		/* Necessary for basename() on glibc systems */
 #include <string.h>
 #include <stdlib.h>
 #include <pwd.h>
@@ -80,7 +81,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <tcpd.h>
 
 int deny_severity	= LOG_WARNING;
-int allow_severity	= LOG_INFO;
+int allow_severity	= -1;	/* Don't log at all */
 
 struct request_info wrap_request;
 #endif
@@ -174,7 +175,9 @@ main(int argc, char **argv)
 	int setrv;
 	char *user = "nobody";	/* Default user */
 
-	openlog("tftpd", LOG_PID | LOG_NDELAY, LOG_DAEMON);
+	__progname = basename(argv[0]);
+
+	openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
 	while ((c = getopt(argc, argv, "csu:r:")) != -1)
 		switch (c) {
@@ -255,16 +258,24 @@ main(int argc, char **argv)
 	}
 
 #ifdef HAVE_TCPWRAPPERS
-	/* Verify if this was a legal request for us. */
-
+	/* Verify if this was a legal request for us.  This has to be
+	   done before the chroot, while /etc is still accessible. */
 	request_init(&wrap_request,
-		     RQ_DAEMON, "tftpd",
+		     RQ_DAEMON, __progname,
 		     RQ_FILE, fd,
 		     RQ_CLIENT_SIN, &from,
 		     RQ_SERVER_SIN, &myaddr,
 		     0);
-	if ( hosts_access(wrap_request) == 0 )
+	sock_methods(&wrap_request);
+	if ( hosts_access(&wrap_request) == 0 ) {
+	  if ( deny_severity != -1 )
+	    syslog(deny_severity, "connection refused from %s",
+		   inet_ntoa(from.sin_addr));
 	  exit(1);		/* Access denied */
+	} else if ( allow_severity != -1 ) {
+	  syslog(allow_severity, "connect from %s",
+		 inet_ntoa(from.sin_addr));
+	}
 #endif
 
 	/* Drop privileges */
