@@ -270,6 +270,7 @@ main(int argc, char **argv)
 #ifdef WITH_REGEX
   char *rewrite_file = NULL;
 #endif
+  u_short tp_opcode;
 
   /* basename() is way too much of a pain from a portability standpoint */
 
@@ -677,8 +678,8 @@ main(int argc, char **argv)
     exit(EX_IOERR);
   }
   tp = (struct tftphdr *)buf;
-  tp->th_opcode = ntohs(tp->th_opcode);
-  if (tp->th_opcode == RRQ || tp->th_opcode == WRQ)
+  tp_opcode = ntohs(tp->th_opcode);
+  if (tp_opcode == RRQ || tp_opcode == WRQ)
     tftp(tp, n);
   exit(0);
 }
@@ -713,11 +714,12 @@ tftp(struct tftphdr *tp, int size)
   char *origfilename;
   char *filename, *mode = NULL;
   const char *errmsgptr;
+  u_short tp_opcode = ntohs(tp->th_opcode);
   
   char *val = NULL, *opt = NULL;
   char *ap = ackbuf + 2;
 
-  ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
+  ((struct tftphdr *)ackbuf)->th_opcode = htons(OACK);
   
   origfilename = cp = (char *) &(tp->th_stuff);
   argn = 0;
@@ -749,21 +751,21 @@ tftp(struct tftphdr *tp, int size)
 	exit(0);
       }
       if ( !(filename =
-	     (*pf->f_rewrite)(origfilename, tp->th_opcode, &errmsgptr)) ) {
+	     (*pf->f_rewrite)(origfilename, tp_opcode, &errmsgptr)) ) {
 	nak(EACCESS, errmsgptr); /* File denied by mapping rule */
 	exit(0);
       }
       if ( verbosity >= 1 ) {
 	if ( filename == origfilename || !strcmp(filename, origfilename) )
 	  syslog(LOG_NOTICE, "%s from %s filename %s\n",
-		 tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+		 tp_opcode == WRQ ? "WRQ" : "RRQ",
 		 inet_ntoa(from.sin_addr), filename);
 	else
 	  syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
-		 tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+		 tp_opcode == WRQ ? "WRQ" : "RRQ",
 		 inet_ntoa(from.sin_addr), origfilename, filename);
       }		   
-      ecode = (*pf->f_validate)(filename, tp->th_opcode, pf, &errmsgptr);
+      ecode = (*pf->f_validate)(filename, tp_opcode, pf, &errmsgptr);
       if (ecode) {
 	nak(ecode, errmsgptr);
 	exit(0);
@@ -783,12 +785,12 @@ tftp(struct tftphdr *tp, int size)
   }
   
   if ( ap != (ackbuf+2) ) {
-    if ( tp->th_opcode == WRQ )
+    if ( tp_opcode == WRQ )
       (*pf->f_recv)(pf, (struct tftphdr *)ackbuf, ap-ackbuf);
     else
       (*pf->f_send)(pf, (struct tftphdr *)ackbuf, ap-ackbuf);
   } else {
-    if (tp->th_opcode == WRQ)
+    if (tp_opcode == WRQ)
       (*pf->f_recv)(pf, NULL, 0);
     else
       (*pf->f_send)(pf, NULL, 0);
@@ -1153,6 +1155,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   struct tftphdr *dp;
   struct tftphdr *ap;		/* ack packet */
   static u_short block = 1;	/* Static to avoid longjmp funnies */
+  u_short ap_opcode, ap_block;
   int size, n;
   
   if (oap) {
@@ -1170,15 +1173,15 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	goto abort;
       }
       ap = (struct tftphdr *)ackbuf;
-      ap->th_opcode = ntohs((u_short)ap->th_opcode);
-      ap->th_block = ntohs((u_short)ap->th_block);
+      ap_opcode = ntohs((u_short)ap->th_opcode);
+      ap_block = ntohs((u_short)ap->th_block);
       
-      if (ap->th_opcode == ERROR) {
+      if (ap_opcode == ERROR) {
 	syslog(LOG_WARNING, "tftp: client does not accept options\n");
 	goto abort;
       }
-      if (ap->th_opcode == ACK) {
-	if (ap->th_block == 0)
+      if (ap_opcode == ACK) {
+	if (ap_block == 0)
 	  break;
 	/* Resynchronize with the other side */
 	(void)synchnet(peer);
@@ -1211,14 +1214,14 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	goto abort;
       }
       ap = (struct tftphdr *)ackbuf;
-      ap->th_opcode = ntohs((u_short)ap->th_opcode);
-      ap->th_block = ntohs((u_short)ap->th_block);
+      ap_opcode = ntohs((u_short)ap->th_opcode);
+      ap_block = ntohs((u_short)ap->th_block);
       
-      if (ap->th_opcode == ERROR)
+      if (ap_opcode == ERROR)
 	goto abort;
       
-      if (ap->th_opcode == ACK) {
-	if (ap->th_block == block) {
+      if (ap_opcode == ACK) {
+	if (ap_block == block) {
 	  break;
 	}
 				/* Re-synchronize with the other side */
@@ -1258,6 +1261,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   static struct tftphdr *ap;    /* ack buffer */
   static u_short block = 0;
   static int acksize;
+  u_short dp_opcode, dp_block;
 
   dp = w_init();
   do {
@@ -1286,17 +1290,17 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 	syslog(LOG_WARNING, "tftpd: read: %m");
 	goto abort;
       }
-      dp->th_opcode = ntohs((u_short)dp->th_opcode);
-      dp->th_block = ntohs((u_short)dp->th_block);
-      if (dp->th_opcode == ERROR)
+      dp_opcode = ntohs((u_short)dp->th_opcode);
+      dp_block = ntohs((u_short)dp->th_block);
+      if (dp_opcode == ERROR)
 	goto abort;
-      if (dp->th_opcode == DATA) {
-	if (dp->th_block == block) {
+      if (dp_opcode == DATA) {
+	if (dp_block == block) {
 	  break;   /* normal */
 	}
 				/* Re-synchronize with the other side */
 	(void) synchnet(peer);
-	if (dp->th_block == (block-1))
+	if (dp_block == (block-1))
 	  goto send_ack;		/* rexmit */
       }
     }
@@ -1320,8 +1324,8 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   timeout_quit = 0;
 
   if (n >= 4 &&			/* if read some data */
-      dp->th_opcode == DATA &&    /* and got a data block */
-      block == dp->th_block) {	/* then my last ack was lost */
+      dp_opcode == DATA &&	/* and got a data block */
+      block == dp_block) {	/* then my last ack was lost */
     (void) send(peer, ackbuf, 4, 0);     /* resend final ack */
   }
  abort:
@@ -1356,18 +1360,22 @@ nak(int error, const char *msg)
   
   tp = (struct tftphdr *)buf;
   tp->th_opcode = htons((u_short)ERROR);
-  tp->th_code = htons((u_short)error);
-  if ( !msg ) {
-    if ( error >= 100 ) {
-      /* This is a Unix errno+100 */
+
+  if ( error >= 100 ) {
+    /* This is a Unix errno+100 */
+    if ( !msg )
       msg = strerror(error - 100);
-      tp->th_code = EUNDEF;
-    } else {
-      if ( (unsigned)error >= ERR_CNT )
-	tp->th_code = error = EUNDEF;
+    error = EUNDEF;
+  } else {
+    if ( (unsigned)error >= ERR_CNT )
+      error = EUNDEF;
+
+    if ( !msg )
       msg = errmsgs[error];
-    }
   }
+
+  tp->th_code = htons((u_short)error);
+
   length = strlen(msg)+1;
   memcpy(tp->th_msg, msg, length);
   length += 4;			/* Add space for header */

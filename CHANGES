@@ -1,5 +1,10 @@
 $Id$
 
+Changes in 0.34:
+	Additional Solaris gcc compiler bug workarounds; these
+	actually make the code somewhat cleaner.
+	
+
 Changes in 0.33:
 	Even better error messages.
 

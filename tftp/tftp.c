@@ -89,6 +89,7 @@ tftp_sendfile(int fd, const char *name, const char *mode)
 	struct sockaddr_in from;
 	int fromlen;
 	FILE *file;
+	u_short ap_opcode, ap_block;
 
 	startclock();		/* start stat's clock */
 	dp = r_init();		/* reset fillbuf/read-ahead code */
@@ -141,17 +142,17 @@ tftp_sendfile(int fd, const char *name, const char *mode)
 			if (trace)
 				tpacket("received", ap, n);
 			/* should verify packet came from server */
-			ap->th_opcode = ntohs(ap->th_opcode);
-			ap->th_block = ntohs(ap->th_block);
-			if (ap->th_opcode == ERROR) {
-				printf("Error code %d: %s\n", ap->th_code,
+			ap_opcode = ntohs((u_short)ap->th_opcode);
+			ap_block = ntohs((u_short)ap->th_block);
+			if (ap_opcode == ERROR) {
+				printf("Error code %d: %s\n", ap_block,
 					ap->th_msg);
 				goto abort;
 			}
-			if (ap->th_opcode == ACK) {
+			if (ap_opcode == ACK) {
 				int j;
 
-				if (ap->th_block == block) {
+				if (ap_block == block) {
 					break;
 				}
 				/* On an error, try to synchronize
@@ -197,6 +198,7 @@ tftp_recvfile(int fd, const char *name, const char *mode)
 	int fromlen;
 	FILE *file;
 	volatile int convert;		/* true if converting crlf -> lf */
+	u_short dp_opcode, dp_block;
 
 	startclock();
 	dp = w_init();
@@ -214,7 +216,7 @@ tftp_recvfile(int fd, const char *name, const char *mode)
 			firsttrip = 0;
 		} else {
 			ap->th_opcode = htons((u_short)ACK);
-			ap->th_block = htons((u_short)(block));
+			ap->th_block = htons((u_short)block);
 			size = 4;
 			block++;
 		}
@@ -246,17 +248,16 @@ send_ack:
 			if (trace)
 				tpacket("received", dp, n);
 			/* should verify client address */
-			dp->th_opcode = ntohs(dp->th_opcode);
-			dp->th_block = ntohs(dp->th_block);
-			if (dp->th_opcode == ERROR) {
-				printf("Error code %d: %s\n", dp->th_code,
-					dp->th_msg);
-				goto abort;
+			dp_opcode = ntohs((u_short)dp->th_opcode);
+			dp_block = ntohs((u_short)dp->th_block);
+			if (dp_opcode == ERROR) {
+			  printf("Error code %d: %s\n", dp_block, dp->th_msg);
+			  goto abort;
 			}
-			if (dp->th_opcode == DATA) {
+			if (dp_opcode == DATA) {
 				int j;
 
-				if (dp->th_block == block) {
+				if (dp_block == block) {
 					break;		/* have next packet */
 				}
 				/* On an error, try to synchronize
@@ -266,7 +267,7 @@ send_ack:
 				if (j && trace) {
 					printf("discarded %d packets\n", j);
 				}
-				if (dp->th_block == (block-1)) {
+				if (dp_block == (block-1)) {
 					goto send_ack;	/* resend ack */
 				}
 			}
@@ -308,21 +309,19 @@ makerequest(int request, const char *name,
 	return (cp - (char *)tp);
 }
 
-struct errmsg {
-	int	e_code;
-	const char *e_msg;
-} errmsgs[] = {
-	{ EUNDEF,	"Undefined error code" },
-	{ ENOTFOUND,	"File not found" },
-	{ EACCESS,	"Access violation" },
-	{ ENOSPACE,	"Disk full or allocation exceeded" },
-	{ EBADOP,	"Illegal TFTP operation" },
-	{ EBADID,	"Unknown transfer ID" },
-	{ EEXISTS,	"File already exists" },
-	{ ENOUSER,	"No such user" },
-        { EOPTNEG,      "Failure to negotiate RFC2347 options" },
-	{ -1,		0 }
+static const char * const errmsgs[] =
+{
+  "Undefined error code", 			/* 0 - EUNDEF */
+  "File not found",				/* 1 - ENOTFOUND */
+  "Access denied",				/* 2 - EACCESS */
+  "Disk full or allocation exceeded", 		/* 3 - ENOSPACE */
+  "Illegal TFTP operation",			/* 4 - EBADOP */
+  "Unknown transfer ID",			/* 5 - EBADID */
+  "File already exists",			/* 6 - EEXISTS */
+  "No such user",				/* 7 - ENOUSER */
+  "Failure to negotiate RFC2347 options" 	/* 8 - EOPTNEG */
 };
+#define ERR_CNT (sizeof(errmsgs)/sizeof(const char *))
 
 /*
  * Send a nak packet (error message).
@@ -333,26 +332,28 @@ struct errmsg {
 static void
 nak(int error, const char *msg)
 {
-  struct errmsg *pe;
   struct tftphdr *tp;
   int length;
   
   tp = (struct tftphdr *)ackbuf;
   tp->th_opcode = htons((u_short)ERROR);
   tp->th_code = htons((u_short)error);
-  if ( !msg ) {
-    if ( error >= 100 ) {
+
+  if ( error >= 100 ) {
+    /* This is a Unix errno+100 */
+    if ( !msg )
       msg = strerror(error - 100);
-      tp->th_code = EUNDEF;
-    } else {
-      for (pe = errmsgs; pe->e_code >= 0; pe++) {
-	if (pe->e_code == error) {
-	  msg = pe->e_msg;
-	  break;
-	}
-      }
-    }
+    error = EUNDEF;
+  } else {
+    if ( (unsigned)error >= ERR_CNT )
+      error = EUNDEF;
+    
+    if ( !msg )
+      msg = errmsgs[error];
   }
+
+  tp->th_code = htons((u_short)error);
+
   length = strlen(msg)+1;
   memcpy(tp->th_msg, msg, length);
   length += 4;			/* Add space for header */
@@ -370,7 +371,7 @@ tpacket(const char *s, struct tftphdr *tp, int n)
 	static const char *opcodes[] =
 	   { "#0", "RRQ", "WRQ", "DATA", "ACK", "ERROR", "OACK" };
 	char *cp, *file;
-	u_short op = ntohs(tp->th_opcode);
+	u_short op = ntohs((u_short)tp->th_opcode);
 
 	if (op < RRQ || op > ERROR)
 		printf("%s opcode=%x ", s, op);
