@@ -19,13 +19,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <syslog.h>
 #include <regex.h>
 
 #include "tftpsubs.h"
 #include "remap.h"
 
 #define DEADMAN_MAX_STEPS	1024    /* Timeout after this many steps */
-#define LINE_MAX 		65536   /* Truncate a line at this many bytes */
+#define LINE_MAX 		16384   /* Truncate a line at this many bytes */
 
 #define RULE_REWRITE	0x01	/* This is a rewrite rule */
 #define RULE_GLOBAL	0x02	/* Global rule (repeat until no match) */
@@ -129,7 +130,7 @@ static int readescstring(char *buf, char **str)
 }
 
 /* Parse a line into a set of instructions */
-static int parseline(char *line, struct rule *r)
+static int parseline(char *line, struct rule *r, int lineno)
 {
   char buffer[LINE_MAX];
   char *p;
@@ -170,7 +171,9 @@ static int parseline(char *line, struct rule *r)
       r->rule_flags |= RULE_PUTONLY;
       break;
     default:
-      /* boo hoo */
+      syslog(LOG_ERR, "Remap command \"%s\" on line %d contains invalid char \"%c\"",
+	     buffer, lineno, *p);
+      return -1;		/* Error */
       break;
     }
   }
@@ -181,13 +184,15 @@ static int parseline(char *line, struct rule *r)
 
   /* Read and compile the regex */
   if ( !readescstring(buffer, &line) ) {
-    /* boo hoo */
-    return 0;			/* No rule found */
+    syslog(LOG_ERR, "No regex on remap line %d: %s\n", lineno, line);
+    return -1;			/* Error */
   }
 
   if ( (rv = regcomp(&r->rx, buffer, rxflags)) != 0 ) {
-    /* boo hoo */
-    return 0;			/* No rule found */
+    char errbuf[BUFSIZ];
+    regerror(rv, &r->rx, errbuf, BUFSIZ);
+    syslog(LOG_ERR, "Bad regex in remap line %d: %s\n", lineno, errbuf);
+    return -1;			/* Error */
   }
 
   /* Read the rewrite pattern, if any */
@@ -208,9 +213,15 @@ struct rule *parserulefile(FILE *f)
   struct rule *first_rule = NULL;
   struct rule **last_rule = &first_rule;
   struct rule *this_rule  = xmalloc(sizeof(struct rule));
+  int rv;
+  int lineno = 0;
+  int err = 0;
 
-  while ( fgets(line, LINE_MAX, f) ) {
-    if ( parseline(line, this_rule) ) {
+  while ( lineno++, fgets(line, LINE_MAX, f) ) {
+    rv = parseline(line, this_rule, lineno);
+    if ( rv < 0 )
+      err = 1;
+    if ( rv > 0 ) {
       *last_rule = this_rule;
       last_rule = &this_rule->next;
       this_rule = xmalloc(sizeof(struct rule));
@@ -218,6 +229,11 @@ struct rule *parserulefile(FILE *f)
   }
 
   free(this_rule);		/* Last one is always unused */
+
+  if ( err ) {
+    /* Bail on error, we have already logged an error message */
+    exit(1);
+  }
 
   return first_rule;
 }
