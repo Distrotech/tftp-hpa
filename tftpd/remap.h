@@ -15,6 +15,9 @@
  * Prototypes for regular-expression based filename remapping.
  */
 
+#ifndef TFTPD_REMAP_H
+#define TFTPD_REMAP_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "../config.h"
@@ -30,4 +33,6 @@ struct rule *parserulefile(FILE *);
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *, const struct rule *, int);
 
-#endif
+#endif /* WITH_REGEX */
+#endif /* TFTPD_REMAP_H */
+

@@ -42,6 +42,9 @@
  * Prototypes for read-ahead/write-behind subroutines for tftp user and
  * server.
  */
+#ifndef TFTPSUBS_H
+#define TFTPSUBS_H
+
 #include <stdlib.h>
 
 struct tftphdr *r_init(void);
@@ -62,3 +65,5 @@ extern int segsize;
  */
 extern void *xmalloc(size_t);
 extern char *xstrdup(const char *);
+
+#endif

@@ -49,6 +49,8 @@ PA_ADD_CFLAGS(-pipe)
 
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
+AC_CHECK_HEADERS(sysexits.h)
+
 LIBXTRA=false
 
 AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true LIBOBJS="$LIBOBJS xmalloc.o")

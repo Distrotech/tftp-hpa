@@ -74,7 +74,7 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <unistd.h>
 #include <limits.h>
 
-#include "../config.h"
+#include "tftpd.h"
 #include "tftpsubs.h"
 #include "recvfrom.h"
 #include "remap.h"
@@ -86,14 +86,6 @@ int deny_severity	= LOG_WARNING;
 int allow_severity	= -1;	/* Don't log at all */
 
 struct request_info wrap_request;
-#endif
-
-void bsd_signal(int, void (*)(int));
-
-#ifndef HAVE_SIGSETJMP
-#define sigsetjmp(x,y)  setjmp(x)
-#define siglongjmp(x,y) longjmp(x,y)
-#define sigjmp_buf jmp_buf
 #endif
 
 #define	TIMEOUT 5		/* Default timeout (seconds) */
@@ -144,14 +136,14 @@ int set_tsize(char *, char **);
 int set_timeout(char *, char **);
 
 struct options {
-        char    *o_opt;
-        int     (*o_fnc)(char *, char **);
+  char    *o_opt;
+  int     (*o_fnc)(char *, char **);
 } options[] = {
-        { "blksize",    set_blksize  },
-        { "blksize2",   set_blksize2  },
-        { "tsize",      set_tsize },
-	{ "timeout",	set_timeout  },
-        { NULL,         NULL }
+  { "blksize",    set_blksize  },
+  { "blksize2",   set_blksize2  },
+  { "tsize",      set_tsize },
+  { "timeout",	set_timeout  },
+  { NULL,         NULL }
 };
 
 /* Simple handler for SIGHUP */
@@ -165,248 +157,253 @@ static void handle_sighup(int sig)
 static void
 usage(void)
 {
-	syslog(LOG_ERR, "Usage: %s [-vc][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
-	       __progname);
-	exit(1);
+  syslog(LOG_ERR, "Usage: %s [-vc][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
+	 __progname);
+  exit(EX_USAGE);
 }
 
 int
 main(int argc, char **argv)
 {
-	struct tftphdr *tp;
-	struct passwd *pw;
-	struct options *opt;
-	struct sockaddr_in myaddr;
-	int n = 0;
-	int on = 1;
-	int fd = 0;
-	int pid;
-	int c;
-	int setrv;
-	int timeout = 900;	/* Default timeout */
-	char *user = "nobody";	/* Default user */
-
-	__progname = basename(argv[0]);
-
-	openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
-
-	while ((c = getopt(argc, argv, "csvu:r:t:m:")) != -1)
-		switch (c) {
-		case 'c':
-			cancreate = 1;
-			break;
-		case 's':
-			secure = 1;
-			break;
-		case 't':
-		  timeout = atoi(optarg);
-		  break;
-		case 'u':
-		  user = optarg;
-		  break;
-		case 'r':
-		  for ( opt = options ; opt->o_opt ; opt++ ) {
-		    if ( !strcasecmp(optarg, opt->o_opt) ) {
-		      opt->o_opt = ""; /* Don't support this option */
-		      break;
-		    }
-		  }
-		  if ( !opt->o_opt ) {
-		        syslog(LOG_ERR, "Unknown option: %s", optarg);
-			exit(1);
-		  }
-		  break;
+  struct tftphdr *tp;
+  struct passwd *pw;
+  struct options *opt;
+  struct sockaddr_in myaddr;
+  int n = 0;
+  int on = 1;
+  int fd = 0;
+  int pid;
+  int c;
+  int setrv;
+  int timeout = 900;	/* Default timeout */
+  char *user = "nobody";	/* Default user */
+  
+  __progname = basename(argv[0]);
+  
+  openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+  
+  while ((c = getopt(argc, argv, "csvu:r:t:m:")) != -1)
+    switch (c) {
+    case 'c':
+      cancreate = 1;
+      break;
+    case 's':
+      secure = 1;
+      break;
+    case 't':
+      timeout = atoi(optarg);
+      break;
+    case 'u':
+      user = optarg;
+      break;
+    case 'r':
+      for ( opt = options ; opt->o_opt ; opt++ ) {
+	if ( !strcasecmp(optarg, opt->o_opt) ) {
+	  opt->o_opt = ""; /* Don't support this option */
+	  break;
+	}
+      }
+      if ( !opt->o_opt ) {
+	syslog(LOG_ERR, "Unknown option: %s", optarg);
+	exit(EX_USAGE);
+      }
+      break;
 #ifdef WITH_REGEX
-		case 'm':
-		  {
-		    FILE *f;
-		    if ( rewrite_rules ) {
-		      syslog(LOG_ERR, "Multiple -m options");
-		      exit(1);
-		    }
-		    f = fopen(optarg, "rt");
-		    if ( !f ) {
-		      syslog(LOG_ERR, "Cannot open map file: %s: %m", optarg);
-		      exit(1);
-		    }
-		    rewrite_rules = parserulefile(f);
-		    fclose(f);
-		  }
-		  break;
+    case 'm':
+      {
+	FILE *f;
+	if ( rewrite_rules ) {
+	  syslog(LOG_ERR, "Multiple -m options");
+	  exit(EX_USAGE);
+	}
+	f = fopen(optarg, "rt");
+	if ( !f ) {
+	  syslog(LOG_ERR, "Cannot open map file: %s: %m", optarg);
+	  exit(EX_NOINPUT);
+	}
+	rewrite_rules = parserulefile(f);
+	fclose(f);
+      }
+      break;
 #endif
-		case 'v':
-		  verbosity++;
-		  break;
-		default:
-		  usage();
-		  break;
-		}
-
-	for (; optind != argc; optind++) {
-		if (dirs)
-			dirs = realloc(dirs, (ndirs+2) * sizeof (char *));
-		else
-			dirs = calloc(ndirs+2, sizeof(char *));
-		if (dirs == NULL) {
-			syslog(LOG_ERR, "malloc: %m");
-			exit(1);
-		}			
-		dirs[n++] = argv[optind];
-		dirs[n] = NULL;
-		ndirs++;
-	}
-
-	if (secure) {
-		if (ndirs == 0) {
-			syslog(LOG_ERR, "no -s directory");
-			exit(1);
-		}
-		if (ndirs > 1) {
-			syslog(LOG_ERR, "too many -s directories");
-			exit(1);
-		}
-		if (chdir(dirs[0])) {
-			syslog(LOG_ERR, "%s: %m", dirs[0]);
-			exit(1);
-		}
-	}
-
-	pw = getpwnam(user);
-	if (!pw) {
-		syslog(LOG_ERR, "no user %s: %m", user);
-		exit(1);
-	}
-
-	if (ioctl(fd, FIONBIO, &on) < 0) {
-		syslog(LOG_ERR, "ioctl(FIONBIO): %m");
-		exit(1);
-	}
-
-	/* This means we don't want to wait() for children */
-	bsd_signal(SIGCHLD, SIG_IGN);
-
-	/* Take SIGHUP and use it to set a variable.  This
-	   is polled synchronously to make sure we don't
-	   lose packets as a result. */
-	bsd_signal(SIGHUP, handle_sighup);
-
-	do {
-	  fd_set readset;
-	  struct timeval tv_timeout;
-	  int rv;
-
-	  FD_ZERO(&readset);
-	  FD_SET(fd, &readset);
-	  tv_timeout.tv_sec = timeout;
-	  tv_timeout.tv_usec = 0;
-
-	  if ( caught_sighup )
-	    exit(0);		/* Return to inetd for respawn */
-
-	  rv = select(fd+1, &readset, NULL, NULL, &tv_timeout);
-	  if ( rv == -1 && errno == EINTR )
-	    continue;		/* Signal caught, reloop */
-	  if ( rv <= 0 )
-	    exit(0);		/* Timeout or error, return to inetd */
-
-	  fromlen = sizeof (from);
-	  n = myrecvfrom(fd, buf, sizeof (buf), 0,
-			 (struct sockaddr *)&from, &fromlen,
-			 &myaddr);
-
-	  if (n < 0) {
-	    syslog(LOG_ERR, "recvfrom: %m");
-	    exit(1);
-	  }
-
+    case 'v':
+      verbosity++;
+      break;
+    default:
+      usage();
+      break;
+    }
+  
+  for (; optind != argc; optind++) {
+    if (dirs)
+      dirs = realloc(dirs, (ndirs+2) * sizeof (char *));
+    else
+      dirs = calloc(ndirs+2, sizeof(char *));
+    if (dirs == NULL) {
+      syslog(LOG_ERR, "malloc: %m");
+      exit(EX_OSERR);
+    }			
+    dirs[n++] = argv[optind];
+    dirs[n] = NULL;
+    ndirs++;
+  }
+  
+  if (secure) {
+    if (ndirs == 0) {
+      syslog(LOG_ERR, "no -s directory");
+      exit(EX_USAGE);
+    }
+    if (ndirs > 1) {
+      syslog(LOG_ERR, "too many -s directories");
+      exit(EX_USAGE);
+    }
+    if (chdir(dirs[0])) {
+      syslog(LOG_ERR, "%s: %m", dirs[0]);
+      exit(EX_NOINPUT);
+    }
+  }
+  
+  pw = getpwnam(user);
+  if (!pw) {
+    syslog(LOG_ERR, "no user %s: %m", user);
+    exit(EX_NOUSER);
+  }
+  
+  if (ioctl(fd, FIONBIO, &on) < 0) {
+    syslog(LOG_ERR, "ioctl(FIONBIO): %m");
+    exit(EX_OSERR);
+  }
+  
+  /* This means we don't want to wait() for children */
+  set_signal(SIGCHLD, SIG_IGN, SA_NOCLDSTOP);
+  
+  /* Take SIGHUP and use it to set a variable.  This
+     is polled synchronously to make sure we don't
+     lose packets as a result. */
+  set_signal(SIGHUP, handle_sighup, 0);
+  
+  while ( 1 ) {
+    fd_set readset;
+    struct timeval tv_timeout;
+    int rv;
+    
+    FD_ZERO(&readset);
+    FD_SET(fd, &readset);
+    tv_timeout.tv_sec = timeout;
+    tv_timeout.tv_usec = 0;
+    
+    if ( caught_sighup )
+      exit(0);		/* Return to inetd for respawn */
+    
+    rv = select(fd+1, &readset, NULL, NULL, &tv_timeout);
+    if ( rv == -1 && errno == EINTR )
+      continue;		/* Signal caught, reloop */
+    if ( rv <= 0 )
+      exit(0);		/* Timeout or error, return to inetd */
+    
+    fromlen = sizeof (from);
+    n = myrecvfrom(fd, buf, sizeof (buf), 0,
+		   (struct sockaddr *)&from, &fromlen,
+		   &myaddr);
+    
+    if (n < 0) {
+      syslog(LOG_ERR, "recvfrom: %m");
+      exit(EX_IOERR);
+    }
+    
+    /*
+     * Now that we have read the request packet from the UDP
+     * socket, we fork and go back to listening to the socket.
+     */
+    pid = fork();
+    if (pid < 0) {
+      syslog(LOG_ERR, "fork: %m");
+      exit(EX_OSERR);	/* Return to inetd, just in case */
+    } else if ( pid == 0 )
+      break;			/* Child exit, parent loop */
+  }
+  
+  /* Child process: handle the actual request here */
+  
 #ifdef HAVE_TCPWRAPPERS
-	/* Verify if this was a legal request for us.  This has to be
-	   done before the chroot, while /etc is still accessible. */
-	  request_init(&wrap_request,
-		       RQ_DAEMON, __progname,
-		       RQ_FILE, fd,
-		       RQ_CLIENT_SIN, &from,
-		       RQ_SERVER_SIN, &myaddr,
-		       0);
-	  sock_methods(&wrap_request);
-	  if ( hosts_access(&wrap_request) == 0 ) {
-	    if ( deny_severity != -1 )
-	      syslog(deny_severity, "connection refused from %s",
-		     inet_ntoa(from.sin_addr));
-	    exit(1);		/* Access denied */
-	  } else if ( allow_severity != -1 ) {
-	    syslog(allow_severity, "connect from %s",
-		   inet_ntoa(from.sin_addr));
-	  }
+  /* Verify if this was a legal request for us.  This has to be
+     done before the chroot, while /etc is still accessible. */
+  request_init(&wrap_request,
+	       RQ_DAEMON, __progname,
+	       RQ_FILE, fd,
+	       RQ_CLIENT_SIN, &from,
+	       RQ_SERVER_SIN, &myaddr,
+	       0);
+  sock_methods(&wrap_request);
+  if ( hosts_access(&wrap_request) == 0 ) {
+    if ( deny_severity != -1 )
+      syslog(deny_severity, "connection refused from %s",
+	     inet_ntoa(from.sin_addr));
+    exit(EX_NOPERM);	/* Access denied */
+  } else if ( allow_severity != -1 ) {
+    syslog(allow_severity, "connect from %s",
+	   inet_ntoa(from.sin_addr));
+  }
 #endif
-
-	/*
-	 * Now that we have read the request packet from the UDP
-	 * socket, we fork and go back to listening to the socket.
-	 */
-	  pid = fork();
-	  if (pid < 0) {
-	    syslog(LOG_ERR, "fork: %m");
-	    exit(1);		/* Return to inetd, just in case */
-	  }
-	} while ( pid > 0 );	/* Parent process continues... */
-
-	/* Child process: handle the actual request here */
-
-	/* Chroot and drop privileges */
-
-	if (secure && chroot(".")) {
-		syslog(LOG_ERR, "chroot: %m");
-		exit(1);
-	}
-
+  
+  /* Chroot and drop privileges */
+  
+  if (secure && chroot(".")) {
+    syslog(LOG_ERR, "chroot: %m");
+    exit(EX_OSERR);
+  }
+  
 #ifdef HAVE_SETREGID
-	setrv = setregid(pw->pw_gid, pw->pw_gid);
+  setrv = setregid(pw->pw_gid, pw->pw_gid);
 #else
-	setrv = setegid(pw->pw_gid) || setgid(pw->pw_gid);
+  setrv = setegid(pw->pw_gid) || setgid(pw->pw_gid);
 #endif
-
+  
 #ifdef HAVE_SETREUID
-	setrv = setrv || setreuid(pw->pw_uid, pw->pw_uid);
+  setrv = setrv || setreuid(pw->pw_uid, pw->pw_uid);
 #else
-	/* Important: setuid() must come first */
-	setrv = setrv || setuid(pw->pw_uid) ||
-	  (geteuid() != pw->pw_uid && seteuid(pw->pw_uid));
+  /* Important: setuid() must come first */
+  setrv = setrv || setuid(pw->pw_uid) ||
+    (geteuid() != pw->pw_uid && seteuid(pw->pw_uid));
 #endif
-
-	if ( setrv ) {
-	  syslog(LOG_ERR, "cannot drop privileges: %m");
-	  exit(1);
-	}
-
-	/* Close file descriptors we don't need */
-
-	from.sin_family = AF_INET;
-	alarm(0);
-	close(fd);
-	close(1);
-
-	/* Process the request... */
-
-	peer = socket(AF_INET, SOCK_DGRAM, 0);
-	if (peer < 0) {
-		syslog(LOG_ERR, "socket: %m");
-		exit(1);
-	}
-	myaddr.sin_port = htons(0); /* We want a new local port */
-	if (bind(peer, (struct sockaddr *)&myaddr, sizeof (myaddr)) < 0) {
-		syslog(LOG_ERR, "bind: %m");
-		exit(1);
-	}
-	if (connect(peer, (struct sockaddr *)&from, sizeof(from)) < 0) {
-		syslog(LOG_ERR, "connect: %m");
-		exit(1);
-	}
-	tp = (struct tftphdr *)buf;
-	tp->th_opcode = ntohs(tp->th_opcode);
-	if (tp->th_opcode == RRQ || tp->th_opcode == WRQ)
-		tftp(tp, n);
-	exit(0);
+  
+  if ( setrv ) {
+    syslog(LOG_ERR, "cannot drop privileges: %m");
+    exit(EX_OSERR);
+  }
+  
+  /* Ignore SIGHUP */
+  set_signal(SIGHUP, SIG_IGN, 0);
+  
+  /* Close file descriptors we don't need */
+  close(fd);
+  close(1);
+  
+  /* Other basic setup */
+  from.sin_family = AF_INET;
+  alarm(0);
+  
+  /* Process the request... */
+  
+  peer = socket(AF_INET, SOCK_DGRAM, 0);
+  if (peer < 0) {
+    syslog(LOG_ERR, "socket: %m");
+    exit(EX_IOERR);
+  }
+  myaddr.sin_port = htons(0); /* We want a new local port */
+  if (bind(peer, (struct sockaddr *)&myaddr, sizeof (myaddr)) < 0) {
+    syslog(LOG_ERR, "bind: %m");
+    exit(EX_IOERR);
+  }
+  if (connect(peer, (struct sockaddr *)&from, sizeof(from)) < 0) {
+    syslog(LOG_ERR, "connect: %m");
+    exit(EX_IOERR);
+  }
+  tp = (struct tftphdr *)buf;
+  tp->th_opcode = ntohs(tp->th_opcode);
+  if (tp->th_opcode == RRQ || tp->th_opcode == WRQ)
+    tftp(tp, n);
+  exit(0);
 }
 
 char   *rewrite_access(char *, int);
@@ -415,16 +412,16 @@ void	sendfile(struct formats *, struct tftphdr *, int);
 void	recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
-	char	*f_mode;
-  	char	*(*f_rewrite)(char *, int);
-	int	(*f_validate)(char *, int, struct formats *);
-	void	(*f_send)(struct formats *, struct tftphdr *, int);
-	void	(*f_recv)(struct formats *, struct tftphdr *, int);
-	int	f_convert;
+  char	*f_mode;
+  char	*(*f_rewrite)(char *, int);
+  int	(*f_validate)(char *, int, struct formats *);
+  void	(*f_send)(struct formats *, struct tftphdr *, int);
+  void	(*f_recv)(struct formats *, struct tftphdr *, int);
+  int	f_convert;
 } formats[] = {
-	{ "netascii",   rewrite_access, validate_access, sendfile, recvfile, 1 },
-	{ "octet",	rewrite_access, validate_access, sendfile, recvfile, 0 },
-	{ NULL, NULL, NULL, NULL, NULL, 0 }
+  { "netascii",   rewrite_access, validate_access, sendfile, recvfile, 1 },
+  { "octet",	rewrite_access, validate_access, sendfile, recvfile, 0 },
+  { NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
 /*
@@ -433,89 +430,89 @@ struct formats {
 int
 tftp(struct tftphdr *tp, int size)
 {
-	char *cp;
-	int argn, ecode;
-	struct formats *pf = NULL;
-	char *origfilename;
-	char *filename, *mode = NULL;
-
-        char *val = NULL, *opt = NULL;
-        char *ap = ackbuf + 2;
-
-        ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
-
-	origfilename = cp = tp->th_stuff;
-	argn = 0;
-
-	while ( cp < buf + size && *cp ) {
-	     do {
-		  cp++;
-	     } while (cp < buf + size && *cp);
-
-	     if ( *cp ) {
-		  nak(EBADOP);	/* Corrupt packet - no final NULL */
-		  exit(0);
-	     }
-
-	     argn++;
-	     if (argn == 1) {
-		  mode = ++cp;
-	     } else if (argn == 2) {
-		  for (cp = mode; *cp; cp++)
-			    *cp = tolower(*cp);
-		  for (pf = formats; pf->f_mode; pf++) {
-		       if (!strcmp(pf->f_mode, mode))
-			    break;
-		  }
-		  if (!pf->f_mode) {
-		       nak(EBADOP);
-		       exit(0);
-		  }
-		  if ( !(filename = (*pf->f_rewrite)(origfilename, tp->th_opcode)) ) {
-		       nak(EACCES); /* File denied by mapping rule */
-		       exit(0);
-		  }
-		  if ( verbosity >= 1 ) {
-		    if ( filename == origfilename || !strcmp(filename, origfilename) )
-		      syslog(LOG_NOTICE, "%s from %s filename %s\n",
-			     tp->th_opcode == WRQ ? "WRQ" : "RRQ",
-			     inet_ntoa(from.sin_addr), filename);
-		    else
-		      syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
-			     tp->th_opcode == WRQ ? "WRQ" : "RRQ",
-			     inet_ntoa(from.sin_addr), origfilename, filename);
-		  }		   
-		  ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
-		  if (ecode) {
-		       nak(ecode);
-		       exit(0);
-		  }
-		  opt = ++cp;
-	     } else if ( argn & 1 ) {
-		  val = ++cp;
-	     } else {
-		  do_opt(opt, val, &ap);
-		  opt = ++cp;
-	     }
-	}
-
-	if (!pf) {
-	     nak(EBADOP);
-	     exit(0);
-	}
-
-	if ( ap != (ackbuf+2) ) {
-	     if ( tp->th_opcode == WRQ )
-		  (*pf->f_recv)(pf, ackbuf, ap-ackbuf);
-	     else
-		  (*pf->f_send)(pf, ackbuf, ap-ackbuf);
-	} else {
-	     if (tp->th_opcode == WRQ)
-		  (*pf->f_recv)(pf, NULL, 0);
-	     else
-		  (*pf->f_send)(pf, NULL, 0);
-	}
-	exit(1);
+  char *cp;
+  int argn, ecode;
+  struct formats *pf = NULL;
+  char *origfilename;
+  char *filename, *mode = NULL;
+  
+  char *val = NULL, *opt = NULL;
+  char *ap = ackbuf + 2;
+  
+  ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
+  
+  origfilename = cp = tp->th_stuff;
+  argn = 0;
+  
+  while ( cp < buf + size && *cp ) {
+    do {
+      cp++;
+    } while (cp < buf + size && *cp);
+    
+    if ( *cp ) {
+      nak(EBADOP);	/* Corrupt packet - no final NULL */
+      exit(0);
+    }
+    
+    argn++;
+    if (argn == 1) {
+      mode = ++cp;
+    } else if (argn == 2) {
+      for (cp = mode; *cp; cp++)
+	*cp = tolower(*cp);
+      for (pf = formats; pf->f_mode; pf++) {
+	if (!strcmp(pf->f_mode, mode))
+	  break;
+      }
+      if (!pf->f_mode) {
+	nak(EBADOP);
+	exit(0);
+      }
+      if ( !(filename = (*pf->f_rewrite)(origfilename, tp->th_opcode)) ) {
+	nak(EACCES); /* File denied by mapping rule */
+	exit(0);
+      }
+      if ( verbosity >= 1 ) {
+	if ( filename == origfilename || !strcmp(filename, origfilename) )
+	  syslog(LOG_NOTICE, "%s from %s filename %s\n",
+		 tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+		 inet_ntoa(from.sin_addr), filename);
+	else
+	  syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
+		 tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+		 inet_ntoa(from.sin_addr), origfilename, filename);
+      }		   
+      ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
+      if (ecode) {
+	nak(ecode);
+	exit(0);
+      }
+      opt = ++cp;
+    } else if ( argn & 1 ) {
+      val = ++cp;
+    } else {
+      do_opt(opt, val, &ap);
+      opt = ++cp;
+    }
+  }
+  
+  if (!pf) {
+    nak(EBADOP);
+    exit(0);
+  }
+  
+  if ( ap != (ackbuf+2) ) {
+    if ( tp->th_opcode == WRQ )
+      (*pf->f_recv)(pf, ackbuf, ap-ackbuf);
+    else
+      (*pf->f_send)(pf, ackbuf, ap-ackbuf);
+  } else {
+    if (tp->th_opcode == WRQ)
+      (*pf->f_recv)(pf, NULL, 0);
+    else
+      (*pf->f_send)(pf, NULL, 0);
+  }
+  exit(EX_SOFTWARE);		/* We should never get here */
 }
 
 static int blksize_set;
@@ -526,23 +523,23 @@ static int blksize_set;
 int
 set_blksize(char *val, char **ret)
 {
-  	static char b_ret[6];
-        unsigned int sz = atoi(val);
-
-	if ( blksize_set )
-	  return 0;
-
-        if (sz < 8)
-                return(0);
-        else if (sz > MAX_SEGSIZE)
-                sz = MAX_SEGSIZE;
-
-        segsize = sz;
-        sprintf(*ret = b_ret, "%u", sz);
-
-	blksize_set = 1;
-
-        return(1);
+  static char b_ret[6];
+  unsigned int sz = atoi(val);
+  
+  if ( blksize_set )
+    return 0;
+  
+  if (sz < 8)
+    return(0);
+  else if (sz > MAX_SEGSIZE)
+    sz = MAX_SEGSIZE;
+  
+  segsize = sz;
+  sprintf(*ret = b_ret, "%u", sz);
+  
+  blksize_set = 1;
+  
+  return(1);
 }
 
 /*
@@ -551,32 +548,32 @@ set_blksize(char *val, char **ret)
 int
 set_blksize2(char *val, char **ret)
 {
-  	static char b_ret[6];
-        unsigned int sz = atoi(val);
-
-	if ( blksize_set )
-	  return 0;
-
-        if (sz < 8)
-                return(0);
-        else if (sz > MAX_SEGSIZE)
-	        sz = MAX_SEGSIZE;
-
-	/* Convert to a power of two */
-	if ( sz & (sz-1) ) {
-	  unsigned int sz1 = 1;
-	  /* Not a power of two - need to convert */
-	  while ( sz >>= 1 )
-	    sz1 <<= 1;
-	  sz = sz1;
-	}
-
-        segsize = sz;
-        sprintf(*ret = b_ret, "%u", sz);
-
-	blksize_set = 1;
-
-        return(1);
+  static char b_ret[6];
+  unsigned int sz = atoi(val);
+  
+  if ( blksize_set )
+    return 0;
+  
+  if (sz < 8)
+    return(0);
+  else if (sz > MAX_SEGSIZE)
+    sz = MAX_SEGSIZE;
+  
+  /* Convert to a power of two */
+  if ( sz & (sz-1) ) {
+    unsigned int sz1 = 1;
+    /* Not a power of two - need to convert */
+    while ( sz >>= 1 )
+      sz1 <<= 1;
+    sz = sz1;
+  }
+  
+  segsize = sz;
+  sprintf(*ret = b_ret, "%u", sz);
+  
+  blksize_set = 1;
+  
+  return(1);
 }
 
 /*
@@ -587,16 +584,16 @@ set_blksize2(char *val, char **ret)
 int
 set_tsize(char *val, char **ret)
 {
-        static char b_ret[sizeof(off_t)*CHAR_BIT/3+2];
-        off_t sz = atol(val);
-
-	if ( !tsize_ok )
-	  return 0;
-
-        if (sz == 0)
-                sz = tsize;
-        sprintf(*ret = b_ret, "%lu", sz);
-        return(1);
+  static char b_ret[sizeof(off_t)*CHAR_BIT/3+2];
+  off_t sz = atol(val);
+  
+  if ( !tsize_ok )
+    return 0;
+  
+  if (sz == 0)
+    sz = tsize;
+  sprintf(*ret = b_ret, "%lu", sz);
+  return(1);
 }
 
 /*
@@ -605,18 +602,18 @@ set_tsize(char *val, char **ret)
 int
 set_timeout(char *val, char **ret)
 {
-	static char b_ret[4];
-	unsigned long to = atol(val);
-
-	if ( to < 1 || to > 255 )
-	  return 0;
-
-	timeout    = to;
-	rexmtval   = to;
-	maxtimeout = TIMEOUT_LIMIT*to;
-
-	sprintf(*ret = b_ret, "%lu", to);
-	return(1);
+  static char b_ret[4];
+  unsigned long to = atol(val);
+  
+  if ( to < 1 || to > 255 )
+    return 0;
+  
+  timeout    = to;
+  rexmtval   = to;
+  maxtimeout = TIMEOUT_LIMIT*to;
+  
+  sprintf(*ret = b_ret, "%lu", to);
+  return(1);
 }
 
 /*
@@ -625,32 +622,32 @@ set_timeout(char *val, char **ret)
 void
 do_opt(char *opt, char *val, char **ap)
 {
-     struct options *po;
-     char *ret;
-
-     /* Global option-parsing variables initialization */
-     blksize_set = 0;
-     
-     if ( !*opt )
-	  return;
-
-     for (po = options; po->o_opt; po++)
-	  if (!strcasecmp(po->o_opt, opt)) {
-	       if (po->o_fnc(val, &ret)) {
-		    if (*ap + strlen(opt) + strlen(ret) + 2 >=
-			ackbuf + sizeof(ackbuf)) {
-			 nak(ENOSPACE);	/* EOPTNEG? */
-			 exit(0);
-		    }
-		    *ap = strrchr(strcpy(strrchr(strcpy(*ap, opt),'\0') + 1,
-					 ret),'\0') + 1;
-	       } else {
-		    nak(EOPTNEG);
-		    exit(0);
-	       }
-	       break;
-	  }
-     return;
+  struct options *po;
+  char *ret;
+  
+  /* Global option-parsing variables initialization */
+  blksize_set = 0;
+  
+  if ( !*opt )
+    return;
+  
+  for (po = options; po->o_opt; po++)
+    if (!strcasecmp(po->o_opt, opt)) {
+      if (po->o_fnc(val, &ret)) {
+	if (*ap + strlen(opt) + strlen(ret) + 2 >=
+	    ackbuf + sizeof(ackbuf)) {
+	  nak(ENOSPACE);	/* EOPTNEG? */
+	  exit(0);
+	}
+	*ap = strrchr(strcpy(strrchr(strcpy(*ap, opt),'\0') + 1,
+			     ret),'\0') + 1;
+      } else {
+	nak(EOPTNEG);
+	exit(0);
+      }
+      break;
+    }
+  return;
 }
 
 /*
@@ -683,75 +680,75 @@ FILE *file;
 int
 validate_access(char *filename, int mode, struct formats *pf)
 {
-	struct stat stbuf;
-	int	fd, wmode;
-	char *cp, **dirp;
-
-	tsize_ok = 0;
-
-	if (!secure) {
-		if (*filename != '/')
-			return (EACCESS);
-		/*
-		 * prevent tricksters from getting around the directory
-		 * restrictions
-		 */
-		for (cp = filename + 1; *cp; cp++)
-			if(*cp == '.' && strncmp(cp-1, "/../", 4) == 0)
-				return(EACCESS);
-		for (dirp = dirs; *dirp; dirp++)
-			if (strncmp(filename, *dirp, strlen(*dirp)) == 0)
-				break;
-		if (*dirp==0 && dirp!=dirs)
-			return (EACCESS);
-	}
-
-	/*
-	 * We use different a different permissions scheme if `cancreate' is
-	 * set.
-	 */
-	wmode = O_TRUNC;
-	if (stat(filename, &stbuf) < 0) {
-		if (!cancreate)
-			return (errno == ENOENT ? ENOTFOUND : EACCESS);
-		else {
-			if ((errno == ENOENT) && (mode != RRQ))
-				wmode |= O_CREAT;
-			else
-				return(EACCESS);
-		}
-	} else {
-		if (mode == RRQ) {
-			if ((stbuf.st_mode&(S_IREAD >> 6)) == 0)
-				return (EACCESS);
-			tsize = stbuf.st_size;
-			/* We don't know the tsize if conversion is needed */
-			tsize_ok = !pf->f_convert;
-		} else {
-			if ((stbuf.st_mode&(S_IWRITE >> 6)) == 0)
-				return (EACCESS);
-			tsize = 0;
-			tsize_ok = 1;
-		}
-	}
-	fd = open(filename, mode == RRQ ? O_RDONLY : (O_WRONLY|wmode), 0666);
-	if (fd < 0)
-		return (errno + 100);
-	/*
-	 * If the file was created, set default permissions.
-	 */
-	if ((wmode & O_CREAT) && fchmod(fd, 0666) < 0) {
-		int serrno = errno;
-
-		close(fd);
-		unlink(filename);
-
-		return (serrno + 100);
-	}
-	file = fdopen(fd, (mode == RRQ)? "r":"w");
-	if (file == NULL)
-		return (errno + 100);
-	return (0);
+  struct stat stbuf;
+  int	fd, wmode;
+  char *cp, **dirp;
+  
+  tsize_ok = 0;
+  
+  if (!secure) {
+    if (*filename != '/')
+      return (EACCESS);
+    /*
+     * prevent tricksters from getting around the directory
+     * restrictions
+     */
+    for (cp = filename + 1; *cp; cp++)
+      if(*cp == '.' && strncmp(cp-1, "/../", 4) == 0)
+	return(EACCESS);
+    for (dirp = dirs; *dirp; dirp++)
+      if (strncmp(filename, *dirp, strlen(*dirp)) == 0)
+	break;
+    if (*dirp==0 && dirp!=dirs)
+      return (EACCESS);
+  }
+  
+  /*
+   * We use different a different permissions scheme if `cancreate' is
+   * set.
+   */
+  wmode = O_TRUNC;
+  if (stat(filename, &stbuf) < 0) {
+    if (!cancreate)
+      return (errno == ENOENT ? ENOTFOUND : EACCESS);
+    else {
+      if ((errno == ENOENT) && (mode != RRQ))
+	wmode |= O_CREAT;
+      else
+	return(EACCESS);
+    }
+  } else {
+    if (mode == RRQ) {
+      if ((stbuf.st_mode&(S_IREAD >> 6)) == 0)
+	return (EACCESS);
+      tsize = stbuf.st_size;
+      /* We don't know the tsize if conversion is needed */
+      tsize_ok = !pf->f_convert;
+    } else {
+      if ((stbuf.st_mode&(S_IWRITE >> 6)) == 0)
+	return (EACCESS);
+      tsize = 0;
+      tsize_ok = 1;
+    }
+  }
+  fd = open(filename, mode == RRQ ? O_RDONLY : (O_WRONLY|wmode), 0666);
+  if (fd < 0)
+    return (errno + 100);
+  /*
+   * If the file was created, set default permissions.
+   */
+  if ((wmode & O_CREAT) && fchmod(fd, 0666) < 0) {
+    int serrno = errno;
+    
+    close(fd);
+    unlink(filename);
+    
+    return (serrno + 100);
+  }
+  file = fdopen(fd, (mode == RRQ)? "r":"w");
+  if (file == NULL)
+    return (errno + 100);
+  return (0);
 }
 
 int	timeout;
@@ -761,11 +758,11 @@ sigjmp_buf	timeoutbuf;
 void
 timer(int sig)
 {
-
-	timeout += rexmtval;
-	if (timeout >= maxtimeout)
-		exit(0);
-	siglongjmp(timeoutbuf, 1);
+  
+  timeout += rexmtval;
+  if (timeout >= maxtimeout)
+    exit(0);
+  siglongjmp(timeoutbuf, 1);
 }
 
 /*
@@ -774,103 +771,103 @@ timer(int sig)
 void
 sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
-	struct tftphdr *dp;
-	struct tftphdr *ap;    /* ack packet */
-	int block = 1, size, n;
-
-	ap = (struct tftphdr *)ackbuf;
-
-        if (oap) {
-	     timeout = 0;
-	     (void)sigsetjmp(timeoutbuf,1);
-oack:
-	     if (send(peer, oap, oacklen, 0) != oacklen) {
-		  syslog(LOG_ERR, "tftpd: oack: %m\n");
-		  goto abort;
-	     }
-	     for ( ; ; ) {
-	          bsd_signal(SIGALRM, timer);
-		  alarm(rexmtval);
-		  n = recv(peer, ackbuf, sizeof(ackbuf), 0);
-		  alarm(0);
-		  if (n < 0) {
-		       syslog(LOG_ERR, "tftpd: read: %m\n");
-		       goto abort;
-		  }
-		  ap->th_opcode = ntohs((u_short)ap->th_opcode);
-		  ap->th_block = ntohs((u_short)ap->th_block);
-		  
-		  if (ap->th_opcode == ERROR) {
-		       syslog(LOG_ERR, "tftp: client does not accept "
-			      "options\n");
-		       goto abort;
-		  }
-		  if (ap->th_opcode == ACK) {
-		       if (ap->th_block == 0)
-			    break;
-		       /* Resynchronize with the other side */
-		       (void)synchnet(peer);
-		       goto oack;
-		  }
-	     }
-        }
-
-	dp = r_init();
-	do {
-		size = readit(file, &dp, pf->f_convert);
-		if (size < 0) {
-			nak(errno + 100);
-			goto abort;
-		}
-		dp->th_opcode = htons((u_short)DATA);
-		dp->th_block = htons((u_short)block);
-		timeout = 0;
-		(void) sigsetjmp(timeoutbuf,1);
-
-send_data:
-		if (send(peer, dp, size + 4, 0) != size + 4) {
-			syslog(LOG_ERR, "tftpd: write: %m");
-			goto abort;
-		}
-		read_ahead(file, pf->f_convert);
-		for ( ; ; ) {
-		        bsd_signal(SIGALRM, timer);
-			alarm(rexmtval);	/* read the ack */
-			n = recv(peer, ackbuf, sizeof (ackbuf), 0);
-			alarm(0);
-			if (n < 0) {
-				syslog(LOG_ERR, "tftpd: read(ack): %m");
-				goto abort;
-			}
-			ap->th_opcode = ntohs((u_short)ap->th_opcode);
-			ap->th_block = ntohs((u_short)ap->th_block);
-
-			if (ap->th_opcode == ERROR)
-				goto abort;
-			
-			if (ap->th_opcode == ACK) {
-				if (ap->th_block == block) {
-					break;
-				}
+  struct tftphdr *dp;
+  struct tftphdr *ap;    /* ack packet */
+  int block = 1, size, n;
+  
+  ap = (struct tftphdr *)ackbuf;
+  
+  if (oap) {
+    timeout = 0;
+    (void)sigsetjmp(timeoutbuf,1);
+  oack:
+    if (send(peer, oap, oacklen, 0) != oacklen) {
+      syslog(LOG_ERR, "tftpd: oack: %m\n");
+      goto abort;
+    }
+    for ( ; ; ) {
+      set_signal(SIGALRM, timer, SA_RESTART);
+      alarm(rexmtval);
+      n = recv(peer, ackbuf, sizeof(ackbuf), 0);
+      alarm(0);
+      if (n < 0) {
+	syslog(LOG_ERR, "tftpd: read: %m\n");
+	goto abort;
+      }
+      ap->th_opcode = ntohs((u_short)ap->th_opcode);
+      ap->th_block = ntohs((u_short)ap->th_block);
+      
+      if (ap->th_opcode == ERROR) {
+	syslog(LOG_ERR, "tftp: client does not accept "
+	       "options\n");
+	goto abort;
+      }
+      if (ap->th_opcode == ACK) {
+	if (ap->th_block == 0)
+	  break;
+	/* Resynchronize with the other side */
+	(void)synchnet(peer);
+	goto oack;
+      }
+    }
+  }
+  
+  dp = r_init();
+  do {
+    size = readit(file, &dp, pf->f_convert);
+    if (size < 0) {
+      nak(errno + 100);
+      goto abort;
+    }
+    dp->th_opcode = htons((u_short)DATA);
+    dp->th_block = htons((u_short)block);
+    timeout = 0;
+    (void) sigsetjmp(timeoutbuf,1);
+    
+  send_data:
+    if (send(peer, dp, size + 4, 0) != size + 4) {
+      syslog(LOG_ERR, "tftpd: write: %m");
+      goto abort;
+    }
+    read_ahead(file, pf->f_convert);
+    for ( ; ; ) {
+      set_signal(SIGALRM, timer, SA_RESTART);
+      alarm(rexmtval);	/* read the ack */
+      n = recv(peer, ackbuf, sizeof (ackbuf), 0);
+      alarm(0);
+      if (n < 0) {
+	syslog(LOG_ERR, "tftpd: read(ack): %m");
+	goto abort;
+      }
+      ap->th_opcode = ntohs((u_short)ap->th_opcode);
+      ap->th_block = ntohs((u_short)ap->th_block);
+      
+      if (ap->th_opcode == ERROR)
+	goto abort;
+      
+      if (ap->th_opcode == ACK) {
+	if (ap->th_block == block) {
+	  break;
+	}
 				/* Re-synchronize with the other side */
-				(void) synchnet(peer);
-				if (ap->th_block == (block -1)) {
-					goto send_data;
-				}
-			}
-
-		}
-		block++;
-	} while (size == segsize);
-abort:
-	(void) fclose(file);
+	(void) synchnet(peer);
+	if (ap->th_block == (block -1)) {
+	  goto send_data;
+	}
+      }
+      
+    }
+    block++;
+  } while (size == segsize);
+ abort:
+  (void) fclose(file);
 }
 
 /* Bail out signal handler */
 void
 justquit(int sig)
 {
-	exit(0);
+  exit(0);
 }
 
 
@@ -880,97 +877,97 @@ justquit(int sig)
 void
 recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
-	struct tftphdr *dp;
-	struct tftphdr *ap;    /* ack buffer */
-	int block = 0, acksize, n, size;
-
-	dp = w_init();
-	do {
-		timeout = 0;
-		
-		if (!block && oap) {
-		     ap = (struct tftphdr *)ackbuf;
-		     acksize = oacklen;
-		} else {
-		     ap = (struct tftphdr *)ackbuf;
-		     ap->th_opcode = htons((u_short)ACK);
-		     ap->th_block = htons((u_short)block);
-		     acksize = 4;
-		}
-		block++;
-		(void) sigsetjmp(timeoutbuf,1);
-		bsd_signal(SIGALRM, timer);
-send_ack:
-		if (send(peer, ackbuf, acksize, 0) != acksize) {
-			syslog(LOG_ERR, "tftpd: write(ack): %m");
-			goto abort;
-		}
-		write_behind(file, pf->f_convert);
-		for ( ; ; ) {
-		        bsd_signal(SIGALRM, timer);
-			alarm(rexmtval);
-			n = recv(peer, dp, PKTSIZE, 0);
-			alarm(0);
-			if (n < 0) {		/* really? */
-				syslog(LOG_ERR, "tftpd: read: %m");
-				goto abort;
-			}
-			dp->th_opcode = ntohs((u_short)dp->th_opcode);
-			dp->th_block = ntohs((u_short)dp->th_block);
-			if (dp->th_opcode == ERROR)
-				goto abort;
-			if (dp->th_opcode == DATA) {
-				if (dp->th_block == block) {
-					break;   /* normal */
-				}
-				/* Re-synchronize with the other side */
-				(void) synchnet(peer);
-				if (dp->th_block == (block-1))
-					goto send_ack;		/* rexmit */
-			}
-		}
-		/*  size = write(file, dp->th_data, n - 4); */
-		size = writeit(file, &dp, n - 4, pf->f_convert);
-		if (size != (n-4)) {			/* ahem */
-			if (size < 0) nak(errno + 100);
-			else nak(ENOSPACE);
-			goto abort;
-		}
-	} while (size == segsize);
-	write_behind(file, pf->f_convert);
-	(void) fclose(file);		/* close data file */
-
-	ap->th_opcode = htons((u_short)ACK);    /* send the "final" ack */
-	ap->th_block = htons((u_short)(block));
-	(void) send(peer, ackbuf, 4, 0);
-
-	bsd_signal(SIGALRM, justquit);      /* just quit on timeout */
-	alarm(rexmtval);
-	n = recv(peer, buf, sizeof (buf), 0); /* normally times out and quits */
-	alarm(0);
-	if (n >= 4 &&			/* if read some data */
-	    dp->th_opcode == DATA &&    /* and got a data block */
-	    block == dp->th_block) {	/* then my last ack was lost */
-		(void) send(peer, ackbuf, 4, 0);     /* resend final ack */
+  struct tftphdr *dp;
+  struct tftphdr *ap;    /* ack buffer */
+  int block = 0, acksize, n, size;
+  
+  dp = w_init();
+  do {
+    timeout = 0;
+    
+    if (!block && oap) {
+      ap = (struct tftphdr *)ackbuf;
+      acksize = oacklen;
+    } else {
+      ap = (struct tftphdr *)ackbuf;
+      ap->th_opcode = htons((u_short)ACK);
+      ap->th_block = htons((u_short)block);
+      acksize = 4;
+    }
+    block++;
+    (void) sigsetjmp(timeoutbuf,1);
+    set_signal(SIGALRM, timer, SA_RESTART);
+  send_ack:
+    if (send(peer, ackbuf, acksize, 0) != acksize) {
+      syslog(LOG_ERR, "tftpd: write(ack): %m");
+      goto abort;
+    }
+    write_behind(file, pf->f_convert);
+    for ( ; ; ) {
+      set_signal(SIGALRM, timer, SA_RESTART);
+      alarm(rexmtval);
+      n = recv(peer, dp, PKTSIZE, 0);
+      alarm(0);
+      if (n < 0) {		/* really? */
+	syslog(LOG_ERR, "tftpd: read: %m");
+	goto abort;
+      }
+      dp->th_opcode = ntohs((u_short)dp->th_opcode);
+      dp->th_block = ntohs((u_short)dp->th_block);
+      if (dp->th_opcode == ERROR)
+	goto abort;
+      if (dp->th_opcode == DATA) {
+	if (dp->th_block == block) {
+	  break;   /* normal */
 	}
-abort:
-	return;
+				/* Re-synchronize with the other side */
+	(void) synchnet(peer);
+	if (dp->th_block == (block-1))
+	  goto send_ack;		/* rexmit */
+      }
+    }
+    /*  size = write(file, dp->th_data, n - 4); */
+    size = writeit(file, &dp, n - 4, pf->f_convert);
+    if (size != (n-4)) {			/* ahem */
+      if (size < 0) nak(errno + 100);
+      else nak(ENOSPACE);
+      goto abort;
+    }
+  } while (size == segsize);
+  write_behind(file, pf->f_convert);
+  (void) fclose(file);		/* close data file */
+  
+  ap->th_opcode = htons((u_short)ACK);    /* send the "final" ack */
+  ap->th_block = htons((u_short)(block));
+  (void) send(peer, ackbuf, 4, 0);
+  
+  set_signal(SIGALRM, justquit, SA_RESETHAND); /* just quit on timeout */
+  alarm(rexmtval);
+  n = recv(peer, buf, sizeof (buf), 0); /* normally times out and quits */
+  alarm(0);
+  if (n >= 4 &&			/* if read some data */
+      dp->th_opcode == DATA &&    /* and got a data block */
+      block == dp->th_block) {	/* then my last ack was lost */
+    (void) send(peer, ackbuf, 4, 0);     /* resend final ack */
+  }
+ abort:
+  return;
 }
 
 struct errmsg {
-	int	e_code;
-	char	*e_msg;
+  int	e_code;
+  char	*e_msg;
 } errmsgs[] = {
-	{ EUNDEF,	"Undefined error code" },
-	{ ENOTFOUND,	"File not found" },
-	{ EACCESS,	"Access violation" },
-	{ ENOSPACE,	"Disk full or allocation exceeded" },
-	{ EBADOP,	"Illegal TFTP operation" },
-	{ EBADID,	"Unknown transfer ID" },
-	{ EEXISTS,	"File already exists" },
-	{ ENOUSER,	"No such user" },
-	{ EOPTNEG,	"Failure to negotiate RFC2347 options" },
-	{ -1,		0 }
+  { EUNDEF,	"Undefined error code" },
+  { ENOTFOUND,	"File not found" },
+  { EACCESS,	"Access violation" },
+  { ENOSPACE,	"Disk full or allocation exceeded" },
+  { EBADOP,	"Illegal TFTP operation" },
+  { EBADID,	"Unknown transfer ID" },
+  { EEXISTS,	"File already exists" },
+  { ENOUSER,	"No such user" },
+  { EOPTNEG,	"Failure to negotiate RFC2347 options" },
+  { -1,		0 }
 };
 
 /*
@@ -982,30 +979,30 @@ struct errmsg {
 void
 nak(int error)
 {
-	struct tftphdr *tp;
-	int length;
-	struct errmsg *pe;
-
-	tp = (struct tftphdr *)buf;
-	tp->th_opcode = htons((u_short)ERROR);
-	tp->th_code = htons((u_short)error);
-	for (pe = errmsgs; pe->e_code >= 0; pe++)
-		if (pe->e_code == error)
-			break;
-	if (pe->e_code < 0) {
-		pe->e_msg = strerror(error - 100);
-		tp->th_code = EUNDEF;   /* set 'undef' errorcode */
-	}
-	strcpy(tp->th_msg, pe->e_msg);
-	length = strlen(pe->e_msg);
-	tp->th_msg[length] = '\0';
-	length += 5;
-
-	if ( verbosity >= 2 ) {
-	  syslog(LOG_INFO, "sending NAK (%d, %s) to %s",
-		 error, tp->th_msg, inet_ntoa(from.sin_addr));
-	}
-
-	if (send(peer, buf, length, 0) != length)
-		syslog(LOG_ERR, "nak: %m");
+  struct tftphdr *tp;
+  int length;
+  struct errmsg *pe;
+  
+  tp = (struct tftphdr *)buf;
+  tp->th_opcode = htons((u_short)ERROR);
+  tp->th_code = htons((u_short)error);
+  for (pe = errmsgs; pe->e_code >= 0; pe++)
+    if (pe->e_code == error)
+      break;
+  if (pe->e_code < 0) {
+    pe->e_msg = strerror(error - 100);
+    tp->th_code = EUNDEF;   /* set 'undef' errorcode */
+  }
+  strcpy(tp->th_msg, pe->e_msg);
+  length = strlen(pe->e_msg);
+  tp->th_msg[length] = '\0';
+  length += 5;
+  
+  if ( verbosity >= 2 ) {
+    syslog(LOG_INFO, "sending NAK (%d, %s) to %s",
+	   error, tp->th_msg, inet_ntoa(from.sin_addr));
+  }
+  
+  if (send(peer, buf, length, 0) != length)
+    syslog(LOG_ERR, "nak: %m");
 }

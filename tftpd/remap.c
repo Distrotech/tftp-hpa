@@ -22,7 +22,7 @@
 #include <syslog.h>
 #include <regex.h>
 
-#include "tftpsubs.h"
+#include "tftpd.h"
 #include "remap.h"
 
 #define DEADMAN_MAX_STEPS	1024    /* Timeout after this many steps */
@@ -197,7 +197,7 @@ static int parseline(char *line, struct rule *r, int lineno)
 
   /* Read the rewrite pattern, if any */
   if ( readescstring(buffer, &line) ) {
-    r->pattern = xstrdup(buffer);
+    r->pattern = tfstrdup(buffer);
   } else {
     r->pattern = "";
   }
@@ -212,7 +212,7 @@ struct rule *parserulefile(FILE *f)
   char line[LINE_MAX];
   struct rule *first_rule = NULL;
   struct rule **last_rule = &first_rule;
-  struct rule *this_rule  = xmalloc(sizeof(struct rule));
+  struct rule *this_rule  = tfmalloc(sizeof(struct rule));
   int rv;
   int lineno = 0;
   int err = 0;
@@ -224,7 +224,7 @@ struct rule *parserulefile(FILE *f)
     if ( rv > 0 ) {
       *last_rule = this_rule;
       last_rule = &this_rule->next;
-      this_rule = xmalloc(sizeof(struct rule));
+      this_rule = tfmalloc(sizeof(struct rule));
     }
   }
 
@@ -232,7 +232,7 @@ struct rule *parserulefile(FILE *f)
 
   if ( err ) {
     /* Bail on error, we have already logged an error message */
-    exit(1);
+    exit(EX_CONFIG);
   }
 
   return first_rule;
@@ -241,7 +241,7 @@ struct rule *parserulefile(FILE *f)
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 {
-  char *current = xstrdup(input);
+  char *current = tfstrdup(input);
   char *newstr;
   const struct rule *ruleptr = rules;
   regmatch_t pmatch[10];
@@ -272,7 +272,7 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 	
 	if ( ruleptr->rule_flags & RULE_REWRITE ) {
 	  len = genmatchstring(NULL, ruleptr->pattern, current, pmatch);
-	  newstr = xmalloc(len+1);
+	  newstr = tfmalloc(len+1);
 	  genmatchstring(newstr, ruleptr->pattern, current, pmatch);
 	  free(current);
 	  current = newstr;

@@ -4,6 +4,22 @@ This is tftp-hpa-0.18; this version was put out by H. Peter Anvin
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
 ===> CHANGES IN THIS VERSION!!!!!!!!!
 
+Changes in 0.19:
+	Fork before performing tcpwrappers check.
+
+	Don't rely on nonstandard bsd_signal() function, instead
+	require that the platform has sigaction().  This is 2001,
+	after all.  This may resolve some potential portability
+	problems.
+
+	Log a message if memory allocation fails, instead of dying
+	silently.
+
+	Clean up the main dispatch loop.
+
+	Use <sysexits.h> for exit codes, if it exists.
+
+
 Changes in 0.18:
 	Support (almost) arbitrary filename remappings via regular
 	expression-based rulesets.
