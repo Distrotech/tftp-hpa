@@ -110,7 +110,7 @@ static void tpacket(const char *, struct tftphdr *, int);
  * Send the requested file.
  */
 void
-sendfile(int fd, char *name, char *mode)
+tftp_sendfile(int fd, char *name, char *mode)
 {
 	struct tftphdr *ap;	   /* data and ack packets */
 	struct tftphdr *dp;
@@ -212,7 +212,7 @@ abort:
  * Receive a file.
  */
 void
-recvfile(int fd, char *name, char *mode)
+tftp_recvfile(int fd, char *name, char *mode)
 {
 	struct tftphdr *ap;
 	struct tftphdr *dp;

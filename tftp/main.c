@@ -385,7 +385,7 @@ put(int argc, char *argv[])
 			printf("putting %s to %s:%s [%s]\n",
 				cp, hostname, targ, mode);
 		peeraddr.sin_port = port;
-		sendfile(fd, targ, mode);
+		tftp_sendfile(fd, targ, mode);
 		return;
 	}
 				/* this assumes the target is a directory */
@@ -403,7 +403,7 @@ put(int argc, char *argv[])
 			printf("putting %s to %s:%s [%s]\n",
 				argv[n], hostname, targ, mode);
 		peeraddr.sin_port = port;
-		sendfile(fd, targ, mode);
+		tftp_sendfile(fd, targ, mode);
 	}
 }
 
@@ -475,7 +475,7 @@ get(int argc, char *argv[])
 				printf("getting from %s:%s to %s [%s]\n",
 					hostname, src, cp, mode);
 			peeraddr.sin_port = port;
-			recvfile(fd, src, mode);
+			tftp_recvfile(fd, src, mode);
 			break;
 		}
 		cp = tail(src);         /* new .. jdg */
@@ -488,7 +488,7 @@ get(int argc, char *argv[])
 			printf("getting from %s:%s to %s [%s]\n",
 				hostname, src, cp, mode);
 		peeraddr.sin_port = port;
-		recvfile(fd, src, mode);
+		tftp_recvfile(fd, src, mode);
 	}
 }
 

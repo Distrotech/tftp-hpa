@@ -41,7 +41,7 @@
 #ifndef RECVFILE_H
 #define RECVFILE_H
 
-void	recvfile (int, char *, char *);
-void	sendfile (int, char *, char *);
+void	tftp_recvfile (int, char *, char *);
+void	tftp_sendfile (int, char *, char *);
 
 #endif
