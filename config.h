@@ -78,7 +78,6 @@
 #endif
 
 #include <setjmp.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 
 /* If we don't have intmax_t, try creating it */
@@ -172,12 +171,29 @@ typedef unsigned long u_long;
 #endif
 #endif
 
-/* Sometimes IPPORT_TFTP isn't defined */
+/* netinet/in.h, and possible missing pieces */
+
+#include <netinet/in.h>
 
 #ifndef HAVE_IPPORT_TFTP_DEFINITION
 #ifndef IPPORT_TFTP
 #define IPPORT_TFTP 69
 #endif
 #endif
+
+/* arpa/tftp.h, and possible missing pieces */
+
+#include <arpa/tftp.h>
+
+#ifndef OACK
+#define OACK 6
+#endif
+#ifndef EOPTNEG
+#define EOPTNEG 8
+#endif
+
+/* tftp-hpa version */
+
+#include "version.h"
 
 #endif

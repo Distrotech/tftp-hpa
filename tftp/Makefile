@@ -8,7 +8,7 @@ include ../MRULES
 OBJS = tftp.o main.o tftpsubs.o
 
 tftp: $(OBJS)
-	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(TFTP_LIBS) -o $@
 
 $(OBJS): tftpsubs.h
 

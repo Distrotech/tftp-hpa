@@ -81,7 +81,7 @@ static const char *rcsid UNUSED =
 
 struct	sockaddr_in peeraddr;
 int	f;
-short   port;
+u_short port;
 int	trace;
 int	verbose;
 int	connected;
@@ -182,10 +182,37 @@ int
 main(int argc, char *argv[])
 {
 	struct sockaddr_in s_in;
+	int c;
+	int pargc;
+	char **pargv;
+
+	while ((c = getopt(argc, argv, "Vv")) != -1) {
+	  switch (c) {
+	  case 'v':
+	    verbose = 1;
+	    break;
+	  case 'V':
+	    /* Print version to stdout and exit */
+	    printf("%s\n", VERSION);
+	    exit(0);
+	  default:
+	    fprintf(stderr, "Usage: %s [-v] [host]\n", argv[0]);
+	    exit(EX_USAGE);
+	  }
+	}
+
+	pargc = argc - (optind-1);
+	pargv = argv + (optind-1);
 
 	sp = getservbyname("tftp", "udp");
 	if (sp == 0) {
-		fprintf(stderr, "tftp: udp/tftp: unknown service\n");
+		/* Use canned values */
+		fprintf(stderr, "tftp: tftp/udp: unknown service, faking it...\n");
+		sp = xmalloc(sizeof(struct servent));
+		sp->s_name    = (char *)"tftp";
+		sp->s_aliases = NULL;
+		sp->s_port    = htons(IPPORT_TFTP);
+		sp->s_proto   = (char *)"udp";
 		exit(1);
 	}
 	f = socket(AF_INET, SOCK_DGRAM, 0);
@@ -201,10 +228,10 @@ main(int argc, char *argv[])
 	}
 	strcpy(mode, "netascii");
 	bsd_signal(SIGINT, intr);
-	if (argc > 1) {
+	if (pargc > 1) {
 		if (sigsetjmp(toplevel,1) != 0)
 			exit(0);
-		setpeer(argc, argv);
+		setpeer(pargc, pargv);
 	}
 	if (sigsetjmp(toplevel,1) != 0)
 		(void)putchar('\n');
@@ -269,29 +296,40 @@ setpeer(int argc, char *argv[])
 		printf("usage: %s host-name [port]\n", argv[0]);
 		return;
 	}
-	if (inet_aton(argv[1], &peeraddr.sin_addr) != 0) {
-		peeraddr.sin_family = AF_INET;
-		hostname = xstrdup(argv[1]);
-	} else {
-		host = gethostbyname(argv[1]);
-		if (host == 0) {
-			connected = 0;
-			printf("%s: unknown host\n", argv[1]);
-			return;
-		}
-		peeraddr.sin_family = host->h_addrtype;
-		bcopy(host->h_addr, &peeraddr.sin_addr, host->h_length);
-		hostname = xstrdup(host->h_name);
+
+	host = gethostbyname(argv[1]);
+	if (host == 0) {
+		connected = 0;
+		printf("%s: unknown host\n", argv[1]);
+		return;
 	}
+	peeraddr.sin_family = host->h_addrtype;
+	bcopy(host->h_addr, &peeraddr.sin_addr, host->h_length);
+	hostname = xstrdup(host->h_name);
+
 	port = sp->s_port;
 	if (argc == 3) {
-		port = atoi(argv[2]);
-		if (port < 0) {
-			printf("%s: bad port number\n", argv[2]);
-			connected = 0;
-			return;
+		struct servent *usp;
+		usp = getservbyname(argv[2], "udp");
+		if ( usp ) {
+			port = usp->s_port;
+		} else {
+			unsigned long myport;
+			char *ep;
+			myport = strtoul(argv[2], &ep, 10);
+			if (*ep || myport > 65535UL) {
+				printf("%s: bad port number\n", argv[2]);
+				connected = 0;
+				return;
+			}
+			port = htons((u_short)myport);
 		}
-		port = htons(port);
+	}
+
+	if (verbose) {
+		printf("Connected to %s (%s), port %u\n",
+		       hostname, inet_ntoa(peeraddr.sin_addr),
+		       (unsigned int)ntohs(port));
 	}
 	connected = 1;
 }
@@ -739,6 +777,8 @@ void
 help(int argc, char *argv[])
 {
 	struct cmd *c;
+
+	printf("%s\n", VERSION);
 
 	if (argc == 1) {
 		printf("Commands may be abbreviated.  Commands are:\n\n");

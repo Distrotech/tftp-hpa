@@ -3,10 +3,10 @@
 
 SUB =   lib tftp tftpd
 
-%.build:
+%.build: MCONFIG acconfig.h version.h
 	$(MAKE) -C $(patsubst %.build, %, $@)
 
-%.install:
+%.install: MCONFIG acconfig.h version.h
 	$(MAKE) -C $(patsubst %.install, %, $@) install
 
 %.clean:
@@ -17,9 +17,13 @@ SUB =   lib tftp tftpd
 
 all:      MCONFIG $(patsubst %, %.build, $(SUB))
 
+tftp.build: lib.build
+tftpd.build: lib.build
+
 install:  MCONFIG $(patsubst %, %.install, $(SUB))
 
 clean:    $(patsubst %, %.clean, $(SUB))
+	rm -f version.h
 
 distclean: $(patsubst %, %.distclean, $(SUB))
 	rm -f MCONFIG config.status config.log acconfig.h *~ \#*
@@ -51,3 +55,6 @@ acconfig.h.in: configure.in aclocal.m4
 configure: configure.in aclocal.m4
 	autoconf
 	rm -f MCONFIG config.cache config.log acconfig.h
+
+version.h: version
+	echo \#define VERSION \"tftp-hpa `cat version`\" > version.h

@@ -1,5 +1,20 @@
 $Id$
 
+Changes in 0.26:
+	Fix the configuration process so tftpd doesn't end up
+	depending on readline, which apparently could happen on some
+	platforms before.
+
+	Make parallel builds (make -j) work correctly.
+
+	Improve parsing of the "connect" command in the tftp client.
+
+	Add a -V option to both tftp and tftpd to print the version
+	number on stdout and immediately exit.
+
+	Add a -v option to tftp to start out in verbose mode.
+	
+
 Changes in 0.25:
 	Fixed Sorcerer's Apprentice bug in both the client and the
 	server.  These bugs were inherited from the original BSD code.

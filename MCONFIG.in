@@ -43,8 +43,9 @@ CFLAGS  = @CFLAGS@ -I$(SRCROOT)
 # Link flags
 LDFLAGS = @LDFLAGS@
 
-# Libraries
-LIBS    = @LIBS@
+# Libraries (client and server)
+TFTP_LIBS  = @TFTP_LIBS@
+TFTPD_LIBS = @TFTPD_LIBS@
 
 # Additional library we need to build
 LIBOBJS	= @LIBOBJS@

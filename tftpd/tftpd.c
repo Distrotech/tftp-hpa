@@ -98,13 +98,6 @@ struct request_info wrap_request;
 #define TRIES   4		/* Number of attempts to send each packet */
 #define TIMEOUT_LIMIT (TRIES*(TRIES+1)/2)
 
-#ifndef OACK
-#define OACK	6
-#endif
-#ifndef EOPTNEG
-#define EOPTNEG	8
-#endif
-
 char   *__progname;
 int	peer;
 int	timeout    = TIMEOUT;
@@ -221,7 +214,7 @@ main(int argc, char **argv)
   
   openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
   
-  while ((c = getopt(argc, argv, "csvla:u:r:t:m:")) != -1)
+  while ((c = getopt(argc, argv, "csvVla:u:r:t:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
@@ -264,6 +257,11 @@ main(int argc, char **argv)
 #endif
     case 'v':
       verbosity++;
+      break;
+    case 'V':
+      /* Print version to stdout and exit */
+      printf("%s\n", VERSION);
+      exit(0);
       break;
     default:
       usage();

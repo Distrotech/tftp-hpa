@@ -74,13 +74,6 @@ extern  int     verbose;
 extern  int     rexmtval;
 extern  int     maxtimeout;
 
-#ifndef EOPTNEG
-#define EOPTNEG	8
-#endif
-#ifndef OACK
-#define OACK	6
-#endif
-
 #define PKTSIZE    SEGSIZE+4
 char    ackbuf[PKTSIZE];
 int	timeout;
