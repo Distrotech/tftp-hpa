@@ -19,6 +19,10 @@ Changes in 0.26:
 	Enable the (limited) use of readline on systems which don't
 	have readline/history.h.
 
+	Support compiling under MacOS X with filk (see
+	<http://filk.sourceforge.net/>).  Thanks for Justin Hallett
+	and Eric Eslinger for their help in getting this working!
+
 
 Changes in 0.25:
 	Fixed Sorcerer's Apprentice bug in both the client and the
