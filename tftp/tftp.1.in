@@ -37,8 +37,9 @@
 \- IPv4 Trivial File Transfer Protocol client
 .SH SYNOPSIS
 .B tftp
-.RI [ options... ]
-.RI [ host ]
+[ \fIoptions...\fP ]
+[\fIhost\fP [\fIport\fP]]
+[\fB\-c\fP \fIcommand\fP]
 .br
 .SH DESCRIPTION
 .B tftp
@@ -57,6 +58,7 @@ command below.)
 .TP
 \fB\-c\fP \fIcommand\fP
 Execute \fIcommand\fP as if it had been entered on the tftp prompt.
+Must be specified last on the command line.
 .TP
 \fB\-m\fP \fImode\fP
 Set the default transfer mode to \fImode\fP.  This is usually used with \-c.

@@ -421,14 +421,14 @@ static void
 printstats(const char *direction, unsigned long amount)
 {
 	double delta;
-			/* compute delta in 1/10's second units */
-	delta = ((tstop.tv_sec*10.)+(tstop.tv_usec/100000)) -
-		((tstart.tv_sec*10.)+(tstart.tv_usec/100000));
-	delta = delta/10.;      /* back to seconds */
-	printf("%s %lu bytes in %.1f seconds", direction, amount, delta);
-	if (verbose)
-		printf(" [%.0f bits/sec]", (amount*8.)/delta);
-	putchar('\n');
+
+	delta = (tstop.tv_sec+(tstop.tv_usec/100000.0)) -
+		(tstart.tv_sec+(tstart.tv_usec/100000.0));
+	if (verbose) {
+	  printf("%s %lu bytes in %.1f seconds", direction, amount, delta);
+	  printf(" [%.0f bit/s]", (amount*8.)/delta);
+	  putchar('\n');
+	}
 }
 
 static void

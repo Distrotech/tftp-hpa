@@ -183,54 +183,79 @@ char	*tail(char *);
 
 char *xstrdup(const char *);
 
+const char *program;
+
+static inline void usage(int errcode)
+{
+  fprintf(stderr, "Usage: %s [-v][-m mode] [host [port]] [-c command]\n", program);
+  exit(errcode);
+}
+
 int
 main(int argc, char *argv[])
 {
   struct sockaddr_in s_in;
-  int o;
-  int pargc;
-  int iscmd = 0;
+  int arg;
+  static int pargc, peerargc;
+  static int iscmd = 0;
   char **pargv;
+  const char *optx;
+  char *peerargv[3];
+
+  program = argv[0];
 
   mode = MODE_DEFAULT;
-  
-  while ((o = getopt(argc, argv, "chm:Vv")) != -1) {
-    switch (o) {
-    case 'v':
-      verbose = 1;
-      break;
-    case 'V':
-      /* Print version and configuration to stdout and exit */
-      printf("%s\n", TFTP_CONFIG_STR);
-      exit(0);
-    case 'm':
-      {
-	const struct modes *p;
 
-	for ( p = modes ; p->m_name ; p++ ) {
-	  if (!strcmp(optarg, p->m_name))
-	    break;
-	}
-	if (p->m_name) {
-	  settftpmode(p);
-	} else {
-	  fprintf(stderr, "%s: invalid mode: %s\n", argv[0], optarg);
-	  exit(EX_USAGE);
+  peerargv[0] = argv[0];
+  peerargc = 1;
+
+  for ( arg = 1 ; !iscmd && arg < argc ; arg++ ) {
+    if ( argv[arg][0] == '-' ) {
+      for ( optx = &argv[arg][1] ; *optx ; optx++ ) {
+	switch ( *optx ) {
+	case 'v':
+	  verbose = 1;
+	  break;
+	case 'V':
+	  /* Print version and configuration to stdout and exit */
+	  printf("%s\n", TFTP_CONFIG_STR);
+	  exit(0);
+	case 'm':
+	  if ( ++arg >= argc )
+	    usage(EX_USAGE);
+	  {
+	    const struct modes *p;
+	    
+	    for ( p = modes ; p->m_name ; p++ ) {
+	      if (!strcmp(argv[arg], p->m_name))
+		break;
+	    }
+	    if (p->m_name) {
+	      settftpmode(p);
+	    } else {
+	      fprintf(stderr, "%s: invalid mode: %s\n", argv[0], argv[arg]);
+	      exit(EX_USAGE);
+	    }
+	  }
+	  break;
+	case 'c':
+	  iscmd = 1;
+	  break;
+	case 'h':
+	default:
+	  usage(*optx == 'h' ? 0 : EX_USAGE);
 	}
       }
-      break;
-    case 'c':
-      iscmd = 1;
-      break;
-    case 'h':
-    default:
-      fprintf(stderr, "Usage: %s [-v][-m mode] [-c command|host]\n", argv[0]);
-      exit(o == 'h' ? 0 : EX_USAGE);
+    } else {
+      if ( peerargc >= 3 )
+	usage(EX_USAGE);
+
+      peerargv[peerargc++] = argv[arg];
     }
   }
   
-  pargc = argc - (optind-1);
-  pargv = argv + (optind-1);
+  pargv = argv + arg;
+  pargc = argc - arg;
   
   sp = getservbyname("tftp", "udp");
   if (sp == 0) {
@@ -256,27 +281,28 @@ main(int argc, char *argv[])
     exit(EX_OSERR);
   }
   bsd_signal(SIGINT, intr);
-  if (pargc > 1) {
-    if ( iscmd ) {
-      /* -c specified; execute command and exit */
-      struct cmd *c;
 
-      if (sigsetjmp(toplevel,1) != 0)
-	exit(EX_UNAVAILABLE);
+  if ( peerargc ) {
+    /* Set peer */
+    if (sigsetjmp(toplevel,1) != 0)
+      exit(EX_NOHOST);
+    setpeer(peerargc, peerargv);
+  }
 
-      c = getcmd(pargv[1]);
-      if ( c == (struct cmd *)-1 || c == (struct cmd *)0 ) {
-	fprintf(stderr, "%s: invalid command: %s\n", argv[0], pargv[1]);
-	exit(EX_USAGE);
-      }	
-      (*c->handler)(pargc-1, pargv+1);
-      exit(0);
-    } else {
-      /* No -c */
-      if (sigsetjmp(toplevel,1) != 0)
-	exit(0);
-      setpeer(pargc, pargv);
-    }
+  if ( iscmd && pargc ) {
+    /* -c specified; execute command and exit */
+    struct cmd *c;
+    
+    if (sigsetjmp(toplevel,1) != 0)
+      exit(EX_UNAVAILABLE);
+    
+    c = getcmd(pargv[0]);
+    if ( c == (struct cmd *)-1 || c == (struct cmd *)0 ) {
+      fprintf(stderr, "%s: invalid command: %s\n", argv[0], pargv[1]);
+      exit(EX_USAGE);
+    }	
+    (*c->handler)(pargc, pargv);
+    exit(0);
   }
   if (sigsetjmp(toplevel,1) != 0)
     (void)putchar('\n');
