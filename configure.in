@@ -11,7 +11,15 @@ AC_C_INLINE
 AC_CHECK_FUNCS(recvmsg)
 PA_MSGHDR_MSG_CONTROL
 
-PA_HAVE_TCPWRAPPERS
+PA_WITH_BOOL(tcpwrappers, 1,
+[ --without-tcpwrappers	Disable tcpwrapper permissions checking],
+[
+	AC_SEARCH_LIBS(yp_get_default_domain, [nsl resolv])
+	PA_HAVE_TCPWRAPPERS
+],
+[
+	:
+])
 
 PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-W)

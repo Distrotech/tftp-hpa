@@ -71,9 +71,7 @@ int allow_severity = 0;
 int deny_severity = 0;
 ],
 [
-	struct request_info ri;
-
-	request_init(&ri, 0);
+	hosts_ctl("sample_daemon", STRING_UNKNOWN, STRING_UNKNOWN, STRING_UNKNOWN);
 ],
 [
 	AC_DEFINE(HAVE_TCPWRAPPERS)
@@ -83,3 +81,23 @@ int deny_severity = 0;
 	AC_MSG_RESULT([no])
 ])])
 
+dnl ------------------------------------------------------------------------
+dnl  PA_WITH_BOOL
+dnl
+dnl  PA_WITH_BOOL(option, default, help, enable, disable)
+dnl
+dnl  Provides a more convenient way to specify --with-option and
+dnl  --without-option, with a default.  default should be either 0 or 1.
+dnl ------------------------------------------------------------------------
+AC_DEFUN(PA_WITH_BOOL,
+[AC_ARG_WITH([$1], [$3],
+if test ["$withval"] != no; then
+[$4]
+else
+[$5]
+fi,
+if test [$2] -ne 0; then
+[$4]
+else
+[$5]
+fi)])
