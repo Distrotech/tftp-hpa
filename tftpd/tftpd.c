@@ -130,7 +130,9 @@ int	cancreate = 0;
 int verbosity = 0;
 
 struct formats;
+#ifdef WITH_REGEX
 static struct rule *rewrite_rules = NULL;
+#endif
 
 int tftp(struct tftphdr *, int);
 void nak(int);
@@ -209,8 +211,10 @@ main(int argc, char **argv)
   int setrv;
   int timeout = 900;		/* Default timeout */
   char *user = "nobody";	/* Default user */
+#ifdef WITH_REGEX
   char *rewrite_file = NULL;
-  
+#endif
+
   __progname = basename(argv[0]);
   
   openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
@@ -791,6 +795,8 @@ rewrite_access(char *filename, int mode)
     char *newname = rewrite_string(filename, rewrite_rules, mode != RRQ);
     filename = newname;
   }
+#else
+  (void)mode;			/* Suppress unused warning */
 #endif
   return filename;
 }
