@@ -1,5 +1,10 @@
-This is tftp-hpa-0.16; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.17; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
+
+Changes in 0.17:
+
+	Add support for tcpwrapper checking (/etc/hosts.allow;
+	/etc/hosts.deny) in tftpd.
 
 Changes in 0.16:
 
