@@ -194,7 +194,6 @@ Set the time before the server retransmits a packet, in seconds.
 .TP
 \fButimeout\fP (nonstandard)
 Set the time before the server retransmits a packet, in microseconds.
-and
 .PP
 The
 .B \-r
