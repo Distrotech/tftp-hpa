@@ -1,5 +1,10 @@
 $Id$
 
+Changes in 0.23:
+	Correct memory overwrite bug in the tftp client when compiled
+	with readline.
+
+
 Changes in 0.22:
 	Even more portability improvements: FreeBSD and
 	Tru64/Digital Unix.
