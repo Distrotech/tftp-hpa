@@ -118,7 +118,7 @@ support, although I made a fair amount of mostly stylistic changes to
 their code.
 
 Adding the -r option (disable a specific option), the "timeout"
-option, and converting to using autoconf for setup was my own code, as
-are any bugs introduced in this merge, and any features added to the
-Changes list above.
+option, converting to using autoconf for setup, and any additions
+listed in the Changes list above, has all been my own code, as are any
+bugs introduced in the merge.
 

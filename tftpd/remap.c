@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <syslog.h>
 #include <regex.h>
+#include <syslog.h>
 
 #include "tftpd.h"
 #include "remap.h"
@@ -249,6 +250,10 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
   int was_match = 0;
   int deadman = DEADMAN_MAX_STEPS;
 
+  if ( verbosity >= 3 ) {
+    syslog(LOG_INFO, "remap: input: %s", current);
+  }
+
   for ( ruleptr = rules ; ruleptr ; ruleptr = ruleptr->next ) {
     if ( ((ruleptr->rule_flags & RULE_GETONLY) && is_put) ||
 	 ((ruleptr->rule_flags & RULE_PUTONLY) && !is_put) ) {
@@ -256,6 +261,8 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
     }
 
     if ( ! deadman-- ) {
+      syslog(LOG_WARNING, "remap: Breaking loop, input = %s, last = %s",
+	     input, current);
       free(current);
       return NULL;		/* Did not terminate! */
     }
@@ -266,6 +273,10 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 	was_match = 1;
 	
 	if ( ruleptr->rule_flags & RULE_ABORT ) {
+	  if ( verbosity >= 3 ) {
+	    syslog(LOG_INFO, "remap: rule %d: abort",
+		   ruleptr->nrule, current);
+	  }
 	  free(current);
 	  return(NULL);
 	}
@@ -276,6 +287,10 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
 	  genmatchstring(newstr, ruleptr->pattern, current, pmatch);
 	  free(current);
 	  current = newstr;
+	  if ( verbosity >= 3 ) {
+	    syslog(LOG_INFO, "remap: rule %d: rewrite: %s",
+		   ruleptr->nrule, current);
+	  }
 	}
       } else {
 	break;			/* No match, terminate unconditionally */
@@ -287,12 +302,21 @@ char *rewrite_string(const char *input, const struct rule *rules, int is_put)
       was_match = 0;
 
       if ( ruleptr->rule_flags & RULE_EXIT ) {
-	break;			/* Exit here, we're done */
+	if ( verbosity >= 3 ) {
+	  syslog(LOG_INFO, "remap: rule %d: exit", ruleptr->nrule);
+	}
+	return current;		/* Exit here, we're done */
       } else if ( ruleptr->rule_flags & RULE_RESTART ) {
 	ruleptr = rules;	/* Start from the top */
+	if ( verbosity >= 3 ) {
+	  syslog(LOG_INFO, "remap: rule %d: restart", ruleptr->nrule);
+	}
       }
     }
   }
 
+  if ( verbosity >= 3 ) {
+    syslog(LOG_INFO, "remap: done");
+  }
   return current;
 }

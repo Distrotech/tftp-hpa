@@ -3,6 +3,7 @@ dnl autoconf input file to generate MCONFIG
 dnl
 
 AC_INIT(MCONFIG.in)
+AC_PREFIX_DEFAULT(/usr)
 
 AC_PROG_CC
 AC_C_CONST
