@@ -172,13 +172,17 @@ AH_TEMPLATE([WITH_READLINE],
 PA_WITH_BOOL(readline, 1,
 [  --without-readline      disable the use of readline command-line editing],
 [
-	USE_READLINE=true
 	AC_CHECK_HEADER(readline/readline.h,
 	[
+		dnl readline may need libtermcap or somesuch...
+		AC_SEARCH_LIBS(tputs, [termcap terminfo])
+
 		AC_SEARCH_LIBS(readline, [readline history],
 		[
 			AC_DEFINE(WITH_READLINE)
-		])
+		],
+		[],
+		[-ltermcap])
 		AC_CHECK_HEADERS(readline/history.h)
 	])
 ],:)
@@ -194,5 +198,5 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_INSTALL
 
-AC_CONFIG_HEADER(acconfig.h)
+AC_CONFIG_HEADERS(acconfig.h)
 AC_OUTPUT(MCONFIG)
