@@ -21,9 +21,10 @@
 /* Must be included before we include any system headers! */
 #include "acconfig.h"
 
-/* This is necessary on Solaris */
+/* This is necessary on Solaris with gcc */
 #define _XPG4_2
 #define _XOPEN_SOURCE
+#define __EXTENSIONS__
 
 /* Standard includes */
 
@@ -87,7 +88,6 @@ typedef unsigned long long uintmax_t;
 #define PRIxMAX "Lx"
 #define INTMAX_C(x)  (x##LL)
 #define UINTMAX_C(x) (x##ULL)
-#define strtoumax(p,e,b) strtoull(p,e,b)
 #else
 typedef long intmax_t;
 typedef unsigned long uintmax_t;
@@ -96,9 +96,39 @@ typedef unsigned long uintmax_t;
 #define PRIxMAX "lx"
 #define INTMAX_C(x)  (x##L)
 #define UINTMAX_C(x) (x##UL)
-#define strtoumax(p,e,b) strtoul(p,e,b)
 #endif
 #endif
+
+/* Even if intmax_t is defined, we may need this (Solaris 8 braindamage) */
+#ifndef HAVE_STRTOUMAX
+#if defined(HAVE_LONG_LONG) && defined(HAVE_STRTOULL)
+#define strtoumax(p,e,b) ((uintmax_t)strtoull(p,e,b))
+#else
+#define strtoumax(p,e,b) ((uintmax_t)strtoul(p,e,b))
+#endif
+#endif
+
+/* A lot of this is old BSD code.  Some newer systems don't approve. */
+
+/* The type used by htons(), ntohs() */
+#ifndef HAVE_U_SHORT
+#ifdef HAVE_UINT16_T
+typedef uint16_t u_short;
+#else
+typedef unsigned short u_short;
+#endif
+#endif
+
+/* The type used to htonl(), ntohl() */
+#ifndef HAVE_U_LONG
+#ifdef HAVE_UINT32_T
+typedef uint32_t u_long;
+#else
+typedef unsigned long u_long;
+#endif
+#endif
+
+/* sysexits.h */
 
 #ifdef HAVE_SYSEXITS_H
 #include <sysexits.h>
@@ -139,6 +169,7 @@ typedef unsigned long uintmax_t;
 #endif
 
 /* Sometimes IPPORT_TFTP isn't defined */
+
 #ifndef HAVE_IPPORT_TFTP_DEFINITION
 #ifndef IPPORT_TFTP
 #define IPPORT_TFTP 69
