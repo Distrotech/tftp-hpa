@@ -21,6 +21,9 @@
 #include "config.h"		/* Must be included first! */
 #include "recvfrom.h"
 #include "tftpsubs.h"
+#ifdef HAVE_MACHINE_PARAM_H
+#include <machine/param.h>	/* Needed on some versions of FreeBSD */
+#endif
 
 #if defined(HAVE_RECVMSG) && defined(HAVE_MSGHDR_MSG_CONTROL)
 

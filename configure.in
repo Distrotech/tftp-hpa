@@ -46,6 +46,8 @@ AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/filio.h)
 AC_CHECK_HEADERS(sys/stat.h)
 AC_CHECK_HEADERS(sys/types.h)
+dnl This is needed on some versions of FreeBSD...
+AC_CHECK_HEADERS(machine/param.h)
 
 AC_CHECK_TYPES(intmax_t)
 AC_CHECK_TYPES(long long)

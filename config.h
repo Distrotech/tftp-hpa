@@ -26,6 +26,10 @@
 #define _XOPEN_SOURCE
 #define __EXTENSIONS__
 
+/* This is necessary on glibc systems */
+#define _BSD_SOURCE
+#define _ISO9X_SOURCE
+
 /* Standard includes */
 
 #include <stdio.h>
