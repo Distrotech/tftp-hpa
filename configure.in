@@ -9,6 +9,19 @@ AC_PROG_CC
 AC_C_CONST
 AC_C_INLINE
 
+PA_ADD_CFLAGS(-Wall)
+PA_ADD_CFLAGS(-W)
+PA_ADD_CFLAGS(-Wpointer-arith)
+PA_ADD_CFLAGS(-Wbad-function-cast)
+PA_ADD_CFLAGS(-Wcast-equal)
+PA_ADD_CFLAGS(-Wstrict-prototypes)
+PA_ADD_CFLAGS(-Wmissing-prototypes)
+PA_ADD_CFLAGS(-Wmissing-declarations)
+PA_ADD_CFLAGS(-Wnested-externs)
+PA_ADD_CFLAGS(-Winline)
+PA_ADD_CFLAGS(-Wcast-align)
+PA_ADD_CFLAGS(-pipe)
+
 AC_CHECK_HEADERS(sysexits.h)
 AC_CHECK_HEADERS(strings.h)
 AC_CHECK_HEADERS(libgen.h)
@@ -25,6 +38,8 @@ AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setregid)
 PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
+
+PA_HEADER_DEFINES([#include <netinet/in.h>], int, IPPORT_TFTP)
 
 PA_WITH_BOOL(tcpwrappers, 1,
 [ --without-tcpwrappers	Disable tcpwrapper permissions checking],
@@ -45,19 +60,6 @@ PA_WITH_BOOL(remap, 1,
 		])
 	])
 ],:)
-
-PA_ADD_CFLAGS(-Wall)
-PA_ADD_CFLAGS(-W)
-PA_ADD_CFLAGS(-Wpointer-arith)
-PA_ADD_CFLAGS(-Wbad-function-cast)
-PA_ADD_CFLAGS(-Wcast-equal)
-PA_ADD_CFLAGS(-Wstrict-prototypes)
-PA_ADD_CFLAGS(-Wmissing-prototypes)
-PA_ADD_CFLAGS(-Wmissing-declarations)
-PA_ADD_CFLAGS(-Wnested-externs)
-PA_ADD_CFLAGS(-Winline)
-PA_ADD_CFLAGS(-Wcast-align)
-PA_ADD_CFLAGS(-pipe)
 
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 

@@ -134,3 +134,28 @@ if test [$2] -ne 0; then
 else
 [$5]
 fi)])
+
+dnl --------------------------------------------------------------------------
+dnl  PA_HEADER_DEFINES
+dnl
+dnl  PA_HEADER_DEFINES(headers, type, value)
+dnl --------------------------------------------------------------------------
+AC_DEFUN(PA_HEADER_DEFINES,
+[AC_MSG_CHECKING([for definition of $3])
+ AC_TRY_COMPILE([$1],
+[
+int main()
+{
+	$2 dummy = $3;
+	return 0;
+}
+],
+[
+ pa_header_define=`echo HAVE_$3_DEFINITION | tr '[a-z]' '[A-Z]'`
+ AC_DEFINE_UNQUOTED($pa_header_define)
+ AC_MSG_RESULT(yes)
+],
+[
+ AC_MSG_RESULT(no)
+])])
+

@@ -51,6 +51,10 @@
 #include <setjmp.h>
 #include "../config.h"
 
+#ifndef HAVE_IPPORT_TFTP_DEFINITION
+#define IPPORT_TFTP	69
+#endif
+
 struct tftphdr;
 
 struct tftphdr *r_init(void);
