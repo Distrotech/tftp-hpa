@@ -65,7 +65,7 @@ int	timeout;
 sigjmp_buf	toplevel;
 sigjmp_buf	timeoutbuf;
 
-static void nak(int);
+static void nak(int, const char *);
 static int makerequest(int, const char *, struct tftphdr *, const char *);
 static void printstats(const char *, unsigned long);
 static void startclock(void);
@@ -107,7 +107,7 @@ tftp_sendfile(int fd, const char *name, const char *mode)
 		/*	size = read(fd, dp->th_data, SEGSIZE);	 */
 			size = readit(file, &dp, convert);
 			if (size < 0) {
-				nak(errno + 100);
+				nak(errno + 100, NULL);
 				break;
 			}
 			dp->th_opcode = htons((u_short)DATA);
@@ -274,7 +274,7 @@ send_ack:
 	/*	size = write(fd, dp->th_data, n - 4); */
 		size = writeit(file, &dp, n - 4, convert);
 		if (size < 0) {
-			nak(errno + 100);
+			nak(errno + 100, NULL);
 			break;
 		}
 		amount += size;
@@ -331,29 +331,37 @@ struct errmsg {
  * offset by 100.
  */
 static void
-nak(int error)
+nak(int error, const char *msg)
 {
-	struct errmsg *pe;
-	struct tftphdr *tp;
-	int length;
-
-	tp = (struct tftphdr *)ackbuf;
-	tp->th_opcode = htons((u_short)ERROR);
-	tp->th_code = htons((u_short)error);
-	for (pe = errmsgs; pe->e_code >= 0; pe++)
-		if (pe->e_code == error)
-			break;
-	if (pe->e_code < 0) {
-		pe->e_msg = strerror(error - 100);
-		tp->th_code = EUNDEF;
+  struct errmsg *pe;
+  struct tftphdr *tp;
+  int length;
+  
+  tp = (struct tftphdr *)ackbuf;
+  tp->th_opcode = htons((u_short)ERROR);
+  tp->th_code = htons((u_short)error);
+  if ( !msg ) {
+    if ( error >= 100 ) {
+      msg = strerror(error - 100);
+      tp->th_code = EUNDEF;
+    } else {
+      for (pe = errmsgs; pe->e_code >= 0; pe++) {
+	if (pe->e_code == error) {
+	  msg = pe->e_msg;
+	  break;
 	}
-	strcpy(tp->th_msg, pe->e_msg);
-	length = strlen(pe->e_msg) + 4;
-	if (trace)
-		tpacket("sent", tp, length);
-	if (sendto(f, ackbuf, length, 0, (struct sockaddr *)&peeraddr,
-	    sizeof(peeraddr)) != length)
-		perror("nak");
+      }
+    }
+  }
+  length = strlen(msg)+1;
+  memcpy(tp->th_msg, msg, length);
+  length += 4;			/* Add space for header */
+
+  if (trace)
+    tpacket("sent", tp, length);
+  if (sendto(f, ackbuf, length, 0, (struct sockaddr *)&peeraddr,
+	     sizeof(peeraddr)) != length)
+    perror("nak");
 }
 
 static void

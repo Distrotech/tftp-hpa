@@ -114,7 +114,7 @@ static struct rule *rewrite_rules = NULL;
 #endif
 
 int tftp(struct tftphdr *, int);
-void nak(int);
+static void nak(int, const char *);
 void timer(int);
 void justquit(int);
 void do_opt(char *, char *, char **);
@@ -683,14 +683,14 @@ main(int argc, char **argv)
   exit(0);
 }
 
-char   *rewrite_access(char *, int);
+char   *rewrite_access(char *, int, const char **);
 int	validate_access(char *, int, struct formats *);
 void	tftp_sendfile(struct formats *, struct tftphdr *, int);
 void	tftp_recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
   const char *f_mode;
-  char	*(*f_rewrite)(char *, int);
+  char	*(*f_rewrite)(char *, int, const char **);
   int	(*f_validate)(char *, int, struct formats *);
   void	(*f_send)(struct formats *, struct tftphdr *, int);
   void	(*f_recv)(struct formats *, struct tftphdr *, int);
@@ -712,6 +712,7 @@ tftp(struct tftphdr *tp, int size)
   struct formats *pf = NULL;
   char *origfilename;
   char *filename, *mode = NULL;
+  const char *maperrmsg;
   
   char *val = NULL, *opt = NULL;
   char *ap = ackbuf + 2;
@@ -727,7 +728,7 @@ tftp(struct tftphdr *tp, int size)
     } while (cp < buf + size && *cp);
     
     if ( *cp ) {
-      nak(EBADOP);	/* Corrupt packet - no final NULL */
+      nak(EBADOP, "Request not null-terminated");
       exit(0);
     }
     
@@ -742,11 +743,12 @@ tftp(struct tftphdr *tp, int size)
 	  break;
       }
       if (!pf->f_mode) {
-	nak(EBADOP);
+	nak(EBADOP, "Unknown mode");
 	exit(0);
       }
-      if ( !(filename = (*pf->f_rewrite)(origfilename, tp->th_opcode)) ) {
-	nak(EACCESS); /* File denied by mapping rule */
+      if ( !(filename =
+	     (*pf->f_rewrite)(origfilename, tp->th_opcode, &maperrmsg)) ) {
+	nak(EACCESS, maperrmsg); /* File denied by mapping rule */
 	exit(0);
       }
       if ( verbosity >= 1 ) {
@@ -761,7 +763,7 @@ tftp(struct tftphdr *tp, int size)
       }		   
       ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
       if (ecode) {
-	nak(ecode);
+	nak(ecode, NULL);
 	exit(0);
       }
       opt = ++cp;
@@ -774,7 +776,7 @@ tftp(struct tftphdr *tp, int size)
   }
   
   if (!pf) {
-    nak(EBADOP);
+    nak(EBADOP, "Missing mode");
     exit(0);
   }
   
@@ -946,13 +948,13 @@ do_opt(char *opt, char *val, char **ap)
       if (po->o_fnc(val, &ret)) {
 	if (*ap + strlen(opt) + strlen(ret) + 2 >=
 	    ackbuf + sizeof(ackbuf)) {
-	  nak(ENOSPACE);	/* EOPTNEG? */
+	  nak(EOPTNEG, "Insufficient space for options");
 	  exit(0);
 	}
 	*ap = strrchr(strcpy(strrchr(strcpy(*ap, opt),'\0') + 1,
 			     ret),'\0') + 1;
       } else {
-	nak(EOPTNEG);
+	nak(EOPTNEG, "Unsupported option(s) requested");
 	exit(0);
       }
       break;
@@ -999,11 +1001,11 @@ rewrite_macros(char macro, char *output)
  * Modify the filename, if applicable.  If it returns NULL, deny the access.
  */
 char *
-rewrite_access(char *filename, int mode)
+rewrite_access(char *filename, int mode, const char **msg)
 {
   if ( rewrite_rules ) {
-    char *newname = rewrite_string(filename, rewrite_rules,
-				   mode != RRQ, rewrite_macros);
+    char *newname = rewrite_string(filename, rewrite_rules, mode != RRQ,
+				   rewrite_macros, msg);
     filename = newname;
   }
   return filename;
@@ -1011,9 +1013,10 @@ rewrite_access(char *filename, int mode)
 
 #else
 char *
-rewrite_access(char *filename, int mode)
+rewrite_access(char *filename, int mode, const char **msg)
 {
   (void)mode;			/* Avoid warning */
+  (void)msg;
   return filename;
 }
 #endif
@@ -1172,7 +1175,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   do {
     size = readit(file, &dp, pf->f_convert);
     if (size < 0) {
-      nak(errno + 100);
+      nak(errno + 100, NULL);
       goto abort;
     }
     dp->th_opcode = htons((u_short)DATA);
@@ -1283,8 +1286,8 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     /*  size = write(file, dp->th_data, n - 4); */
     size = writeit(file, &dp, n - 4, pf->f_convert);
     if (size != (n-4)) {			/* ahem */
-      if (size < 0) nak(errno + 100);
-      else nak(ENOSPACE);
+      if (size < 0) nak(errno + 100, NULL);
+      else nak(ENOSPACE, NULL);
       goto abort;
     }
   } while (size == segsize);
@@ -1308,21 +1311,19 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   return;
 }
 
-struct errmsg {
-  int	e_code;
-  const char *e_msg;
-} errmsgs[] = {
-  { EUNDEF,	"Undefined error code" },
-  { ENOTFOUND,	"File not found" },
-  { EACCESS,	"Access violation" },
-  { ENOSPACE,	"Disk full or allocation exceeded" },
-  { EBADOP,	"Illegal TFTP operation" },
-  { EBADID,	"Unknown transfer ID" },
-  { EEXISTS,	"File already exists" },
-  { ENOUSER,	"No such user" },
-  { EOPTNEG,	"Failure to negotiate RFC2347 options" },
-  { -1,		0 }
+static const char * const errmsgs[] =
+{
+  "Undefined error code", 			/* 0 - EUNDEF */
+  "File not found",				/* 1 - ENOTFOUND */
+  "Access denied",				/* 2 - EACCESS */
+  "Disk full or allocation exceeded", 		/* 3 - ENOSPACE */
+  "Illegal TFTP operation",			/* 4 - EBADOP */
+  "Unknown transfer ID",			/* 5 - EBADID */
+  "File already exists",			/* 6 - EEXISTS */
+  "No such user",				/* 7 - ENOUSER */
+  "Failure to negotiate RFC2347 options" 	/* 8 - EOPTNEG */
 };
+#define ERR_CNT (sizeof(errmsgs)/sizeof(const char *))
 
 /*
  * Send a nak packet (error message).
@@ -1330,27 +1331,29 @@ struct errmsg {
  * standard TFTP codes, or a UNIX errno
  * offset by 100.
  */
-void
-nak(int error)
+static void
+nak(int error, const char *msg)
 {
   struct tftphdr *tp;
   int length;
-  struct errmsg *pe;
   
   tp = (struct tftphdr *)buf;
   tp->th_opcode = htons((u_short)ERROR);
   tp->th_code = htons((u_short)error);
-  for (pe = errmsgs; pe->e_code >= 0; pe++)
-    if (pe->e_code == error)
-      break;
-  if (pe->e_code < 0) {
-    pe->e_msg = strerror(error - 100);
-    tp->th_code = EUNDEF;   /* set 'undef' errorcode */
+  if ( !msg ) {
+    if ( error >= 100 ) {
+      /* This is a Unix errno+100 */
+      msg = strerror(error - 100);
+      tp->th_code = EUNDEF;
+    } else {
+      if ( (unsigned)error >= ERR_CNT )
+	tp->th_code = error = EUNDEF;
+      msg = errmsgs[error];
+    }
   }
-  strcpy(tp->th_msg, pe->e_msg);
-  length = strlen(pe->e_msg);
-  tp->th_msg[length] = '\0';
-  length += 5;
+  length = strlen(msg)+1;
+  memcpy(tp->th_msg, msg, length);
+  length += 4;			/* Add space for header */
   
   if ( verbosity >= 2 ) {
     syslog(LOG_INFO, "sending NAK (%d, %s) to %s",

@@ -1,7 +1,7 @@
 /* $Id$ */
 /* ----------------------------------------------------------------------- *
  *   
- *   Copyright 2001 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2002 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -104,8 +104,11 @@ static int genmatchstring(char *string, const char *pattern, const char *input,
   return len;
 }
 
-/* Extract a string terminated by non-escaped whitespace; ignore leading whitespace */
-/* Consider an unescaped # to be a comment marker, functionally \n */
+/*
+ * Extract a string terminated by non-escaped whitespace; ignoring
+ * leading whitespace.  Consider an unescaped # to be a comment marker,
+ * functionally \n.
+ */
 static int readescstring(char *buf, char **str)
 {
   char *p = *str;
@@ -268,7 +271,8 @@ void freerules(struct rule *r)
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *input, const struct rule *rules,
-		     int is_put, match_pattern_callback macrosub)
+		     int is_put, match_pattern_callback macrosub,
+		     const char **errmsg)
 {
   char *current = tfstrdup(input);
   char *newstr;
@@ -277,6 +281,9 @@ char *rewrite_string(const char *input, const struct rule *rules,
   int len;
   int was_match = 0;
   int deadman = DEADMAN_MAX_STEPS;
+
+  /* Default error */
+  *errmsg = "Remap table failure";
 
   if ( verbosity >= 3 ) {
     syslog(LOG_INFO, "remap: input: %s", current);
@@ -304,6 +311,17 @@ char *rewrite_string(const char *input, const struct rule *rules,
 	  if ( verbosity >= 3 ) {
 	    syslog(LOG_INFO, "remap: rule %d: abort: %s",
 		   ruleptr->nrule, current);
+	  }
+	  if ( ruleptr->pattern[0] ) {
+	    /* Custom error message */
+	    len = genmatchstring(NULL, ruleptr->pattern, current,
+				 pmatch, macrosub);
+	    newstr = tfmalloc(len+1);
+	    genmatchstring(newstr, ruleptr->pattern, current,
+			   pmatch, macrosub);
+	    *errmsg = newstr;
+	  } else {
+	    *errmsg = NULL;
 	  }
 	  free(current);
 	  return(NULL);

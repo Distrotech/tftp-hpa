@@ -1,5 +1,11 @@
 $Id$
 
+Changes in 0.32:
+	Better error messages; including the capability to send a
+	custom error message to the client when hitting an "a" rule in
+	a remapping table.
+
+
 Changes in 0.31:
 	Put in a check to make sure xinetd (in particular) doesn't
 	pass us an IPv6 socket.
