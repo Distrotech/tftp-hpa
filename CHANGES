@@ -1,5 +1,9 @@
 $Id$
 
+Changes in 0.28:
+	Fix stupid one-liner bug which broke standalone mode (-l).
+
+
 Changes in 0.27:
 	Make the Digital Unix 4.0F platform work again.  Thanks to
 	Alan Sundell for helping out with this platform!

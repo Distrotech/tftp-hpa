@@ -313,6 +313,7 @@ main(int argc, char **argv)
     fd = socket(PF_INET, SOCK_DGRAM, 0);
     
     memset(&bindaddr, 0, sizeof bindaddr);
+    bindaddr.sin_family = AF_INET;
     bindaddr.sin_addr.s_addr = INADDR_ANY;
     bindaddr.sin_port = htons(IPPORT_TFTP);
 
