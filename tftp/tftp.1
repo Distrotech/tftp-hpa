@@ -1,8 +1,10 @@
-.\"	$OpenBSD: tftp.1,v 1.4 1999/06/05 01:21:43 aaron Exp $
-.\"	$NetBSD: tftp.1,v 1.5 1995/08/18 14:45:44 pk Exp $
-.\"
+.\" -*- nroff -*- --------------------------------------------------------- *
+.\" $Id$
+.\"  
 .\" Copyright (c) 1990, 1993, 1994
-.\"	The Regents of the University of California.  All rights reserved.
+.\"     The Regents of the University of California.  All rights reserved.
+.\"
+.\" Copyright 2001 H. Peter Anvin - All Rights Reserved
 .\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
@@ -12,11 +14,7 @@
 .\" 2. Redistributions in binary form must reproduce the above copyright
 .\"    notice, this list of conditions and the following disclaimer in the
 .\"    documentation and/or other materials provided with the distribution.
-.\" 3. All advertising materials mentioning features or use of this software
-.\"    must display the following acknowledgement:
-.\"	This product includes software developed by the University of
-.\"	California, Berkeley and its contributors.
-.\" 4. Neither the name of the University nor the names of its contributors
+.\" 3. Neither the name of the University nor the names of its contributors
 .\"    may be used to endorse or promote products derived from this software
 .\"    without specific prior written permission.
 .\"
@@ -32,146 +30,148 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\"     @(#)tftp.1	8.2 (Berkeley) 4/18/94
-.\"
-.Dd April 18, 1994
-.Dt TFTP 1
-.Os
-.Sh NAME
-.Nm tftp
-.Nd trivial file transfer program
-.Sh SYNOPSIS
-.Nm tftp
-.Op Ar host
-.Sh DESCRIPTION
-.Nm tftp
-is the user interface to the Internet
-.Tn TFTP
-(Trivial File Transfer Protocol),
-which allows users to transfer files to and from a remote machine.
-The remote
-.Ar host
+.\"----------------------------------------------------------------------- */
+.TH TFTP 1 "13 November 2001" "tftp-hpa" "UNIX User's Manual"
+.SH NAME
+.B tftp
+\- IPv4 Trivial File Transfer Protocol client
+.SH SYNOPSIS
+.B tftp
+.RI [ options... ]
+.RI [ host ]
+.br
+.SH DESCRIPTION
+.B tftp
+is a client for the IPv4 Trivial file Transfer Protocol, which can be
+used to transfer files to and from remote machines, including some
+very minimalistic, usually embedded, systems.  The remote
+.I host
 may be specified on the command line, in which case
-.Nm tftp
+.B tftp
 uses
-.Ar host
+.I host
 as the default host for future transfers (see the
-.Ic connect
-command below).
-.Sh COMMANDS
+.B connect
+command below.)
+.SH OPTIONS
+.TP
+.B \-v
+Default to verbose mode.
+.TP
+.B \-V
+Print the version number to standard output, then exit gracefully.
+.SH COMMANDS
 Once
-.Nm tftp
+.B tftp
 is running, it issues the prompt
-.Ql tftp>
+\f(CWtftp>\fP
 and recognizes the following commands:
-.Pp
-.Bl -tag -width verbose -compact
-.It Ic \&? Ar command-name Op Ar ...
-Print help information.
-.Pp
-.It Ic ascii
+.TP
+\fB?\fP \fIcommand-name...\fP
+.TP
+\fBhelp\fP \fIcommand-name...\fP
+Print help information
+.TP
+.B ascii
 Shorthand for
-.Ic mode ascii .
-.Pp
-.It Ic binary
+.BR "mode ascii" .
+.TP
+.B binary
 Shorthand for
-.Ic mode binary .
-.Pp
-.It Ic connect Ar host Op Ar port
+.BR "mode binary" .
+.TP
+\fBconnect\fP \fIhost [port]\fP
 Set the
-.Ar host
+.I host
 (and optionally
-.Ar port )
-for transfers.
-Note that the
-.Tn TFTP
-protocol, unlike the
-.Tn FTP
-protocol,
+.IR port )
+for transfers.  Note that the TFTP protocol, unlike the FTP protocol,
 does not maintain connections between transfers; thus, the
-.Ic connect
-command does not actually create a connection,
-but merely remembers what host is to be used for transfers.
-You do not have to use the
-.Ic connect
+.B connect
+command does not actually create a connection, but merely remembers
+what host is to be used for transfers.  You do not have to use the
+.B connect
 command; the remote host can be specified as part of the
-.Ic get
+.B get
 or
-.Ic put
+.B put
 commands.
-.Pp
-.It Ic get Ar filename
-.It Ic get Ar remotename localname
-.It Ic get Ar file Op Ar ...
-Get a file or set of files from the specified
-.Ar sources .
-.Ar source
-can be in one of two forms:
-a filename on the remote host, if the host has already been specified,
-or a string of the form
-.Ar hosts:filename
-to specify both a host and filename at the same time.
-If the latter form is used,
-the last hostname specified becomes the default for future transfers.
-.Pp
-.It Ic mode Ar transfer-mode
-Set the mode for transfers;
-.Ar transfer-mode
+.TP
+\fBget\fP \fIfile\fP
+.sp -.6l
+.TP
+\fBget\fP \fIremotefile localfile\fP
+.sp -.6l
+.TP
+\fBget\fP \fIfile1 file2 file3...\fP
+Get a file or set of files from the specified sources.  A remote
+filename can be in one of two forms: a plain filename on the remote
+host, if the host has already been specified, or a string of the form
+.I "host:filename"
+to specify both a host and filename at the same time.  If the latter
+form is used, the last hostname specified becomes the default for
+future transfers.
+.TP
+\fBmode\fP \fItransfer-mode\fP
+Specify the mode for transfers;
+.I transfer-mode
 may be one of
-.Ic ascii
-or
-.Ic binary .
+.B ascii
+(or
+.BR netascii ) or
+.B binary
+(or
+.BR octet .)
 The default is
-.Ic ascii .
-.Pp
-.It Ic put Ar file
-.It Ic put Ar localfile remotefile
-.It Ic put Ar file1 file2 ... fileN remote-directory
-Put a file or set of files to the specified
-remote file or directory.
-The destination
-can be in one of two forms:
-a filename on the remote host, if the host has already been specified,
-or a string of the form
-.Ar hosts:filename
-to specify both a host and filename at the same time.
-If the latter form is used,
-the hostname specified becomes the default for future transfers.
-If the remote-directory form is used, the remote host is
-assumed to be a
-.Tn UNIX
-machine.
-.Pp
-.It Ic quit
+.BR ascii .
+.TP
+\fBput\fP \fIfile\fP
+.sp -.6l
+.TP
+\fBput\fP \fIlocalfile remotefile\fP
+.sp -.6l
+.TP
+\fBput\fP \fIfile1 file2 file3... remote-directory\fP
+Put a file or set of files to the specified remote file or directory.
+The destination can be in one of two forms: a filename on the remote
+host, if the host has already been specified, or a string of the form
+.I "host:filename"
+to specify both a host and filename at the same time.  If the latter
+form is used, the hostname specified becomes the default for future
+transfers.  If the remote-directory form is used, the remote host is
+assumed to be a UNIX system or another system using
+.B /
+as directory separator.
+.TP
+.B quit
 Exit
-.Nm tftp .
-An end-of-file also exits.
-.Pp
-.It Ic rexmt Ar retransmission-timeout
+.BR tftp .
+End-of-file will also exit.
+.TP
+\fBrexmt\fP \fIretransmission-timeout\fP
 Set the per-packet retransmission timeout, in seconds.
-.Pp
-.It Ic status
+.TP
+.B status
 Show current status.
-.Pp
-.It Ic timeout Ar total-transmission-timeout
+.TP
+\fBtimeout\fP \fItotal-transmission-timeout\fP
 Set the total transmission timeout, in seconds.
-.Pp
-.It Ic trace
-Toggle packet tracing.
-.Pp
-.It Ic verbose
+.TP
+.B trace
+Toggle packet tracing (a debugging feature.)
+.TP
+.B verbose
 Toggle verbose mode.
-.El
-.Sh BUGS
-Because there is no user login or validation within
-the
-.Tn TFTP
-protocol, the remote site will probably have some
-sort of file access restrictions in place.  The
-exact methods are specific to each site and therefore
-difficult to document here.
-.Sh HISTORY
-The
-.Nm
-command appeared in
-.Bx 4.3 .
+.SH "NOTES"
+The TFTP protocol provides no provisions for authentication or
+security.  Therefore, the remote server will probably implement some
+kinds of access restriction or firewalling.  These access restrictions
+are likely to be site- and server-specific.
+.SH "AUTHOR"
+This version of
+.B tftp
+is maintained by H. Peter Anvin <hpa@zytor.com>.  It was derived from,
+but has substantially diverged from, an OpenBSD source base, with
+added patches by Markus Gutschke and Gero Kulhman.
+.SH "SEE ALSO"
+.BR tftpd (8).

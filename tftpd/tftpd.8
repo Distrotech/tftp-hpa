@@ -1,13 +1,36 @@
 .\" -*- nroff -*- --------------------------------------------------------- *
+.\" $Id$
 .\"  
-.\"  Copyright 2001 H. Peter Anvin - All Rights Reserved
+.\" Copyright (c) 1990, 1993, 1994
+.\"     The Regents of the University of California.  All rights reserved.
 .\"
-.\"  This program is free software available under the same license
-.\"  as the "OpenBSD" operating system, distributed at
-.\"   http://www.openbsd.org/.
+.\" Copyright 2001 H. Peter Anvin - All Rights Reserved
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. Neither the name of the University nor the names of its contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.\" $Id$
 .TH TFTPD 8 "13 November 2001" "tftp-hpa" "UNIX System Manager's Manual"
 .SH NAME
 .B tftpd
@@ -24,27 +47,6 @@ devices.  The server is normally started by
 .BR inetd ,
 but can also run standalone.
 .PP
-The use of TFTP services does not require an account or password on
-the server system.  Due to the lack of authentication information,
-.B tftpd
-will allow only publicly readable files (o+r) to be accessed.  Files
-may be written only if they already exist and are publicly writable.
-Note that this extends the concept of ``public'' to include all users
-on all hosts that can be reached through the network; this may not be
-appropriate on all systems, and its implications should be considered
-before enabling TFTP service.  The server should have the user ID with
-the lowest possible privilege; see the
-.B \-u
-flag below.
-.PP
-Access to files can, and should, be restricted by invoking
-.B tftpd
-with a list of directories by including pathnames as server program
-arguments on the command line.  In this case access is restricted to
-files whole names are prefixed by one of the given directories.  See
-also the
-.B \-s
-flag below.
 .SH OPTIONS
 .TP
 .B \-l
@@ -123,13 +125,13 @@ This version of
 .B tftpd
 supports RFC 2347 option negotation.  Currently implemented options
 are
-\f(CWblksize\fP
+.B blksize
 (RFC 2348),
-\f(CWblksize2\fP
+.B blksize2
 (nonstandard),
-\f(CWtsize\fP
+.B tsize
 (RFC 2349), and
-\f(CWtimeout\fP
+.B timeout
 (RFC 2349).  The
 .B \-r
 option can be used to disable specific options; this may be necessary
@@ -139,7 +141,7 @@ The
 .B \-m
 option specifies a file which contains filename remapping rules.  Each
 non-comment line (comments begin with hash marks,
-\f(CW#\fP)
+.BR # )
 contains an
 .IR operation ,
 specified below; a
@@ -203,12 +205,46 @@ If the mapping file is changed, you need to send
 to any outstanding
 .B tftpd
 process.
+.SH "SECURITY"
+The use of TFTP services does not require an account or password on
+the server system.  Due to the lack of authentication information,
+.B tftpd
+will allow only publicly readable files (o+r) to be accessed.  Files
+may be written only if they already exist and are publicly writable,
+unless the
+.B \-c
+option is specified.
+Note that this extends the concept of ``public'' to include all users
+on all hosts that can be reached through the network; this may not be
+appropriate on all systems, and its implications should be considered
+before enabling TFTP service.  Typically, some kind of firewall or
+packet-filter solution should be employed.
+.PP
+The server should be set to have the user ID with the lowest possible
+privilege; please see the
+.B \-u
+flag.
+.PP
+Access to files can, and should, be restricted by invoking
+.B tftpd
+with a list of directories by including pathnames as server program
+arguments on the command line.  In this case access is restricted to
+files whole names are prefixed by one of the given directories.  If
+possible, it is recommended that the
+.B \-s
+flag is used to set up a chroot() environment for the server to run in
+once a connection has been set up.
+.PP
+Finally, the filename remapping
+.RB ( \-m
+flag) support can be used to provide a limited amount of additional
+access control.
 .SH "BUGS"
 It is unclear at this point if the retransmission algorithm used is
 sufficient to satisfy the RFC 1123 requirement that TFTP
 implementations use adaptive retransmission timeout.  Furthermore, it
 is unclear how to combine the adaptive timeout of RFC 1123 with the
-\f(CWtimeout\fP
+.B timeout
 option specified by RFC 2349.
 .SH "CONFORMING TO"
 RFC 1123,
@@ -227,9 +263,9 @@ RFC 2349,
 .IR "TFTP Timeout Interval and Transfer Size Options" .
 .PP
 The nonstandard
-\f(CWblksize2\fP
+.B blksize2
 TFTP option is functionally identical to the
-\f(CWblksize\fP
+.B blksize
 option specified in RFC 2349, with the additional constraint that the
 blocksize is constrained to be a power of 2.
 .SH "AUTHOR"
