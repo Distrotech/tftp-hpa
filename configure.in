@@ -208,7 +208,17 @@ AC_SUBST(TFTPDOBJS)
 
 AC_PROG_LN_S
 AC_PROG_RANLIB
+
+dnl
+dnl Make sure the install program has an absolute path if it
+dnl has a path at all.  autoconf doesn't do this "in order
+dnl to not pollute the cache."  Sigh.
+dnl Note: the $ needs to be double-quoted for reasons unknown.
+dnl
 AC_PROG_INSTALL
+[if echo "$INSTALL" | grep '^[^/].*/' > /dev/null 2>&1; then
+   INSTALL='\${SRCROOT}'/"$INSTALL"
+fi]
 
 AC_CONFIG_HEADERS(aconfig.h)
 AC_OUTPUT(MCONFIG)
