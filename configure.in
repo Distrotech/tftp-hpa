@@ -51,6 +51,7 @@ PA_ADD_CFLAGS(-Wundef)
 PA_ADD_CFLAGS(-Wshadow)
 PA_ADD_CFLAGS(-Wsign-compare)
 PA_ADD_CFLAGS(-pipe)
+PA_ADD_CFLAGS(-fno-strict-aliasing)
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS(inttypes.h)
