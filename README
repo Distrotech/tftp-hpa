@@ -1,8 +1,13 @@
-This is tftp-hpa-0.17; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.18; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
 
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
 ===> CHANGES IN THIS VERSION!!!!!!!!!
+
+Changes in 0.18:
+	Support (almost) arbitrary filename remappings via regular
+	expression-based rulesets.
+
 
 Changes in 0.17:
 
@@ -27,6 +32,7 @@ Changes in 0.16:
 
 	Fix for ACKs in TFTP PUT; patch by Roger Venning.
 
+
 Changes in 0.15:
 
 	If the operating system allows, try to obtain the local
@@ -34,9 +40,11 @@ Changes in 0.15:
 	local IP address.  Some embedded TFTP clients are (probably
 	incorrectly) picky about this.
 
+
 Changes in 0.14:
 
 	Hacks to signal handling to avoid "zombie servers."
+
 
 Changes in 0.13:
 
