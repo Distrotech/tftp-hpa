@@ -1,5 +1,17 @@
 $Id$
 
+Changes in 0.30:
+	(Hopefully) better timeout algorithm.
+
+	Add a "utimeout" option; like "timeout" but in microseconds.
+
+	Change the log level of client-side errors to LOG_WARNING.
+
+	autoconf portability improvements.
+
+	Minor bugfixes.
+
+
 Changes in 0.29:
 	Posixly correctness.
 
