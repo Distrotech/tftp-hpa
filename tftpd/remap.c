@@ -234,7 +234,8 @@ static int parseline(char *line, struct rule *r, int lineno)
   if ( !(r->rule_flags & RULE_REWRITE) )
     r->rule_flags &= ~RULE_GLOBAL;
 
-  if ( r->rule_flags & (RULE_INVERSE|RULE_REWRITE) ) {
+  if ( (r->rule_flags & (RULE_INVERSE|RULE_REWRITE)) ==
+       (RULE_INVERSE|RULE_REWRITE) ) {
     syslog(LOG_ERR, "r rules cannot be inverted, line %d: %s\n", lineno, line);
     return -1;			/* Error */
   }
