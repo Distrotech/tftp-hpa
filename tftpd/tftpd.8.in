@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "16 November 2001" "tftp-hpa 0.27-pre1" "UNIX System Manager's Manual"
+.TH TFTPD 8 "16 November 2001" "tftp-hpa @@VERSION@@" "UNIX System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server

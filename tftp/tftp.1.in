@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTP 1 "13 November 2001" "tftp-hpa" "UNIX User's Manual"
+.TH TFTP 1 "13 November 2001" "tftp-hpa @@VERSION@@" "UNIX User's Manual"
 .SH NAME
 .B tftp
 \- IPv4 Trivial File Transfer Protocol client

@@ -1,6 +1,7 @@
-all: tftp
+all: tftp tftp.1
 
 SRCROOT = ..
+VERSION = $(shell cat ../version)
 
 -include ../MCONFIG
 include ../MRULES
@@ -12,13 +13,16 @@ tftp: $(OBJS)
 
 $(OBJS): tftpsubs.h
 
-install: tftp
+tftp.1: tftp.1.in ../version
+	sed -e 's/@@VERSION@@/$(VERSION)/g' < $< > $@
+
+install: all
 	mkdir -p $(INSTALLROOT)$(BINDIR) $(INSTALLROOT)$(MANDIR)/man1
 	$(INSTALL_PROGRAM) tftp $(INSTALLROOT)$(BINDIR)
 	$(INSTALL_DATA)    tftp.1  $(INSTALLROOT)$(MANDIR)/man1
 
 clean:
-	rm -f *.o tftp
+	rm -f *.o tftp tftp.1
 
 distclean: clean
 	rm -f *~
