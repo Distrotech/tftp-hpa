@@ -37,7 +37,7 @@ dnl
 dnl Does struct msghdr have the msg_control field?
 dnl --------------------------------------------------------------------------
 AH_TEMPLATE([HAVE_MSGHDR_MSG_CONTROL],
-[Define to 1 if struct msghdr has the msg_control field.])
+[Define if struct msghdr has the msg_control field.])
 
 AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
 [AC_MSG_CHECKING([for msg_control in struct msghdr])
@@ -68,7 +68,7 @@ dnl lack struct in_pktinfo; if so we need to include the definition
 dnl ourselves -- but we only want to do that if absolutely necessary!
 dnl ------------------------------------------------------------------------
 AH_TEMPLATE([HAVE_STRUCT_IN_PKTINFO],
-[Define to 1 if struct in_pktinfo is defined.])
+[Define if struct in_pktinfo is defined.])
 
 AC_DEFUN(PA_STRUCT_IN_PKTINFO,
 [AC_MSG_CHECKING([for definition of struct in_pktinfo])
@@ -101,7 +101,7 @@ dnl Do we have the tcpwrappers -lwrap?  This can't be done using AC_CHECK_LIBS
 dnl due to the need to provide "allow_severity" and "deny_severity" variables
 dnl --------------------------------------------------------------------------
 AH_TEMPLATE([HAVE_TCPWRAPPERS],
-[Define to 1 if we have tcpwrappers (-lwrap) and <tcpd.h>.])
+[Define if we have tcpwrappers (-lwrap) and <tcpd.h>.])
 
 AC_DEFUN(PA_HAVE_TCPWRAPPERS,
 [AC_CHECK_LIB([wrap], [main])

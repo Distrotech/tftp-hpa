@@ -64,7 +64,7 @@ PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
 
 AH_TEMPLATE([HAVE_IPPORT_TFTP_DEFINITION],
-[Define to 1 if netinet/in.h defines IPPORT_TFTP.])
+[Define if netinet/in.h defines IPPORT_TFTP.])
 PA_HEADER_DEFINES(netinet/in.h, int, IPPORT_TFTP)
 
 PA_WITH_BOOL(tcpwrappers, 1,
@@ -75,7 +75,7 @@ PA_WITH_BOOL(tcpwrappers, 1,
 ],:)
 
 AH_TEMPLATE([WITH_REGEX],
-[Define to 1 if we are compiling with regex filename remapping.])
+[Define if we are compiling with regex filename remapping.])
 
 PA_WITH_BOOL(remap, 1,
 [ --without-remap       Disable regex-based filename remapping],
@@ -91,7 +91,7 @@ PA_WITH_BOOL(remap, 1,
 ],:)
 
 AH_TEMPLATE([HAVE_SIGSETJMP],
-[Define to 1 if we have sigsetjmp, siglongjmp and sigjmp_buf.])
+[Define if we have sigsetjmp, siglongjmp and sigjmp_buf.])
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
 LIBXTRA=false
