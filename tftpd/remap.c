@@ -146,7 +146,7 @@ static int parseline(char *line, struct rule *r, int lineno)
   int rxflags = REG_EXTENDED;
   static int nrule;
 
-  memset(r, 0, sizeof r);
+  memset(r, 0, sizeof *r);
   r->nrule = nrule;
 
   if ( !readescstring(buffer, &line) )
