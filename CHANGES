@@ -3,8 +3,9 @@ $Id$
 Changes in 0.29:
 	Posixly correctness.
 
-	Now works on Win32 systems using Cygwin	(see
-	<http://www.cygwin.com/>).
+	Now compiles and runs on Win32 systems using Cygwin
+	(http://www.cygwin.com/).
+	(<http://www.cygwin.com/>).
 
 	Fixed a bug which could cause a standalone server to exit with
 	a "recvfrom: Interrupted system call" log message if signals
