@@ -14,6 +14,8 @@ Changes in 0.27:
 	-p option is specified.  As part of this, set all groups if
 	initgroups() is specified on the platform.
 
+	Clean up race conditions inherited from the BSD source base.
+
 
 Changes in 0.26:
 	Fix the configuration process so tftpd doesn't end up
