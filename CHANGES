@@ -4,6 +4,22 @@ Changes in 0.35:
 	Add an option to control the maximum value of blksize
 	negotiated.
 
+	Removed workaround for obsolete Cygwin problem.
+
+	Don't use getopt() -- the -c option doesn't work correctly
+	since it depends on the ordering of arguments and options.  It
+	is now possible to do:
+
+	tftp -m binary hostname -c get filename
+
+	This was previous possible by doing:
+
+	tftp -m binary -c get hostname:filename
+
+	... but it seemed that was counterintuitive to people.
+
+	Somewhat improved configure scripts.
+
 
 Changes in 0.34:
 	Additional Solaris gcc compiler bug workarounds; these

@@ -14,7 +14,7 @@ AC_PROG_CC
 
 dnl
 dnl Feature-test macros.  These need to be set in CFLAGS, rather in
-dnl acconfig.h, or "configure" will run in a different environment than
+dnl aconfig.h, or "configure" will run in a different environment than
 dnl we eventually we build in.
 dnl
 
@@ -201,5 +201,5 @@ AC_PROG_LN_S
 AC_PROG_RANLIB
 AC_PROG_INSTALL
 
-AC_CONFIG_HEADERS(acconfig.h)
+AC_CONFIG_HEADERS(aconfig.h)
 AC_OUTPUT(MCONFIG)
