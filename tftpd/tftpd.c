@@ -475,6 +475,16 @@ tftp(struct tftphdr *tp, int size)
 		       nak(EACCES); /* File denied by mapping rule */
 		       exit(0);
 		  }
+		  if ( verbosity >= 1 ) {
+		    if ( filename == origfilename || !strcmp(filename, origfilename) )
+		      syslog(LOG_NOTICE, "%s from %s filename %s\n",
+			     tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+			     inet_ntoa(from.sin_addr), filename);
+		    else
+		      syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
+			     tp->th_opcode == WRQ ? "WRQ" : "RRQ",
+			     inet_ntoa(from.sin_addr), origfilename, filename);
+		  }		   
 		  ecode = (*pf->f_validate)(filename, tp->th_opcode, pf);
 		  if (ecode) {
 		       nak(ecode);
@@ -493,17 +503,6 @@ tftp(struct tftphdr *tp, int size)
 	     nak(EBADOP);
 	     exit(0);
 	}
-
-	if ( verbosity >= 1 ) {
-	  if ( filename == origfilename || !strcmp(filename, origfilename) )
-	    syslog(LOG_NOTICE, "%s from %s filename %s\n",
-		   tp->th_opcode == WRQ ? "WRQ" : "RRQ",
-		   inet_ntoa(from.sin_addr), filename);
-	  else
-	    syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
-		   tp->th_opcode == WRQ ? "WRQ" : "RRQ",
-		   inet_ntoa(from.sin_addr), origfilename, filename);
-	}		   
 
 	if ( ap != (ackbuf+2) ) {
 	     if ( tp->th_opcode == WRQ )
