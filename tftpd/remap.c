@@ -78,6 +78,8 @@ static int genmatchstring(char *string, const char *pattern, const char *input,
 	if ( macrosub &&
 	     (sublen = macrosub(macro, string)) >= 0 ) {
 	  len += sublen;
+	  if ( string )
+	    string += sublen;
 	} else {
 	  len++;
 	  if ( string )

@@ -11,6 +11,8 @@ Changes in 0.29:
 	a "recvfrom: Interrupted system call" log message if signals
 	arrive at a particularly inopportune moment.
 
+	Fix a macro substitution bug (thanks to Richard Nyberg.)
+
 
 Changes in 0.28:
 	Fix stupid one-liner bug which broke standalone mode (-l).

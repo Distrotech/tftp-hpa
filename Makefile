@@ -32,7 +32,7 @@ distclean: localdistclean $(patsubst %, %.distclean, $(SUB))
 localdistclean: localclean
 	rm -f MCONFIG config.status config.log acconfig.h *~ \#*
 	rm -rf *.cache
-	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
+	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs rm -f
 
 spotless: distclean
 	rm -f configure acconfig.h.in
@@ -56,7 +56,7 @@ acconfig.h: MCONFIG
 # autoconf and autoheader.
 acconfig.h.in: configure.in configure aclocal.m4
 	rm -f acconfig.h.in acconfig.h
-	autoheader -f
+	autoheader
 
 configure: configure.in aclocal.m4
 	rm -f MCONFIG configure config.log acconfig.h config.cache
