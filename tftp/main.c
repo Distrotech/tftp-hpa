@@ -272,6 +272,7 @@ getmoreargs(const char *partial, const char *mprompt)
   line = xmalloc(len+elen+1);
   strcpy(line, partial);
   strcpy(line+len, eline);
+  free(eline);
 
 #ifdef HAVE_READLINE_HISTORY_H
   add_history(line);
