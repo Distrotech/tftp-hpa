@@ -77,7 +77,7 @@ static void tpacket(const char *, struct tftphdr *, int);
  * Send the requested file.
  */
 void
-tftp_sendfile(int fd, char *name, char *mode)
+tftp_sendfile(int fd, const char *name, const char *mode)
 {
 	struct tftphdr *ap;	   /* data and ack packets */
 	struct tftphdr *dp;
@@ -93,8 +93,8 @@ tftp_sendfile(int fd, char *name, char *mode)
 	startclock();		/* start stat's clock */
 	dp = r_init();		/* reset fillbuf/read-ahead code */
 	ap = (struct tftphdr *)ackbuf;
-	file = fdopen(fd, "r");
 	convert = !strcmp(mode, "netascii");
+	file = fdopen(fd, convert ? "rt" : "rb");
 	block = 0;
 	is_request = 1;		/* First packet is the actual WRQ */
 	amount = 0;
@@ -185,7 +185,7 @@ abort:
  * Receive a file.
  */
 void
-tftp_recvfile(int fd, char *name, char *mode)
+tftp_recvfile(int fd, const char *name, const char *mode)
 {
 	struct tftphdr *ap;
 	struct tftphdr *dp;
@@ -201,8 +201,8 @@ tftp_recvfile(int fd, char *name, char *mode)
 	startclock();
 	dp = w_init();
 	ap = (struct tftphdr *)ackbuf;
-	file = fdopen(fd, "w");
 	convert = !strcmp(mode, "netascii");
+	file = fdopen(fd, convert ?"wt":"wb");
 	block = 1;
 	firsttrip = 1;
 	amount = 0;

@@ -110,6 +110,10 @@ AC_CHECK_FUNCS(strtoull)
 PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
 
+PA_HEADER_DEFINES(fcntl.h, int, O_NONBLOCK)
+PA_HEADER_DEFINES(fcntl.h, int, O_BINARY)
+PA_HEADER_DEFINES(fcntl.h, int, O_TEXT)
+
 AH_TEMPLATE([HAVE_SIGSETJMP],
 [Define if we have sigsetjmp, siglongjmp and sigjmp_buf.])
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
@@ -128,8 +132,6 @@ dnl
 
 common_libs="$LIBS"
 
-AH_TEMPLATE([HAVE_IPPORT_TFTP_DEFINITION],
-[Define if netinet/in.h defines IPPORT_TFTP.])
 PA_HEADER_DEFINES(netinet/in.h, int, IPPORT_TFTP)
 
 PA_WITH_BOOL(tcpwrappers, 1,

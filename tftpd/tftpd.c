@@ -175,7 +175,7 @@ set_socket_nonblock(int fd, int flag)
 {
   int err;
   int flags;
-#if defined(HAVE_FCNTL) && defined(O_NONBLOCK)
+#if defined(HAVE_FCNTL) && defined(HAVE_O_NONBLOCK_DEFINITION)
   /* Posixly correct */
   err = ((flags = fcntl(fd, F_GETFL, 0)) < 0) ||
     (fcntl(fd, F_SETFL, flag ? flags|O_NONBLOCK : flags&~O_NONBLOCK) < 0);
@@ -929,7 +929,7 @@ FILE *file;
  * Validate file access.  Since we
  * have no uid or gid, for now require
  * file to exist and be publicly
- * readable/writable.
+ * readable/writable, unless -p specified.
  * If we were invoked with arguments
  * from inetd then the file must also be
  * in one of the given directory prefixes.
@@ -941,9 +941,10 @@ validate_access(char *filename, int mode, struct formats *pf)
 {
   struct stat stbuf;
   int   i, len;
-  int	fd, wmode;
+  int	fd, wmode, rmode;
   char *cp;
   const char **dirp;
+  char stdio_mode[3];
   
   tsize_ok = 0;
   
@@ -974,9 +975,12 @@ validate_access(char *filename, int mode, struct formats *pf)
    */
   wmode = O_WRONLY |
     (cancreate ? O_CREAT : 0) |
-    (unixperms ? O_TRUNC : 0);
+    (unixperms ? O_TRUNC : 0) |
+    (pf->f_convert ? O_TEXT : O_BINARY);
+  rmode = O_RDONLY |
+    (pf->f_convert ? O_TEXT : O_BINARY);
 
-  fd = open(filename, mode == RRQ ? O_RDONLY : wmode, 0666);
+  fd = open(filename, mode == RRQ ? rmode : wmode, 0666);
   if (fd < 0) {
     switch (errno) {
     case ENOENT:
@@ -1015,7 +1019,11 @@ validate_access(char *filename, int mode, struct formats *pf)
     tsize_ok = 1;
   }
 
-  file = fdopen(fd, (mode == RRQ)? "r":"w");
+  stdio_mode[0] = (mode == RRQ) ? 'r':'w';
+  stdio_mode[1] = (pf->f_convert) ? 't':'b';
+  stdio_mode[2] = '\0';
+
+  file = fdopen(fd, stdio_mode);
   if (file == NULL)
     exit(EX_OSERR);		/* Internal error */
 

@@ -109,6 +109,15 @@
 #define E_WOULD_BLOCK(x) ((x) == EWOULDBLOCK)
 #endif
 
+/* Some broken systems care about text versus binary, but
+   real Unix systems don't... */
+#ifndef HAVE_O_TEXT_DEFINITION
+#define O_TEXT		0
+#endif
+#ifndef HAVE_O_BINARY_DEFINITION
+#define O_BINARY	0
+#endif
+
 /* If we don't have intmax_t, try creating it */
 
 #ifndef HAVE_INTMAX_T

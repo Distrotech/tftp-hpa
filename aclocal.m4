@@ -42,59 +42,38 @@ AH_TEMPLATE([HAVE_MSGHDR_MSG_CONTROL],
 [Define if struct msghdr has the msg_control field.])
 
 AC_DEFUN(PA_MSGHDR_MSG_CONTROL,
-[AC_MSG_CHECKING([for msg_control in struct msghdr])
- AC_TRY_COMPILE(
-[
-#define _XPG4_2		/* Needed on Solaris */
+ [AC_CHECK_MEMBER(struct msghdr.msg_control,
+  [AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL)],
+  [],
+  [
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-],
-[
-        struct msghdr msg;
-        void *p = (void *) &msg.msg_control;
-],
-[
-        AC_DEFINE(HAVE_MSGHDR_MSG_CONTROL)
-        AC_MSG_RESULT([yes])
-],
-[
-        AC_MSG_RESULT([no])
-])])
+  ])])
 
 dnl ------------------------------------------------------------------------
 dnl  PA_STRUCT_IN_PKTINFO
-dnl
-dnl Look for definition of struct in_pktinfo.  Some versions of glibc
-dnl lack struct in_pktinfo; if so we need to include the definition
-dnl ourselves -- but we only want to do that if absolutely necessary!
+dnl 
+dnl Look for definition of struct in_pktinfo, which at least has an
+dnl ipi_addr member.  Some versions of glibc lack struct in_pktinfo;
+dnl if so we need to include the definition ourselves -- but we only
+dnl want to do that if absolutely necessary!
 dnl ------------------------------------------------------------------------
 AH_TEMPLATE([HAVE_STRUCT_IN_PKTINFO],
 [Define if struct in_pktinfo is defined.])
 
 AC_DEFUN(PA_STRUCT_IN_PKTINFO,
-[AC_MSG_CHECKING([for definition of struct in_pktinfo])
- AC_TRY_COMPILE(
-[
+ [AC_CHECK_MEMBER(struct in_pktinfo.ipi_addr,
+  [AC_DEFINE(HAVE_STRUCT_IN_PKTINFO)],
+  [],
+  [
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <sys/uio.h>
-],
-[
-	struct in_pktinfo pktinfo;
-	int foo = sizeof(struct in_pktinfo);
-	void *quux = (void *)(&pktinfo.ipi_addr);
-],
-[
-        AC_DEFINE(HAVE_STRUCT_IN_PKTINFO)
-        AC_MSG_RESULT([yes])
-],
-[
-        AC_MSG_RESULT([no])
-])])
+  ])])
 
 dnl --------------------------------------------------------------------------
 dnl PA_HAVE_TCPWRAPPERS
@@ -179,6 +158,7 @@ dnl  PA_HEADER_DEFINES(header, type, value)
 dnl --------------------------------------------------------------------------
 AC_DEFUN(PA_HEADER_DEFINES,
 [AC_MSG_CHECKING([if $1 defines $3])
+ AH_TEMPLATE([HAVE_$3_DEFINITION], [Define if $1 defines $3])
  AC_TRY_COMPILE([
 #include <$1>
 ],
