@@ -29,7 +29,7 @@ localclean:
 
 distclean: localdistclean $(patsubst %, %.distclean, $(SUB))
 
-localdistclean:
+localdistclean: localclean
 	rm -f MCONFIG config.status config.log acconfig.h *~ \#*
 	rm -rf *.cache
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs -r rm -f
