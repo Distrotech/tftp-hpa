@@ -35,13 +35,16 @@
  * SUCH DAMAGE.
  */
 
+#include "tftpd.h"
+
 #ifndef lint
-static const char *copyright =
+static const char *copyright UNUSED =
 "@(#) Copyright (c) 1983 Regents of the University of California.\n\
  All rights reserved.\n";
 /*static char sccsid[] = "from: @(#)tftpd.c	5.13 (Berkeley) 2/26/91";*/
 /*static char rcsid[] = "$OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $: tftpd.c,v 1.6 1997/02/16 23:49:21 deraadt Exp $";*/
-static const char *rcsid = "tftp-hpa $Id$";
+static const char *rcsid UNUSED =
+"tftp-hpa $Id$";
 #endif /* not lint */
 
 /*
@@ -74,7 +77,6 @@ static const char *rcsid = "tftp-hpa $Id$";
 #include <unistd.h>
 #include <limits.h>
 
-#include "tftpd.h"
 #include "tftpsubs.h"
 #include "recvfrom.h"
 #include "remap.h"
@@ -150,6 +152,7 @@ struct options {
 static volatile sig_atomic_t caught_sighup = 0;
 static void handle_sighup(int sig)
 {
+  (void)sig;			/* Suppress unused warning */
   caught_sighup = 1;
 }
 
@@ -758,7 +761,7 @@ sigjmp_buf	timeoutbuf;
 void
 timer(int sig)
 {
-  
+  (void)sig;			/* Suppress unused warning */
   timeout += rexmtval;
   if (timeout >= maxtimeout)
     exit(0);
@@ -867,6 +870,7 @@ sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 void
 justquit(int sig)
 {
+  (void)sig;			/* Suppress unused warning */
   exit(0);
 }
 

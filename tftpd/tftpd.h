@@ -51,4 +51,10 @@ void set_signal(int, void (*)(int), int);
 void *tfmalloc(size_t);
 char *tfstrdup(const char *);
 
+#ifdef __GNUC__
+#define UNUSED __attribute__((unused))
+#else
+#define UNUSED
+#endif
+
 #endif
