@@ -21,6 +21,9 @@
 /* Must be included before we include any system headers! */
 #include "acconfig.h"
 
+/* This is necessary on Solaris */
+#define _XPG4_2
+
 /* Standard includes */
 
 #include <stdio.h>
