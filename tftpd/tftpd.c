@@ -1125,20 +1125,20 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     (void)sigsetjmp(timeoutbuf,1);
   oack:
     if (send(peer, oap, oacklen, 0) != oacklen) {
-      syslog(LOG_WARN, "tftpd: oack: %m\n");
+      syslog(LOG_WARNING, "tftpd: oack: %m\n");
       goto abort;
     }
     for ( ; ; ) {
       n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, timeout);
       if (n < 0) {
-	syslog(LOG_WARN, "tftpd: read: %m\n");
+	syslog(LOG_WARNING, "tftpd: read: %m\n");
 	goto abort;
       }
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
       ap->th_block = ntohs((u_short)ap->th_block);
       
       if (ap->th_opcode == ERROR) {
-	syslog(LOG_WARN, "tftp: client does not accept options\n");
+	syslog(LOG_WARNING, "tftp: client does not accept options\n");
 	goto abort;
       }
       if (ap->th_opcode == ACK) {
@@ -1164,14 +1164,14 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     (void) sigsetjmp(timeoutbuf,1);
     
     if (send(peer, dp, size + 4, 0) != size + 4) {
-      syslog(LOG_WARN, "tftpd: write: %m");
+      syslog(LOG_WARNING, "tftpd: write: %m");
       goto abort;
     }
     read_ahead(file, pf->f_convert);
     for ( ; ; ) {
       n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, timeout);
       if (n < 0) {
-	syslog(LOG_WARN, "tftpd: read(ack): %m");
+	syslog(LOG_WARNING, "tftpd: read(ack): %m");
 	goto abort;
       }
       ap->th_opcode = ntohs((u_short)ap->th_opcode);
@@ -1239,14 +1239,14 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     (void) sigsetjmp(timeoutbuf,1);
   send_ack:
     if (send(peer, ackbuf, acksize, 0) != acksize) {
-      syslog(LOG_WARN, "tftpd: write(ack): %m");
+      syslog(LOG_WARNING, "tftpd: write(ack): %m");
       goto abort;
     }
     write_behind(file, pf->f_convert);
     for ( ; ; ) {
       n = recv_time(peer, dp, PKTSIZE, 0, timeout);
       if (n < 0) {		/* really? */
-	syslog(LOG_WARN, "tftpd: read: %m");
+	syslog(LOG_WARNING, "tftpd: read: %m");
 	goto abort;
       }
       dp->th_opcode = ntohs((u_short)dp->th_opcode);
@@ -1341,5 +1341,5 @@ nak(int error)
   }
   
   if (send(peer, buf, length, 0) != length)
-    syslog(LOG_WARN, "nak: %m");
+    syslog(LOG_WARNING, "nak: %m");
 }
