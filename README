@@ -8,6 +8,8 @@ Changes in 0.18:
 	Support (almost) arbitrary filename remappings via regular
 	expression-based rulesets.
 
+	Added -v option for more verbose logging.
+
 
 Changes in 0.17:
 
