@@ -1,8 +1,22 @@
-This is tftp-hpa-0.18; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.19; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
 
+The latest version of this collection can be found at:
+
+    ftp://ftp.kernel.org/pub/software/network/tftp/
+
+This software can be discussed on the SYSLINUX mailing list.  To
+subscribe, send a message containing the word "subscribe" in the body
+to <syslinux-request@linux.kernel.org>.
+
+Please note that my main focus in this work is the tftpd
+server. Although a tftp client is included, it is by and large the
+stock OpenBSD version, with a small handful of portability
+improvements.
+
+
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
-===> CHANGES IN THIS VERSION!!!!!!!!!
+===> CHANGES ENACTED IN VERSION 0.17!!!!!!!!!
 
 Changes in 0.19:
 	Fork before performing tcpwrappers check.
