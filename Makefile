@@ -29,10 +29,12 @@ distclean: $(patsubst %, %.distclean, $(SUB))
 spotless: distclean
 	rm -f configure acconfig.h.in
 
-config:	MCONFIG
+autoconf: configure acconfig.h.in
+
+config:	MCONFIG acconfig.h
 
 release:
-	$(MAKE) configure acconfig.h.in
+	$(MAKE) autoconf
 	$(MAKE) distclean
 
 MCONFIG: configure MCONFIG.in acconfig.h.in

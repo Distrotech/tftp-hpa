@@ -23,6 +23,7 @@
 
 /* This is necessary on Solaris */
 #define _XPG4_2
+#define _XOPEN_SOURCE
 
 /* Standard includes */
 
