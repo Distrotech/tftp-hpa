@@ -39,9 +39,6 @@
 static const char *copyright =
 "@(#) Copyright (c) 1983 Regents of the University of California.\n\
  All rights reserved.\n";
-#endif /* not lint */
-
-#ifndef lint
 /*static char sccsid[] = "from: @(#)tftpd.c	5.13 (Berkeley) 2/26/91";*/
 /*static char rcsid[] = "$OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $: tftpd.c,v 1.6 1997/02/16 23:49:21 deraadt Exp $";*/
 static const char *rcsid = "tftp-hpa $Id$";
@@ -422,6 +419,9 @@ set_blksize(char *val, char **ret)
 
         segsize = sz;
         sprintf(*ret = b_ret, "%u", sz);
+
+	blksize_set = 1;
+
         return(1);
 }
 
@@ -453,6 +453,9 @@ set_blksize2(char *val, char **ret)
 
         segsize = sz;
         sprintf(*ret = b_ret, "%u", sz);
+
+	blksize_set = 1;
+
         return(1);
 }
 
@@ -505,6 +508,7 @@ do_opt(char *opt, char *val, char **ap)
      struct options *po;
      char *ret;
 
+     /* Global option-parsing variables initialization */
      blksize_set = 0;
      
      if ( !*opt )
