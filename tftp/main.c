@@ -152,7 +152,7 @@ struct cmd cmdtab[] = {
 	{ "rexmt",	xhelp,		setrexmt },
 	{ "timeout",	ihelp,		settimeout },
 	{ "?",		hhelp,		help },
-	{ 0 }
+	{ 0, 0, 0 }
 };
 
 struct	cmd *getcmd(char *);
@@ -291,14 +291,14 @@ modecmd(int argc, char *argv[])
 void
 setbinary(int argc, char *argv[])
 {      
-
+	(void)argc; (void)argv;	/* Quiet unused warning */
 	settftpmode("octet");
 }
 
 void
 setascii(int argc, char *argv[])
 {
-
+	(void)argc; (void)argv;	/* Quiet unused warning */
 	settftpmode("netascii");
 }
 
@@ -541,6 +541,7 @@ settimeout(int argc, char *argv[])
 void
 status(int argc, char *argv[])
 {
+	(void)argc; (void)argv;	/* Quiet unused warning */
 	if (connected)
 		printf("Connected to %s.\n", hostname);
 	else
@@ -554,6 +555,7 @@ status(int argc, char *argv[])
 void
 intr(int sig)
 {
+	(void)sig;	/* Quiet unused warning */
 
 	bsd_signal(SIGALRM, SIG_IGN);
 	alarm(0);
@@ -668,7 +670,7 @@ makeargv(void)
 void
 quit(int argc, char *argv[])
 {
-
+	(void)argc; (void)argv;	/* Quiet unused warning */
 	exit(0);
 }
 
@@ -702,6 +704,8 @@ help(int argc, char *argv[])
 void
 settrace(int argc, char *argv[])
 {
+	(void)argc; (void)argv;	/* Quiet unused warning */
+
 	trace = !trace;
 	printf("Packet tracing %s.\n", trace ? "on" : "off");
 }
@@ -709,6 +713,8 @@ settrace(int argc, char *argv[])
 void
 setverbose(int argc, char *argv[])
 {
+	(void)argc; (void)argv;	/* Quiet unused warning */
+
 	verbose = !verbose;
 	printf("Verbose mode %s.\n", verbose ? "on" : "off");
 }

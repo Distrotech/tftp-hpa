@@ -36,10 +36,13 @@
  * SUCH DAMAGE.
  */
 
+#include "tftpsubs.h"
+
 #ifndef lint
 /* static char sccsid[] = "@(#)tftp.c	8.1 (Berkeley) 6/6/93"; */
 /* static char rcsid[] = "$OpenBSD: tftp.c,v 1.4 1997/08/06 06:43:45 deraadt Exp $"; */
-static const char *rcsid = "tftp-hpa $Id$";
+static const char *rcsid UNUSED =
+"tftp-hpa $Id$";
 #endif /* not lint */
 
 /* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
@@ -64,7 +67,6 @@ static const char *rcsid = "tftp-hpa $Id$";
 
 #include "../config.h"
 #include "extern.h"
-#include "tftpsubs.h"
 
 void bsd_signal(int, void (*)(int));
 
@@ -448,6 +450,8 @@ static void
 timer(int sig)
 {
 	int save_errno = errno;
+
+	(void)sig;		/* Shut up unused warning */
 
 	timeout += rexmtval;
 	if (timeout >= maxtimeout) {

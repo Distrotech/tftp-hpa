@@ -46,6 +46,9 @@
 #define TFTPSUBS_H
 
 #include <stdlib.h>
+#include <stdio.h>
+
+struct tftphdr;
 
 struct tftphdr *r_init(void);
 void	read_ahead(FILE *, int);
@@ -65,5 +68,14 @@ extern int segsize;
  */
 extern void *xmalloc(size_t);
 extern char *xstrdup(const char *);
+
+/*
+ * How to annotate unused variables
+ */
+#ifdef __GNUC__
+#define UNUSED __attribute__((unused))
+#else
+#define UNUSED
+#endif
 
 #endif
