@@ -1,4 +1,6 @@
-/*	$OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $	*/
+/* tftp-hpa: $Id$ */
+
+/* $OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $	*/
 
 /*
  * Copyright (c) 1983 Regents of the University of California.
@@ -42,7 +44,7 @@ static const char *copyright =
 #ifndef lint
 /*static char sccsid[] = "from: @(#)tftpd.c	5.13 (Berkeley) 2/26/91";*/
 /*static char rcsid[] = "$OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $: tftpd.c,v 1.6 1997/02/16 23:49:21 deraadt Exp $";*/
-static const char *cvsid = "tftp-hpa $Id$";
+static const char *rcsid = "tftp-hpa $Id$";
 #endif /* not lint */
 
 /*
@@ -399,6 +401,8 @@ tftp(struct tftphdr *tp, int size)
 	exit(1);
 }
 
+static int blksize_set;
+
 /*
  * Set a non-standard block size (c.f. RFC2348)
  */
@@ -407,6 +411,9 @@ set_blksize(char *val, char **ret)
 {
   	static char b_ret[6];
         unsigned int sz = atoi(val);
+
+	if ( blksize_set )
+	  return 0;
 
         if (sz < 8)
                 return(0);
@@ -426,6 +433,9 @@ set_blksize2(char *val, char **ret)
 {
   	static char b_ret[6];
         unsigned int sz = atoi(val);
+
+	if ( blksize_set )
+	  return 0;
 
         if (sz < 8)
                 return(0);
@@ -494,6 +504,8 @@ do_opt(char *opt, char *val, char **ap)
 {
      struct options *po;
      char *ret;
+
+     blksize_set = 0;
      
      if ( !*opt )
 	  return;
