@@ -1,5 +1,26 @@
-This is tftp-hpa-0.12; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.13; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
+
+Changes in 0.13:
+
+	Added the non-standard option "blksize2".  The "blksize"
+	option is limited in its usability, since TFTP is designed to
+	be implemented in a ROM, and ROM code might find it painful to
+	deal with packets that don't meet certain alignment
+	restrictions.
+
+	The "blksize2" option tells the server that the block size
+	must be a power of 2 to be usable to the client.  The server
+	SHALL respond with a block size that is a power of two, up to
+	a maximum of 32768, or reject the option.  Furthermore, the
+	server SHALL grant a block size that is no smaller than 512
+	bytes unless the client explicitly requested a smaller block
+	size.  If the client request both options, the server MAY
+	accept one or the other, but not both.  At some point I will
+	probably write up an IETF draft for this option.
+
+
+General information on the tftp-hpa series:
 
 This is a conglomerate of a number of versions of the BSD TFTP code,
 ported to Linux, although it should work on mostly any POSIX-compliant
@@ -21,4 +42,5 @@ their code.
 
 Adding the -r option (disable a specific option), the "timeout"
 option, and converting to using autoconf for setup was my own code, as
-are any bugs introduced in this merge.
+are any bugs introduced in this merge, and any features added to the
+Changes list.
