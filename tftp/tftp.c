@@ -104,7 +104,8 @@ tftp_sendfile(int fd, char *name, char *mode)
 	struct tftphdr *ap;	   /* data and ack packets */
 	struct tftphdr *dp;
 	int n;
-	volatile int block, size, convert;
+	volatile u_short block;
+	volatile int size, convert;
 	volatile unsigned long amount;
 	struct sockaddr_in from;
 	int fromlen;
@@ -206,7 +207,8 @@ tftp_recvfile(int fd, char *name, char *mode)
 	struct tftphdr *ap;
 	struct tftphdr *dp;
 	int n;
-	volatile int block, size, firsttrip;
+	volatile u_short block;
+	volatile int size, firsttrip;
 	volatile unsigned long amount;
 	struct sockaddr_in from;
 	int fromlen;

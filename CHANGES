@@ -1,5 +1,11 @@
 $Id$
 
+Changes in 0.24:
+	Fix bugs in both client and server dealing with block number
+	wraparound, usually manifesting themselves as failure to
+	handle files over 32 MB in size.
+
+
 Changes in 0.23:
 	Correct memory overwrite bug in the tftp client when compiled
 	with readline.

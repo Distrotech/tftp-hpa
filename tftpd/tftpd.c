@@ -926,7 +926,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
   struct tftphdr *dp;
   struct tftphdr *ap;		/* ack packet */
-  static int block = 1;		/* Static to avoid longjmp funnies */
+  static u_short block = 1;	/* Static to avoid longjmp funnies */
   int size, n;
   
   ap = (struct tftphdr *)ackbuf;
@@ -1036,8 +1036,9 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   int n, size;
   /* These are "static" to avoid longjmp funnies */
   static struct tftphdr *ap;    /* ack buffer */
-  static int block = 0, acksize;
-  
+  static u_short block = 0;
+  static int acksize;
+
   dp = w_init();
   do {
     timeout = 0;
