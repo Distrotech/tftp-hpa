@@ -35,6 +35,9 @@ X = @EXEEXT@
 # Install into alternate root area, e.g. for package generation
 INSTALLROOT = 
 
+# Link
+LN_S            = @LN_S@
+
 # Install program
 INSTALL         = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
