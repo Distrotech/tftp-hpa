@@ -7,6 +7,9 @@ Changes in 0.39:
 
 	Fix a timeout bug.
 
+	Add an RPM spec file.
+
+
 Changes in 0.38:
 	Portability fixes.
 

@@ -35,7 +35,7 @@ localdistclean: localclean
 	find . -type f \( -name \*.orig -o -name \*.rej \) | xargs rm -f
 
 spotless: distclean
-	rm -f configure aconfig.h.in
+	rm -f configure aconfig.h.in tftp.spec
 
 autoconf: configure aconfig.h.in
 
@@ -43,6 +43,7 @@ config:	MCONFIG aconfig.h
 
 release:
 	$(MAKE) autoconf
+	$(MAKE) tftp.spec
 	$(MAKE) distclean
 
 MCONFIG: configure MCONFIG.in aconfig.h.in
@@ -68,3 +69,7 @@ configure: configure.in aclocal.m4
 
 version.h: version
 	echo \#define VERSION \"tftp-hpa `cat version`\" > version.h
+
+tftp.spec: tftp.spec.in version
+	sed -e "s/@@VERSION@@/`cat version`/g" < $< > $@ || rm -f $@
+
