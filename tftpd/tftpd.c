@@ -122,7 +122,7 @@ off_t	tsize;
 int     tsize_ok;
 
 int	ndirs;
-char	**dirs;
+const char **dirs;
 
 int	secure = 0;
 int	cancreate = 0;
@@ -201,7 +201,7 @@ main(int argc, char **argv)
   struct options *opt;
   struct sockaddr_in myaddr;
   struct sockaddr_in bindaddr;
-  int n = 0;
+  int n;
   int on = 1;
   int fd = 0;
   int listen = 0;		/* Standalone (listen) mode */
@@ -267,20 +267,12 @@ main(int argc, char **argv)
       usage();
       break;
     }
-  
-  for (; optind != argc; optind++) {
-    if (dirs)
-      dirs = realloc(dirs, (ndirs+2) * sizeof (char *));
-    else
-      dirs = calloc(ndirs+2, sizeof(char *));
-    if (dirs == NULL) {
-      syslog(LOG_ERR, "malloc: %m");
-      exit(EX_OSERR);
-    }			
-    dirs[n++] = argv[optind];
-    dirs[n] = NULL;
-    ndirs++;
-  }
+
+  dirs = xmalloc((argc-optind+1)*sizeof(char *));
+  for ( ndirs = 0 ; optind != argc ; optind++ )
+    dirs[ndirs++] = argv[optind];
+
+  dirs[ndirs] = NULL;
   
   if (secure) {
     if (ndirs == 0) {
@@ -817,8 +809,10 @@ int
 validate_access(char *filename, int mode, struct formats *pf)
 {
   struct stat stbuf;
+  int   i, len;
   int	fd, wmode;
-  char *cp, **dirp;
+  char *cp;
+  const char **dirp;
   
   tsize_ok = 0;
   
@@ -829,9 +823,13 @@ validate_access(char *filename, int mode, struct formats *pf)
      * prevent tricksters from getting around the directory
      * restrictions
      */
-    for (cp = filename + 1; *cp; cp++)
-      if(*cp == '.' && strncmp(cp-1, "/../", 4) == 0)
+    len = strlen(filename);
+    for ( i = 1 ; i < len-3 ; i++ ) {
+      cp = filename + i;
+      if ( *cp == '.' && memcmp(cp-1, "/../", 4) == 0)
 	return(EACCESS);
+    }
+
     for (dirp = dirs; *dirp; dirp++)
       if (strncmp(filename, *dirp, strlen(*dirp)) == 0)
 	break;
