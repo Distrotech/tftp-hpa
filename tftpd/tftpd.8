@@ -135,7 +135,14 @@ are
 .B tsize
 (RFC 2349), and
 .B timeout
-(RFC 2349).  The
+(RFC 2349).  The nonstandard
+.B blksize2
+TFTP option is functionally identical to the
+.B blksize
+option, with the additional constraint that the
+blocksize is constrained to be a power of 2.
+.PP
+The
 .B \-r
 option can be used to disable specific options; this may be necessary
 to work around bugs in specific TFTP client implementations.
@@ -264,13 +271,6 @@ RFC 2348,
 .br
 RFC 2349,
 .IR "TFTP Timeout Interval and Transfer Size Options" .
-.PP
-The nonstandard
-.B blksize2
-TFTP option is functionally identical to the
-.B blksize
-option specified in RFC 2349, with the additional constraint that the
-blocksize is constrained to be a power of 2.
 .SH "AUTHOR"
 This version of
 .B tftpd
