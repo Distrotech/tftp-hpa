@@ -166,10 +166,30 @@ static void handle_sighup(int sig)
 static void
 usage(void)
 {
-  syslog(LOG_ERR, "Usage: %s [-vc][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
+  syslog(LOG_ERR, "Usage: %s [-vcl][-a address][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
 	 __progname);
   exit(EX_USAGE);
 }
+
+
+#ifdef WITH_REGEX
+static struct rule *
+read_remap_rules(const char *file)
+{
+  FILE *f;
+  struct rule *rulep;
+
+  f = fopen(file, "rt");
+  if ( !f ) {
+    syslog(LOG_ERR, "Cannot open map file: %s: %m", file);
+    exit(EX_NOINPUT);
+  }
+  rulep = parserulefile(f);
+  fclose(f);
+
+  return rulep;
+}
+#endif
 
 int
 main(int argc, char **argv)
@@ -178,26 +198,36 @@ main(int argc, char **argv)
   struct passwd *pw;
   struct options *opt;
   struct sockaddr_in myaddr;
+  struct sockaddr_in bindaddr;
   int n = 0;
   int on = 1;
   int fd = 0;
+  int listen = 0;		/* Standalone (listen) mode */
+  char *address = NULL;		/* Address to listen to */
   int pid;
   int c;
   int setrv;
-  int timeout = 900;	/* Default timeout */
+  int timeout = 900;		/* Default timeout */
   char *user = "nobody";	/* Default user */
+  char *rewrite_file = NULL;
   
   __progname = basename(argv[0]);
   
   openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
   
-  while ((c = getopt(argc, argv, "csvu:r:t:m:")) != -1)
+  while ((c = getopt(argc, argv, "csvla:u:r:t:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
       break;
     case 's':
       secure = 1;
+      break;
+    case 'l':
+      listen = 1;
+      break;
+    case 'a':
+      address = optarg;
       break;
     case 't':
       timeout = atoi(optarg);
@@ -219,20 +249,11 @@ main(int argc, char **argv)
       break;
 #ifdef WITH_REGEX
     case 'm':
-      {
-	FILE *f;
-	if ( rewrite_rules ) {
-	  syslog(LOG_ERR, "Multiple -m options");
-	  exit(EX_USAGE);
-	}
-	f = fopen(optarg, "rt");
-	if ( !f ) {
-	  syslog(LOG_ERR, "Cannot open map file: %s: %m", optarg);
-	  exit(EX_NOINPUT);
-	}
-	rewrite_rules = parserulefile(f);
-	fclose(f);
+      if ( rewrite_file ) {
+	syslog(LOG_ERR, "Multiple -m options");
+	exit(EX_USAGE);
       }
+      rewrite_file = optarg;
       break;
 #endif
     case 'v':
@@ -282,7 +303,74 @@ main(int argc, char **argv)
     syslog(LOG_ERR, "ioctl(FIONBIO): %m");
     exit(EX_OSERR);
   }
-  
+
+  if ( rewrite_file )
+    rewrite_rules = read_remap_rules(rewrite_file);
+
+  /* If we're running standalone, set up the input port */
+  if ( listen ) {
+    fd = socket(PF_INET, SOCK_DGRAM, 0);
+    
+    memset(&bindaddr, 0, sizeof bindaddr);
+    bindaddr.sin_addr.s_addr = INADDR_ANY;
+    bindaddr.sin_port = htons(IPPORT_TFTP);
+
+    if ( address ) {
+      char *portptr, *eportptr;
+      struct hostent *hostent;
+      struct servent *servent;
+      unsigned long port;
+
+      address = tfstrdup(address);
+      portptr = strrchr(address, ':');
+      if ( portptr )
+	*portptr++ = '\0';
+      
+      if ( *address ) {
+	hostent = gethostbyname(address);
+	if ( !hostent || hostent->h_addrtype != AF_INET ) {
+	  syslog(LOG_ERR, "cannot resolve local bind address: %s", address);
+	  exit(EX_NOINPUT);
+	}
+	memcpy(&bindaddr.sin_addr, hostent->h_addr, hostent->h_length);
+      } else {
+	/* Default to using INADDR_ANY */
+      }
+    
+      if ( portptr && *portptr ) {
+	servent = getservbyname(portptr, "udp");
+	if ( servent ) {
+	  bindaddr.sin_port = servent->s_port;
+	} else if ( (port = strtoul(portptr, &eportptr, 0)) && !*eportptr ) {
+	  bindaddr.sin_port = htons(port);
+	} else if ( !strcmp(portptr, "tftp") ) {
+	  /* It's TFTP, we're OK */
+	} else {
+	  syslog(LOG_ERR, "cannot resolve local bind port: %s", portptr);
+	  exit(EX_NOINPUT);
+	}
+      }
+    }
+
+    if ( bind(fd, &bindaddr, sizeof bindaddr) ) {
+      syslog(LOG_ERR, "cannot bind to local socket: %m");
+      exit(EX_OSERR);
+    }
+
+    /* Daemonize this process */
+    {
+      int f = fork();
+      if ( f > 0 )
+	exit(0);
+      if ( f < 0 ) {
+	syslog(LOG_ERR, "cannot fork: %m");
+	exit(EX_OSERR);
+      }
+      close(0); close(1); close(2);
+      setsid();
+    }
+  }
+
   /* This means we don't want to wait() for children */
   set_signal(SIGCHLD, SIG_IGN, SA_NOCLDSTOP);
   
@@ -296,25 +384,48 @@ main(int argc, char **argv)
     struct timeval tv_timeout;
     int rv;
     
+    if ( caught_sighup ) {
+      caught_sighup = 0;
+      if ( listen ) {
+#ifdef HAVE_REGEX
+	/* This is unfortunately a memory leak.  Hopefully
+	   SIGHUPs aren't too common. */
+	if ( rewrite_file )
+	  rewrite_rules = read_remap_rules(rewrite_file);
+#endif
+      } else {
+	/* Return to inetd for respawn */
+	exit(0);
+      }
+    }
+    
     FD_ZERO(&readset);
     FD_SET(fd, &readset);
     tv_timeout.tv_sec = timeout;
     tv_timeout.tv_usec = 0;
     
-    if ( caught_sighup )
-      exit(0);		/* Return to inetd for respawn */
-    
-    rv = select(fd+1, &readset, NULL, NULL, &tv_timeout);
+    /* Never time out if we're in listen mode */
+    rv = select(fd+1, &readset, NULL, NULL, listen ? NULL : &tv_timeout);
     if ( rv == -1 && errno == EINTR )
       continue;		/* Signal caught, reloop */
-    if ( rv <= 0 )
-      exit(0);		/* Timeout or error, return to inetd */
+    if ( rv == -1 ) {
+      syslog(LOG_ERR, "select loop: %m");
+      exit(EX_OSERR);
+    } else if ( rv == 0 ) {
+      exit(0);		/* Timeout, return to inetd */
+    }
     
     fromlen = sizeof (from);
     n = myrecvfrom(fd, buf, sizeof (buf), 0,
 		   (struct sockaddr *)&from, &fromlen,
 		   &myaddr);
-    
+
+    if ( listen && myaddr.sin_addr.s_addr == INADDR_ANY ) {
+      /* myrecvfrom() didn't capture the source address; but we might
+	 have bound to a specific address, if so we should use it */
+      memcpy(&myaddr.sin_addr, &bindaddr.sin_addr, sizeof bindaddr.sin_addr);
+    }
+
     if (n < 0) {
       syslog(LOG_ERR, "recvfrom: %m");
       exit(EX_IOERR);
@@ -386,7 +497,9 @@ main(int argc, char **argv)
   
   /* Close file descriptors we don't need */
   close(fd);
+  close(0);
   close(1);
+  close(2);
   
   /* Other basic setup */
   from.sin_family = AF_INET;

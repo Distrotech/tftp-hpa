@@ -35,7 +35,7 @@
 .\"	from: @(#)tftpd.8	6.7 (Berkeley) 5/13/91
 .\"	$OpenBSD: tftpd.8,v 1.7 1999/07/09 13:35:51 aaron Exp $
 .\"
-.Dd July 10, 2001
+.Dd August 6, 2001
 .Dt TFTPD 8
 .Os
 .Sh NAME
@@ -46,8 +46,11 @@ IPv4 Trivial File Transfer Protocol server
 .Nm in.tftpd
 .Op Fl v
 .Op Fl c
+.Op Fl l
+.Op Fl a Ar [address][:port]
 .Op Fl m Ar mapfile
 .Op Fl u Ar userid
+.Op Fl t Ar timeout
 .Op Fl r Ar option...
 .Op Fl s
 .Op Ar directory
@@ -66,7 +69,8 @@ service description;
 see
 .Xr services 5 .
 The server is normally started by
-.Xr inetd 8 .
+.Xr inetd 8 ,
+but can also run standalone.
 .Pp
 The use of
 .Xr tftp 1
@@ -91,9 +95,20 @@ Access to files may be restricted by invoking
 .Nm
 with a list of directories by including pathnames
 as server program arguments in
-.Pa /etc/inetd.conf .
-In this case access is restricted to files whose
-names are prefixed by the one of the given directories.
+.Pa /etc/inetd.conf
+or on the standalone server command line.  In this case access is
+restricted to files whose names are prefixed by the one of the given
+directories.
+.Pp
+If the
+.Fl l
+flag is used, the server runs in standalone (listen) mode.  In listen
+mode, the
+.Fl t
+option is ignored, and the
+.Fl a
+option can be used to specify a specific local address or port to
+listen to.
 .Pp
 If the
 .Fl c
@@ -116,9 +131,13 @@ which do not include a directory name.
 .Pp
 The
 .Fl u
-flag can be used to specify a user ID which
+option can be used to specify a user ID which
 .Nm
 will run as; the default is ``nobody''.
+.Pp
+The
+.Fl t
+option specifies the server timeout in inetd mode.
 .Pp
 The
 .Fl m

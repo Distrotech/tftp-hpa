@@ -1,4 +1,4 @@
-This is tftp-hpa-0.19; this version was put out by H. Peter Anvin
+This is tftp-hpa-0.21; this version was put out by H. Peter Anvin
 <hpa@zytor.com>.
 
 The latest version of this collection can be found at:
@@ -17,6 +17,10 @@ improvements.
 
 ===> IMPORTANT: SEE THE FILE "README.security" FOR IMPORTANT SECURITY
 ===> CHANGES ENACTED IN VERSION 0.17!!!!!!!!!
+
+Changes in 0.21:
+	Support running in standalone mode, without inetd.
+
 
 Changes in 0.20:
 	Portability improvements.  Now known to compile and run on
