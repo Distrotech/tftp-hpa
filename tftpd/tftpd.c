@@ -207,25 +207,37 @@ set_socket_nonblock(int fd, int flag)
 }
 
 /*
- * Receive packet with synchronous timeout
+ * Receive packet with synchronous timeout; timeout is adjusted
+ * to account for time spent waiting.
  */
 static int recv_time(int s, void *rbuf, int len, unsigned int flags,
-		     unsigned long timeout_us)
+		     unsigned long *timeout_us_p)
 {
   fd_set fdset;
-  struct timeval tmv;
+  struct timeval tmv, t0, t1;
   int rv, err;
+  unsigned long timeout_us = *timeout_us_p;
+  unsigned long timeout_left, dt;
+
+  gettimeofday(&t0, NULL);
+  timeout_left = timeout_us;
 
   for ( ; ; ) {
     FD_ZERO(&fdset);
     FD_SET(s, &fdset);
     
-    tmv.tv_sec  = timeout_us / 1000000;
-    tmv.tv_usec = timeout_us % 1000000;
-    
     do {
+      tmv.tv_sec  = timeout_left / 1000000;
+      tmv.tv_usec = timeout_left % 1000000;
+    
       rv = select(s+1, &fdset, NULL, NULL, &tmv);
-    } while ( rv == -1 && errno == EINTR );
+      err = errno;
+
+      gettimeofday(&t1, NULL);
+
+      dt = (t1.tv_sec - t0.tv_sec)*1000000 + (t1.tv_usec - t0.tv_usec);
+      *timeout_us_p = timeout_left = ( dt >= timeout_us ) ? 1 : (timeout_us - dt);
+    } while ( rv == -1 && err == EINTR );
     
     if ( rv == 0 ) {
       timer(0);			/* Should not return */
@@ -236,6 +248,7 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
     rv = recv(s, rbuf, len, flags);
     err = errno;
     set_socket_nonblock(s, 0);
+    
     if ( rv < 0 ) {
       if ( E_WOULD_BLOCK(err) || err == EINTR ) {
 	continue;		/* Once again, with feeling... */
@@ -1178,7 +1191,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
       goto abort;
     }
     for ( ; ; ) {
-      n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, timeout);
+      n = recv_time(peer, ackbuf, sizeof(ackbuf), 0, &timeout);
       if (n < 0) {
 	syslog(LOG_WARNING, "tftpd: read: %m\n");
 	goto abort;
@@ -1219,7 +1232,7 @@ tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     }
     read_ahead(file, pf->f_convert);
     for ( ; ; ) {
-      n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, timeout);
+      n = recv_time(peer, ackbuf, sizeof (ackbuf), 0, &timeout);
       if (n < 0) {
 	syslog(LOG_WARNING, "tftpd: read(ack): %m");
 	goto abort;
@@ -1296,7 +1309,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     }
     write_behind(file, pf->f_convert);
     for ( ; ; ) {
-      n = recv_time(peer, dp, PKTSIZE, 0, timeout);
+      n = recv_time(peer, dp, PKTSIZE, 0, &timeout);
       if (n < 0) {		/* really? */
 	syslog(LOG_WARNING, "tftpd: read: %m");
 	goto abort;
@@ -1331,7 +1344,7 @@ tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
   (void) send(peer, ackbuf, 4, 0);
   
   timeout_quit = 1;		/* just quit on timeout */
-  n = recv_time(peer, buf, sizeof (buf), 0, timeout); /* normally times out and quits */
+  n = recv_time(peer, buf, sizeof (buf), 0, &timeout); /* normally times out and quits */
   timeout_quit = 0;
 
   if (n >= 4 &&			/* if read some data */

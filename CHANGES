@@ -1,5 +1,10 @@
 $Id$
 
+Changes in 0.37:
+	Fix a pathology where a client sending ACKs for the wrong
+	packet can prevent proper retransmission.
+
+
 Changes in 0.36:
 	Portability fixes.
 
