@@ -30,4 +30,4 @@ If you are running a busy boot server, I would suggest to instead use
 kernel-based firewalling rules, and to compile tftpd without
 tcpwrapper support, in order to provide significantly better
 performance.  To do so, specify the --without-tcpwrappers option to
-configure when compiling.
+configure when compiling; see the INSTALL.tftp file for more information.
