@@ -44,7 +44,9 @@
 IPv4 Trivial File Transfer Protocol server
 .Sh SYNOPSIS
 .Nm in.tftpd
+.Op Fl v
 .Op Fl c
+.Op Fl m Ar mapfile
 .Op Fl u Ar userid
 .Op Fl r Ar option...
 .Op Fl s
@@ -118,6 +120,16 @@ flag can be used to specify a user ID which
 .Nm
 will run as; the default is ``nobody''.
 .Pp
+The
+.Fl m
+flag specifies a file which contains filename remapping rules. 
+.Pp
+The
+.Fl v
+flag increases the logging verbosity of
+.Nm tftpd ,
+it can be specified multiple times.
+.Pp
 This version of
 .Nm
 supports RFC 2347 option negotiation; the current version supports the
@@ -130,8 +142,73 @@ supports RFC 2347 option negotiation; the current version supports the
 .Fl r
 flag can be used to disable options individually; this may allow
 working around client bugs.
+.Sh FILENAME REMAPPING
+The
+.Fl m
+option specifies a file which contains filename remapping rules.  Each
+non-comment line (comments begin with hash marks, #) contains an
+.Ar operation ,
+a
+.Ar regex ,
+a regular expression in the style of
+.Xr egrep 1 ,
+and optionally a
+.Ar "replacement pattern" .
+The operation indicated by
+.Ar operation
+is performed if the
+.Ar regex
+matches all or part of the filename.  Rules are processed from the top
+down, and by default, all rules are processed even if there is a
+match.
+.Pp
+The
+.Ar operation
+can be any combination of the following letters:
+.Pp
+.Bl -tag -width verbose -compact
+.It Ic r
+Replace the substring matched by
+.Ar regex
+by the
+.Ar "replacement pattern" .
+The escape sequence
+\\0
+can be used to copy the entire matched string, and the sequences
+\\1 to \\9
+copies parenthesized subexpressions.  To specify a backslash, white
+space or hash mark, you need to \\-escape it.
+.Pp
+.It Ic g
+Repeat this rule until it no longer matches.  This is always used with
+.Ic r .
+.Pp
+.It Ic i
+Match the
+.Ar regex
+case-insensitively.  By default it is case sensitive.
+.Pp
+.It Ic e
+If this rule matches, end rule processing after executing the rule.
+.Pp
+.It Ic s
+If this rule matches, start rule processing over from the very first
+rule after executing this rule.
+.Pp
+.It Ic a
+If this rule matches, refuse the request and send an access denied
+error to the client.
+.Pp
+.It Ic G
+This rule applies to GET (RRQ) requests only.
+.Pp
+.It Ic P
+This rule applies to PUT (WRQ) requests only.
+.El
 .Sh SEE ALSO
 .Xr tftp 1 ,
+.Xr egrep 1 ,
+.Xr regex 7 ,
 .Xr inetd 8
 .Sh HISTORY
 The
@@ -153,5 +230,9 @@ flag and RFC 2347 options were added by H. Peter Anvin based on
 patches by Markus Gutschke and Gero Kulhman.
 .Pp
 The
-.Fl u
-flag was added by H. Peter Anvin.
+.Fl u ,
+.Fl v
+and
+.Fl m
+flags were added by H. Peter Anvin.
+

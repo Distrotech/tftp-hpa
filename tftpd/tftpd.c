@@ -85,6 +85,8 @@ static const char *rcsid = "tftp-hpa $Id$";
 int deny_severity	= LOG_WARNING;
 int allow_severity	= -1;	/* Don't log at all */
 
+int verbosity = 0;
+
 struct request_info wrap_request;
 #endif
 
@@ -157,7 +159,7 @@ struct options {
 static void
 usage(void)
 {
-	syslog(LOG_ERR, "Usage: %s [-c] [-m mappings] [-u user] [-t timeout] [-r option...] [-s] [directory ...]",
+	syslog(LOG_ERR, "Usage: %s [-vc][-m mappings][-u user][-t timeout][-r option...] [-s] [directory ...]",
 	       __progname);
 	exit(1);
 }
@@ -182,7 +184,7 @@ main(int argc, char **argv)
 
 	openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
-	while ((c = getopt(argc, argv, "csu:r:t:m:")) != -1)
+	while ((c = getopt(argc, argv, "csvu:r:t:m:")) != -1)
 		switch (c) {
 		case 'c':
 			cancreate = 1;
@@ -226,9 +228,12 @@ main(int argc, char **argv)
 		  }
 		  break;
 #endif
+		case 'v':
+		  verbosity++;
+		  break;
 		default:
-			usage();
-			break;
+		  usage();
+		  break;
 		}
 
 	for (; optind != argc; optind++) {
@@ -415,6 +420,7 @@ tftp(struct tftphdr *tp, int size)
 	char *cp;
 	int argn, ecode;
 	struct formats *pf = NULL;
+	char *origfilename;
 	char *filename, *mode = NULL;
 
         char *val = NULL, *opt = NULL;
@@ -422,7 +428,7 @@ tftp(struct tftphdr *tp, int size)
 
         ((struct tftphdr *)ackbuf)->th_opcode = ntohs(OACK);
 
-	filename = cp = tp->th_stuff;
+	origfilename = cp = tp->th_stuff;
 	argn = 0;
 
 	while ( cp < buf + size && *cp ) {
@@ -449,7 +455,7 @@ tftp(struct tftphdr *tp, int size)
 		       nak(EBADOP);
 		       exit(0);
 		  }
-		  if ( !(filename = (*pf->f_rewrite)(filename, tp->th_opcode)) ) {
+		  if ( !(filename = (*pf->f_rewrite)(origfilename, tp->th_opcode)) ) {
 		       nak(EACCES); /* File denied by mapping rule */
 		       exit(0);
 		  }
@@ -471,6 +477,17 @@ tftp(struct tftphdr *tp, int size)
 	     nak(EBADOP);
 	     exit(0);
 	}
+
+	if ( verbosity >= 1 ) {
+	  if ( filename == origfilename || !strcmp(filename, origfilename) )
+	    syslog(LOG_NOTICE, "%s from %s filename %s\n",
+		   opcode[tp->th_opcode] == WRQ ? "WRQ" : "RRQ",
+		   inet_ntoa(from.sin_addr), filename);
+	  else
+	    syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
+		   opcode[tp->th_opcode] == WRQ ? "WRQ" : "RRQ",
+		   inet_ntoa(from.sin_addr), origfilename, filename);
+	}		   
 
 	if ( ap != (ackbuf+2) ) {
 	     if ( tp->th_opcode == WRQ )
@@ -966,6 +983,12 @@ nak(int error)
 	length = strlen(pe->e_msg);
 	tp->th_msg[length] = '\0';
 	length += 5;
+
+	if ( verbosity >= 2 ) {
+	  syslog(LOG_INFO, "sending NAK (%d, %s) to %s",
+		 error, tp->th_msg, inet_ntoa(from.sin_addr));
+	}
+
 	if (send(peer, buf, length, 0) != length)
 		syslog(LOG_ERR, "nak: %m");
 }
