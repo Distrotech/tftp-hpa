@@ -35,7 +35,7 @@
 .\"	from: @(#)tftpd.8	6.7 (Berkeley) 5/13/91
 .\"	$OpenBSD: tftpd.8,v 1.7 1999/07/09 13:35:51 aaron Exp $
 .\"
-.Dd Apr 23, 2001
+.Dd July 10, 2001
 .Dt TFTPD 8
 .Os
 .Sh NAME
@@ -122,7 +122,7 @@ will run as; the default is ``nobody''.
 .Pp
 The
 .Fl m
-flag specifies a file which contains filename remapping rules. 
+flag specifies a file which contains filename remapping rules.
 .Pp
 The
 .Fl v
@@ -205,6 +205,11 @@ This rule applies to GET (RRQ) requests only.
 .It Ic P
 This rule applies to PUT (WRQ) requests only.
 .El
+.Pp
+If the mapping file is changed, you need to send SIGHUP
+(kill -HUP) to any outstanding
+.Nm
+process.
 .Sh SEE ALSO
 .Xr tftp 1 ,
 .Xr egrep 1 ,

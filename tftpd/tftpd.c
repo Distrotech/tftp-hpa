@@ -85,8 +85,6 @@ static const char *rcsid = "tftp-hpa $Id$";
 int deny_severity	= LOG_WARNING;
 int allow_severity	= -1;	/* Don't log at all */
 
-int verbosity = 0;
-
 struct request_info wrap_request;
 #endif
 
@@ -128,6 +126,8 @@ char	**dirs;
 
 int	secure = 0;
 int	cancreate = 0;
+
+int verbosity = 0;
 
 struct formats;
 static struct rule *rewrite_rules = NULL;
@@ -481,11 +481,11 @@ tftp(struct tftphdr *tp, int size)
 	if ( verbosity >= 1 ) {
 	  if ( filename == origfilename || !strcmp(filename, origfilename) )
 	    syslog(LOG_NOTICE, "%s from %s filename %s\n",
-		   opcode[tp->th_opcode] == WRQ ? "WRQ" : "RRQ",
+		   tp->th_opcode == WRQ ? "WRQ" : "RRQ",
 		   inet_ntoa(from.sin_addr), filename);
 	  else
 	    syslog(LOG_NOTICE, "%s from %s filename %s remapped to %s\n",
-		   opcode[tp->th_opcode] == WRQ ? "WRQ" : "RRQ",
+		   tp->th_opcode == WRQ ? "WRQ" : "RRQ",
 		   inet_ntoa(from.sin_addr), origfilename, filename);
 	}		   
 
