@@ -170,6 +170,25 @@ read_remap_rules(const char *file)
 }
 #endif
 
+static inline void
+set_socket_nonblock(int fd, int flag)
+{
+  int err;
+  int flags;
+#if defined(HAVE_FCNTL) && defined(O_NONBLOCK)
+  /* Posixly correct */
+  err = ((flags = fcntl(fd, F_GETFL, 0)) < 0) ||
+    (fcntl(fd, F_SETFL, flag ? flags|O_NONBLOCK : flags&~O_NONBLOCK) < 0);
+#else
+  flags = flag ? 1 : 0;
+  err = (ioctl(fd, FIONBIO, &flags) < 0);
+#endif
+  if ( err ) {
+    syslog(LOG_ERR, "Cannot set nonblock flag on socket: %m");
+    exit(EX_OSERR);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -296,25 +315,10 @@ main(int argc, char **argv)
   if ( spec_umask || !unixperms )
     umask(my_umask);
   
-#if defined(HAVE_FCNTL) && defined(O_NONBLOCK)
-  /* Posixly correct */
-  {
-    int flags;
-    if ( (flags = fcntl(fd, F_GETFL, 0) < 0) ||
-	 (fcntl(fd, F_SETFL, flags|O_NONBLOCK)) ) {
-      syslog(LOG_ERR, "Cannot set nonblocking socket: %m");
-      exit(EX_OSERR);
-    }
-  }
-#else
-  /* Old BSD version */
-  {
-    int on = 1;
-    if ( ioctl(fd, FIONBIO, &on) < 0 ) {
-      syslog(LOG_ERR, "Cannot set nonblocking socket: %m");
-      exit(EX_OSERR);
-    }
-  }
+  /* Note: on Cygwin, select() on a nonblocking socket becomes
+     a nonblocking select. */
+#ifndef __CYGWIN__
+  set_socket_nonblock(fd, 1);
 #endif
 
 #ifdef WITH_REGEX
@@ -376,15 +380,32 @@ main(int argc, char **argv)
     /* Daemonize this process */
     {
       pid_t f = fork();
+      int nfd;
       if ( f > 0 )
 	exit(0);
       if ( f < 0 ) {
 	syslog(LOG_ERR, "cannot fork: %m");
 	exit(EX_OSERR);
       }
-      close(0); close(1); close(2);
+      nfd = open("/dev/null", O_RDWR);
+      if ( nfd >= 0 ) {
+#ifdef HAVE_DUP2
+	dup2(nfd, 0);
+	dup2(nfd, 1);
+	dup2(nfd, 2);
+#else
+	close(0); dup(nfd);
+	close(1); dup(nfd);
+	close(2); dup(nfd);
+#endif
+	close(nfd);
+      } else {
+	close(0); close(1); close(2);
+      }
 #ifdef HAVE_SETSID
+#ifndef __CYGWIN__		/* Kills the process on Cygwin? */
       setsid();
+#endif
 #endif
     }
   } else {
@@ -429,6 +450,12 @@ main(int argc, char **argv)
     tv_waittime.tv_sec = waittime;
     tv_waittime.tv_usec = 0;
     
+#ifdef __CYGWIN__
+    /* On Cygwin, select() on a nonblocking socket returns immediately,
+       with a rv of 0! */
+    set_socket_nonblock(fd, 0);
+#endif    
+
     /* Never time out if we're in standalone mode */
     rv = select(fd+1, &readset, NULL, NULL, standalone ? NULL : &tv_waittime);
     if ( rv == -1 && errno == EINTR )
@@ -439,6 +466,10 @@ main(int argc, char **argv)
     } else if ( rv == 0 ) {
       exit(0);		/* Timeout, return to inetd */
     }
+
+#ifdef __CYGWIN__
+    set_socket_nonblock(fd, 1);
+#endif    
     
     fromlen = sizeof (from);
     n = myrecvfrom(fd, buf, sizeof (buf), 0,
@@ -453,7 +484,6 @@ main(int argc, char **argv)
 	exit(EX_IOERR);
       }
     }
-
 
     if ( standalone && myaddr.sin_addr.s_addr == INADDR_ANY ) {
       /* myrecvfrom() didn't capture the source address; but we might
@@ -533,6 +563,10 @@ main(int argc, char **argv)
     syslog(LOG_ERR, "chroot: %m");
     exit(EX_OSERR);
   }
+
+#ifdef __CYGWIN__
+  chdir("/");			/* Cygwin chroot() bug workaround */
+#endif
 
 #ifdef HAVE_SETREGID
   setrv = setregid(pw->pw_gid, pw->pw_gid);
