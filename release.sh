@@ -37,3 +37,5 @@ cd ..
 tar cvvf $releasedir.tar $releasedir
 gzip -9 $releasedir.tar
 mv -f $releasedir.tar.gz $here/..
+cd ..
+rm -rf $tmpdir
