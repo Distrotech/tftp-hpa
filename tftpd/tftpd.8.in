@@ -98,11 +98,12 @@ the ones specified in the system permission database for this
 username.
 .TP
 \fB\-U\fP \fIumask\fP
-Sets the \fIumask\fP to the specified value.  The default is zero
-if the
+Sets the \fIumask\fP for newly created files to the specified value.
+The default is zero if the
 .B \-p
 option is not specified, or unchanged if
-.B \-p is specified.
+.B \-p
+is specified.
 .TP
 .B \-p
 Indicate that no permissions checks beyond the normal system-provided
