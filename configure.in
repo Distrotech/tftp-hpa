@@ -19,6 +19,7 @@ AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not fo
 AC_SEARCH_LIBS(inet_aton, [nsl resolv], , [AC_MSG_ERROR(inet_aton not found)])
 AC_SEARCH_LIBS(herror, [nsl resolv], , [AC_MSG_ERROR(herror not found)])
 
+AC_CHECK_FUNCS(setsid)
 AC_CHECK_FUNCS(recvmsg)
 AC_CHECK_FUNCS(setreuid)
 AC_CHECK_FUNCS(setregid)

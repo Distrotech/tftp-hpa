@@ -352,7 +352,7 @@ main(int argc, char **argv)
       }
     }
 
-    if ( bind(fd, &bindaddr, sizeof bindaddr) ) {
+    if (bind(fd, (struct sockaddr *)&bindaddr, sizeof bindaddr) < 0) {
       syslog(LOG_ERR, "cannot bind to local socket: %m");
       exit(EX_OSERR);
     }
@@ -367,8 +367,13 @@ main(int argc, char **argv)
 	exit(EX_OSERR);
       }
       close(0); close(1); close(2);
+#ifdef HAVE_SETSID
       setsid();
+#endif
     }
+  } else {
+    /* 0 is our socket descriptor */
+    close(1); close(2);
   }
 
   /* This means we don't want to wait() for children */
@@ -445,6 +450,9 @@ main(int argc, char **argv)
   
   /* Child process: handle the actual request here */
   
+  /* Ignore SIGHUP */
+  set_signal(SIGHUP, SIG_IGN, 0);
+  
 #ifdef HAVE_TCPWRAPPERS
   /* Verify if this was a legal request for us.  This has to be
      done before the chroot, while /etc is still accessible. */
@@ -465,7 +473,19 @@ main(int argc, char **argv)
 	   inet_ntoa(from.sin_addr));
   }
 #endif
+
+  /* Close file descriptors we don't need */
+  close(fd);
   
+  /* Get a socket.  This has to be done before the chroot(), since
+     some systems require access to /dev to create a socket. */
+  
+  peer = socket(AF_INET, SOCK_DGRAM, 0);
+  if (peer < 0) {
+    syslog(LOG_ERR, "socket: %m");
+    exit(EX_IOERR);
+  }
+
   /* Chroot and drop privileges */
   
   if (secure && chroot(".")) {
@@ -492,32 +512,18 @@ main(int argc, char **argv)
     exit(EX_OSERR);
   }
   
-  /* Ignore SIGHUP */
-  set_signal(SIGHUP, SIG_IGN, 0);
-  
-  /* Close file descriptors we don't need */
-  close(fd);
-  close(0);
-  close(1);
-  close(2);
-  
   /* Other basic setup */
   from.sin_family = AF_INET;
   alarm(0);
   
   /* Process the request... */
   
-  peer = socket(AF_INET, SOCK_DGRAM, 0);
-  if (peer < 0) {
-    syslog(LOG_ERR, "socket: %m");
-    exit(EX_IOERR);
-  }
   myaddr.sin_port = htons(0); /* We want a new local port */
-  if (bind(peer, (struct sockaddr *)&myaddr, sizeof (myaddr)) < 0) {
+  if (bind(peer, (struct sockaddr *)&myaddr, sizeof myaddr) < 0) {
     syslog(LOG_ERR, "bind: %m");
     exit(EX_IOERR);
   }
-  if (connect(peer, (struct sockaddr *)&from, sizeof(from)) < 0) {
+  if (connect(peer, (struct sockaddr *)&from, sizeof from) < 0) {
     syslog(LOG_ERR, "connect: %m");
     exit(EX_IOERR);
   }
@@ -634,7 +640,7 @@ tftp(struct tftphdr *tp, int size)
     else
       (*pf->f_send)(pf, NULL, 0);
   }
-  exit(EX_SOFTWARE);		/* We should never get here */
+  exit(0);			/* Request completed */
 }
 
 static int blksize_set;

@@ -63,6 +63,7 @@ static const char *rcsid UNUSED =
 #include <netinet/in.h>
 #include <arpa/tftp.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "../config.h"
