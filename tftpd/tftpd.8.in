@@ -76,7 +76,12 @@ on all local addresses.
 Allow new files to be created.  By default,
 .B tftpd
 will only allow upload of files that already exist.  Files are created
-with default permissions allowing anyone to read or write them.
+with default permissions allowing anyone to read or write them, unless
+the
+.B \-p
+or
+.B \-U
+options are specified.
 .TP
 .B \-s
 Change root directory on startup.  This means the remote host does not
@@ -99,9 +104,9 @@ username.
 .TP
 \fB\-U\fP \fIumask\fP
 Sets the \fIumask\fP for newly created files to the specified value.
-The default is zero if the
+The default is zero (anyone can read or write) if the
 .B \-p
-option is not specified, or unchanged if
+option is not specified, or inherited from the invoking process if
 .B \-p
 is specified.
 .TP
