@@ -30,6 +30,10 @@ spotless: distclean
 
 config:	MCONFIG
 
+release:
+	$(MAKE) configure
+	$(MAKE) distclean
+
 MCONFIG: configure MCONFIG.in config.h.in
 	./configure
 
