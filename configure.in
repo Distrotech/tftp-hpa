@@ -122,12 +122,18 @@ AH_TEMPLATE([HAVE_SIGSETJMP],
 [Define if we have sigsetjmp, siglongjmp and sigjmp_buf.])
 PA_SIGSETJMP([AC_DEFINE(HAVE_SIGSETJMP)])
 
+dnl
+dnl Get common paths
+dnl
+SRCROOT=`cd $srcdir && pwd`
+OBJROOT=`pwd`
+
 LIBXTRA=false
 AC_SEARCH_LIBS(xmalloc, iberty, , LIBXTRA=true AC_LIBOBJ(xmalloc))
 AC_SEARCH_LIBS(xstrdup, iberty, , LIBXTRA=true AC_LIBOBJ(xstrdup))
 AC_SEARCH_LIBS(bsd_signal, bsd, , LIBXTRA=true AC_LIBOBJ(bsdsignal))
 if $LIBXTRA; then
-	LIBS="../lib/libxtra.a $LIBS"
+	XTRALIBS="$OBJROOT/lib/libxtra.a $XTRALIBS"
 fi
 
 dnl
@@ -162,7 +168,7 @@ PA_WITH_BOOL(remap, 1,
 	])
 ],:)
 
-TFTPD_LIBS="$LIBS"
+TFTPD_LIBS="$LIBS $XTRALIBS"
 LIBS="$common_libs"
 
 dnl
@@ -190,8 +196,11 @@ PA_WITH_BOOL(readline, 1,
 	])
 ],:)
 
-TFTP_LIBS="$LIBS"
+TFTP_LIBS="$LIBS $XTRALIBS"
 LIBS="$common_libs"
+
+AC_SUBST(SRCROOT)
+AC_SUBST(OBJROOT)
 
 AC_SUBST(TFTP_LIBS)
 AC_SUBST(TFTPD_LIBS)
