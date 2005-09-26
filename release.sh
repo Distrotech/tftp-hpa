@@ -1,11 +1,8 @@
-#!/bin/sh -x
-# $Id$
+#!/bin/sh -xe
 # 
 # Script for generating a release
 #
 
-CVS='cvs -d hpa@terminus.zytor.com:/home/hpa/cvsroot'
-MODULE=tftp
 PACKAGE=tftp-hpa
 
 if [ -z "$1" ]; then
@@ -14,22 +11,24 @@ if [ -z "$1" ]; then
 fi
 
 release="$1"
-cvsrelease=$PACKAGE-`echo "$release" | tr '.' '_'`
+releasetag=$PACKAGE-$release
 releasedir=$PACKAGE-$release
 
-echo $release > version
-$CVS commit -m 'Update version for release' version
+GIT_DIR=`cd "${GIT_DIR-.git}" && pwd`
+export GIT_DIR
 
-$CVS tag -F $cvsrelease
+echo $release > version
+cg-commit -m 'Update version for release'
+rm -f "$GIT_DIR"/refs/tags/$releasetag
+cg-tag $releasetag
 
 here=`pwd`
 
 tmpdir=/var/tmp/release.$$
 rm -rf $tmpdir
-mkdir $tmpdir
+mkdir -p $tmpdir
 cd $tmpdir
-$CVS export -r $cvsrelease $MODULE
-mv $MODULE $releasedir
+cg-export -r $releasetag $releasedir
 cd $releasedir
 make release
 rm -f release.sh
