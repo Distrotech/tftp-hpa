@@ -129,10 +129,14 @@ dnl
 SRCROOT=`cd $srcdir && pwd`
 OBJROOT=`pwd`
 
-AC_SEARCH_LIBS(xmalloc, iberty, , [AC_LIBOBJ(xmalloc)])
-AC_SEARCH_LIBS(xstrdup, iberty, , [AC_LIBOBJ(xstrdup)])
-AC_SEARCH_LIBS(bsd_signal, bsd, , [AC_LIBOBJ(bsdsignal)])
-XTRALIBS="$OBJROOT/lib/libxtra.a $XTRALIBS"
+XTRA=false
+AC_SEARCH_LIBS(xmalloc, iberty, , [XTRA=true ; AC_LIBOBJ(xmalloc)])
+AC_SEARCH_LIBS(xstrdup, iberty, , [XTRA=true ; AC_LIBOBJ(xstrdup)])
+AC_SEARCH_LIBS(bsd_signal, bsd, , [XTRA=true ; AC_LIBOBJ(bsdsignal)])
+if $XTRA
+then
+  XTRALIBS="$OBJROOT/lib/libxtra.a $XTRALIBS"
+fi
 
 dnl
 dnl These libraries apply to the server only

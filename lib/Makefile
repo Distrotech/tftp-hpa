@@ -7,7 +7,11 @@ SRCROOT = ..
 -include ../MCONFIG
 include ../MRULES
 
+ifeq ($(LIBOBJS),)
+all:
+else
 all:	libxtra.a
+endif
 
 install:
 
