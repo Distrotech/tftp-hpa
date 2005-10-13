@@ -187,7 +187,7 @@ read_remap_rules(const char *file)
 }
 #endif
 
-static inline void
+static void
 set_socket_nonblock(int fd, int flag)
 {
   int err;
@@ -204,6 +204,16 @@ set_socket_nonblock(int fd, int flag)
     syslog(LOG_ERR, "Cannot set nonblock flag on socket: %m");
     exit(EX_OSERR);
   }
+}
+
+static void
+pmtu_discovery_off(int fd)
+{
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+  int pmtu = IP_PMTUDISC_DONT;
+
+  setsockopt(fd, IPPROTO_IP, IP_MTU_DISCOVER, &pmtu, sizeof(pmtu));
+#endif
 }
 
 /*
@@ -508,6 +518,9 @@ main(int argc, char **argv)
     close(1); close(2);
   }
 
+  /* Disable path MTU discovery */
+  pmtu_discovery_off(0);
+
   /* This means we don't want to wait() for children */
 #ifdef SA_NOCLDWAIT
   set_signal(SIGCHLD, SIG_IGN, SA_NOCLDSTOP|SA_NOCLDWAIT);
@@ -701,6 +714,10 @@ main(int argc, char **argv)
     syslog(LOG_ERR, "connect: %m");
     exit(EX_IOERR);
   }
+
+  /* Disable path MTU discovery */
+  pmtu_discovery_off(0);
+
   tp = (struct tftphdr *)buf;
   tp_opcode = ntohs(tp->th_opcode);
   if (tp_opcode == RRQ || tp_opcode == WRQ)
