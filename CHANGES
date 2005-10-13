@@ -1,4 +1,11 @@
-$Id$
+Changes in 0.41:
+	Fix bug by which patterns of the form \U\1 weren't converted
+	correctly.
+
+
+Changes in 0.40.1:
+	Solaris build fix.
+
 
 Changes in 0.40:
 	Fix bug which would cause "r" remapping rules to be
