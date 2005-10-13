@@ -273,6 +273,37 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
   }
 }
 
+static int
+pick_port_bind(int sockfd, struct sockaddr_in *myaddr)
+{
+  unsigned int port, firstport;
+
+  firstport = portrange
+    ? portrange_from + rand() % (portrange_to-portrange_from+1)
+    : 0;
+
+  port = firstport;
+
+  do {
+    myaddr->sin_port = htons(port);
+    
+    if (bind(sockfd, (struct sockaddr *)myaddr, sizeof *myaddr) < 0) {
+      if ( portrange && (errno == EINVAL || errno == EADDRINUSE) )
+	continue;	/* Should not happen in normal operation, but try again */
+
+      return -1;
+    } else {
+      return 0;
+    }
+
+    port++;
+    if ( port > portrange_to )
+      port = portrange_from;
+  } while ( port != firstport );
+
+  return -1;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -717,32 +748,11 @@ main(int argc, char **argv)
   from.sin_family = AF_INET;
   
   /* Process the request... */
-  
-  while(1) {
-    unsigned int port;
-
-    if ( portrange ) {
-      /* Pick a (pseudo)random port in the relevant range */
-      port = portrange_from + rand() % (portrange_to-portrange_from+1);
-    } else {
-      port = 0;			/* Let the kernel pick a port */
-    }
-
-
-    myaddr.sin_port = htons(port);
-
-    if (bind(peer, (struct sockaddr *)&myaddr, sizeof myaddr) < 0) {
-      if ( (errno == EINVAL || errno == EADDRINUSE) && portrange )
-	continue;	/* Should not happen in normal operation, but try again */
-
-      syslog(LOG_ERR, "bind: %m");
-      exit(EX_IOERR);
-    } else {
-      break;
-    }
+  if (pick_port_bind(peer, &myaddr) < 0) {
+    syslog(LOG_ERR, "bind: %m");
+    exit(EX_IOERR);
   }
-
-
+  
   if (connect(peer, (struct sockaddr *)&from, sizeof from) < 0) {
     syslog(LOG_ERR, "connect: %m");
     exit(EX_IOERR);
