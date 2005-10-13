@@ -17,8 +17,11 @@ releasedir=$PACKAGE-$release
 GIT_DIR=`cd "${GIT_DIR-.git}" && pwd`
 export GIT_DIR
 
-echo $release > version
-cg-commit -m 'Update version for release'
+echo $release > version.new
+if ! cmp -s version version.new ; then
+  mv -f version.new version
+  cg-commit -m 'Update version for release' version
+fi
 rm -f "$GIT_DIR"/refs/tags/$releasetag
 cg-tag $releasetag
 
