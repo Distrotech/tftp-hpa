@@ -90,8 +90,9 @@ static int genmatchstring(char *string, const char *pattern, const char *input,
 	  mlen = pmatch[n].rm_eo - pmatch[n].rm_so;
 	  len += mlen;
 	  if ( string ) {
-	    memcpy(string, input+pmatch[n].rm_so, mlen);
-	    string += mlen;
+	    const char *p = input+pmatch[n].rm_so;
+	    while ( mlen-- )
+	      *string++ = xform(*p++);
 	  }
 	}
 	break;
