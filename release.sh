@@ -21,6 +21,8 @@ echo $release > version.new
 if ! cmp -s version version.new ; then
   mv -f version.new version
   cg-commit -m 'Update version for release' version
+else
+  rm -f version.new
 fi
 rm -f "$GIT_DIR"/refs/tags/$releasetag
 cg-tag $releasetag
