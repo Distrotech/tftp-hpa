@@ -288,10 +288,12 @@ pick_port_bind(int sockfd, struct sockaddr_in *myaddr)
     myaddr->sin_port = htons(port);
     
     if (bind(sockfd, (struct sockaddr *)myaddr, sizeof *myaddr) < 0) {
-      if ( portrange && (errno == EINVAL || errno == EADDRINUSE) )
-	continue;	/* Should not happen in normal operation, but try again */
+      /* Some versions of Linux return EINVAL instead of EADDRINUSE */
+      if ( !portrange || !(errno != EINVAL && errno != EADDRINUSE) )
+	return -1;
 
-      return -1;
+      /* Normally, we shouldn't have to loop, but some situations involving
+	 aborted transfers make it possible. */
     } else {
       return 0;
     }
