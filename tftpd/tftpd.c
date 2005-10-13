@@ -104,11 +104,12 @@ int     tsize_ok;
 int	ndirs;
 const char **dirs;
 
-int	secure = 0;
-int	cancreate = 0;
-int	unixperms = 0;
-
-int verbosity = 0;
+int		secure = 0;
+int		cancreate = 0;
+int		unixperms = 0;
+int		portrange = 0;
+unsigned int	portrange_from, portrange_to;
+int		verbosity = 0;
 
 struct formats;
 #ifdef WITH_REGEX
@@ -303,8 +304,10 @@ main(int argc, char **argv)
   __progname = (p && p[1]) ? p+1 : argv[0];
   
   openlog(__progname, LOG_PID|LOG_NDELAY, LOG_DAEMON);
+
+  srand(time(NULL) ^ getpid());
   
-  while ((c = getopt(argc, argv, "cspvVla:B:u:U:r:t:T:m:")) != -1)
+  while ((c = getopt(argc, argv, "cspvVla:B:u:U:r:t:T:R:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
@@ -345,6 +348,16 @@ main(int argc, char **argv)
 	}
 	rexmtval = timeout = tov;
 	maxtimeout = rexmtval*TIMEOUT_LIMIT;
+      }
+      break;
+    case 'R':
+      {
+	if ( sscanf(optarg, "%u:%u", &portrange_from, &portrange_to) != 2 ||
+	     portrange_from > portrange_to || portrange_to >= 65535 ) {
+	  syslog(LOG_ERR, "Bad port range: %s", optarg);
+	  exit(EX_USAGE);
+	}
+	portrange = 1;
       }
       break;
     case 'u':
@@ -705,11 +718,31 @@ main(int argc, char **argv)
   
   /* Process the request... */
   
-  myaddr.sin_port = htons(0); /* We want a new local port */
-  if (bind(peer, (struct sockaddr *)&myaddr, sizeof myaddr) < 0) {
-    syslog(LOG_ERR, "bind: %m");
-    exit(EX_IOERR);
+  while(1) {
+    unsigned int port;
+
+    if ( portrange ) {
+      /* Pick a (pseudo)random port in the relevant range */
+      port = portrange_from + rand() % (portrange_to-portrange_from+1);
+    } else {
+      port = 0;			/* Let the kernel pick a port */
+    }
+
+
+    myaddr.sin_port = htons(port);
+
+    if (bind(peer, (struct sockaddr *)&myaddr, sizeof myaddr) < 0) {
+      if ( (errno == EINVAL || errno == EADDRINUSE) && portrange )
+	continue;	/* Should not happen in normal operation, but try again */
+
+      syslog(LOG_ERR, "bind: %m");
+      exit(EX_IOERR);
+    } else {
+      break;
+    }
   }
+
+
   if (connect(peer, (struct sockaddr *)&from, sizeof from) < 0) {
     syslog(LOG_ERR, "connect: %m");
     exit(EX_IOERR);
