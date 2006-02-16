@@ -289,7 +289,7 @@ pick_port_bind(int sockfd, struct sockaddr_in *myaddr)
     
     if (bind(sockfd, (struct sockaddr *)myaddr, sizeof *myaddr) < 0) {
       /* Some versions of Linux return EINVAL instead of EADDRINUSE */
-      if ( !portrange || !(errno != EINVAL && errno != EADDRINUSE) )
+      if ( !(portrange && (errno == EINVAL || errno == EADDRINUSE)) )
 	return -1;
 
       /* Normally, we shouldn't have to loop, but some situations involving
