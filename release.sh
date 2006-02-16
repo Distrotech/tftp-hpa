@@ -18,7 +18,9 @@ GIT_DIR=`cd "${GIT_DIR-.git}" && pwd`
 export GIT_DIR
 
 if [ x"$release" = x'test' ]; then
+  release=`cat version`
   releasetag=HEAD
+  releasedir=$PACKAGE-$release
 else
   echo $release > version.new
   if ! cmp -s version version.new ; then
