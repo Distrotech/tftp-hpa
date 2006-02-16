@@ -17,15 +17,19 @@ releasedir=$PACKAGE-$release
 GIT_DIR=`cd "${GIT_DIR-.git}" && pwd`
 export GIT_DIR
 
-echo $release > version.new
-if ! cmp -s version version.new ; then
-  mv -f version.new version
-  cg-commit -m 'Update version for release' version
+if [ x"$release" = x'test' ]; then
+  releasetag=HEAD
 else
-  rm -f version.new
+  echo $release > version.new
+  if ! cmp -s version version.new ; then
+    mv -f version.new version
+    cg-commit -m 'Update version for release' version
+  else
+    rm -f version.new
+  fi
+  rm -f "$GIT_DIR"/refs/tags/$releasetag
+  cg-tag $releasetag
 fi
-rm -f "$GIT_DIR"/refs/tags/$releasetag
-cg-tag $releasetag
 
 here=`pwd`
 
