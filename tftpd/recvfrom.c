@@ -1,7 +1,6 @@
-/* $Id$ */
 /* ----------------------------------------------------------------------- *
  *   
- *   Copyright 2001 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2006 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -110,7 +109,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
     for ( cmptr = CMSG_FIRSTHDR(&msg) ; cmptr != NULL ;
 	  cmptr = CMSG_NXTHDR(&msg, cmptr) ) {
 
-#ifdef IP_RECVSTDADDR
+#ifdef IP_RECVDSTADDR
       if ( cmptr->cmsg_level == IPPROTO_IP &&
 	   cmptr->cmsg_type == IP_RECVDSTADDR ) {
 	memcpy(&myaddr->sin_addr, CMSG_DATA(cmptr),
