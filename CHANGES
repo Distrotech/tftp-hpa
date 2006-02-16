@@ -1,3 +1,14 @@
+Changes in 0.42:
+	Try to disable path MTU discovery for TFTP connections (it's
+	useless anyway.)
+
+	Add a hack to allow the admin to specify a range of local port
+	numbers to use.
+
+	Fix local IP number handling on systems which present
+	IP_RECVDSTADDR in recvmsg().
+
+
 Changes in 0.41:
 	Fix bug by which patterns of the form \U\1 weren't converted
 	correctly.

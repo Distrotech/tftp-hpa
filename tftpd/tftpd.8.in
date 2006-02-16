@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "3 September 2004" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "16 February 2006" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server
@@ -158,6 +158,10 @@ for these clients, it is recommended to set this value to the smallest
 MTU on your network minus 32 bytes (20 bytes for IP, 8 for UDP, and 4
 for TFTP; less if you use IP options on your network.)  For example,
 on a standard Ethernet (MTU 1500) a value of 1468 is reasonable.
+.TP
+\fB\-R\fP \fIport:port\fP
+Force the server port number (the Transaction ID) to be in the
+specified range of port numbers.
 .TP
 .B \-V
 Print the version number and configuration to standard output, then
