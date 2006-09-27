@@ -304,8 +304,6 @@ main(int argc, char *argv[])
     (*c->handler)(pargc, pargv);
     exit(0);
   }
-  if (sigsetjmp(toplevel,1) != 0)
-    (void)putchar('\n');
   
 #ifdef WITH_READLINE
 #ifdef HAVE_READLINE_HISTORY_H
@@ -313,6 +311,8 @@ main(int argc, char *argv[])
 #endif
 #endif
   
+  if (sigsetjmp(toplevel,1) != 0)
+    (void)putchar('\n');
   command();
   
   return 0;		/* Never reached */
@@ -336,8 +336,10 @@ getmoreargs(const char *partial, const char *mprompt)
   
   elen = strlen(eline);
 
-  if (line)
+  if (line) {
 	  free(line);
+	  line = NULL;
+  }
   line = xmalloc(len+elen+1);
   strcpy(line, partial);
   strcpy(line+len, eline);
@@ -734,8 +736,10 @@ command(void)
 
 	for (;;) {
 #ifdef WITH_READLINE
-	        if ( line )
+	        if ( line ) {
 			free(line);
+			line = NULL;
+		}
 	        line = readline(prompt);
 		if ( !line )
 			exit(0); /* EOF */
