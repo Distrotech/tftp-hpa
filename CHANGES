@@ -1,3 +1,7 @@
+Changes in 0.43:
+	Fix double-free error on ^c in client.
+
+
 Changes in 0.42:
 	Try to disable path MTU discovery for TFTP connections (it's
 	useless anyway.)
