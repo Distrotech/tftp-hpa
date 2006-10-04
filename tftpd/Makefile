@@ -4,20 +4,14 @@ VERSION = $(shell cat ../version)
 -include ../MCONFIG
 include ../MRULES
 
-OBJS = tftpd.$(O) tftpsubs.$(O) recvfrom.$(O) misc.$(O) $(TFTPDOBJS)
+OBJS = tftpd.$(O) recvfrom.$(O) misc.$(O) $(TFTPDOBJS)
 
 all: tftpd$(X) tftpd.8
 
 tftpd$(X): $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(TFTPD_LIBS) -o $@
 
-tftpsubs.c:
-	$(LN_S) -f ../tftp/tftpsubs.c .
-
-tftpsubs.h:
-	$(LN_S) -f ../tftp/tftpsubs.h .
-
-$(OBJS): tftpsubs.h
+$(OBJS): ../common/tftpsubs.h
 
 tftpd.8: tftpd.8.in ../version
 	sed -e 's/@@VERSION@@/$(VERSION)/g' < $< > $@

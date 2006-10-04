@@ -62,7 +62,7 @@ static const char *rcsid UNUSED =
 #include <limits.h>
 #include <syslog.h>
 
-#include "tftpsubs.h"
+#include "common/tftpsubs.h"
 #include "recvfrom.h"
 #include "remap.h"
 

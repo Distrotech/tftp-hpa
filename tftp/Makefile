@@ -4,14 +4,14 @@ VERSION = $(shell cat ../version)
 -include ../MCONFIG
 include ../MRULES
 
-OBJS = tftp.$(O) main.$(O) tftpsubs.$(O)
+OBJS = tftp.$(O) main.$(O)
 
 all: tftp$(X) tftp.1
 
 tftp$(X): $(OBJS)
 	$(CC) $(LDFLAGS) $^ $(TFTP_LIBS) -o $@
 
-$(OBJS): tftpsubs.h
+$(OBJS): ../common/tftpsubs.h
 
 tftp.1: tftp.1.in ../version
 	sed -e 's/@@VERSION@@/$(VERSION)/g' < $< > $@

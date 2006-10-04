@@ -34,7 +34,7 @@
  * SUCH DAMAGE.
  */
 
-#include "tftpsubs.h"
+#include "common/tftpsubs.h"
 
 #ifndef lint
 static const char *copyright UNUSED =

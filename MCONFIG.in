@@ -55,8 +55,8 @@ CFLAGS  = @CFLAGS@ -I$(SRCROOT)
 LDFLAGS = @LDFLAGS@
 
 # Libraries (client and server)
-TFTP_LIBS  = @TFTP_LIBS@
-TFTPD_LIBS = @TFTPD_LIBS@
+TFTP_LIBS  = ../common/libcommon.a @TFTP_LIBS@
+TFTPD_LIBS = ../common/libcommon.a @TFTPD_LIBS@
 
 # Additional library we need to build
 LIBOBJS	= @LIBOBJS@
