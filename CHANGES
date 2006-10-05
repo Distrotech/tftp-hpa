@@ -1,6 +1,12 @@
 Changes in 0.43:
 	Fix double-free error on ^c in client.
 
+	Try to deal with clients that send TFTP requests to broadcasts
+	(apparently some recent Sun boxes do this instead of using the
+	address told by DHCP.  Bad Sun!  Bad Sun!)
+
+	Portability fixes.
+
 
 Changes in 0.42:
 	Try to disable path MTU discovery for TFTP connections (it's
