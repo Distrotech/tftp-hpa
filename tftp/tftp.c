@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /* $OpenBSD: tftp.c,v 1.4 1997/08/06 06:43:45 deraadt Exp $	*/
 /* $NetBSD: tftp.c,v 1.5 1995/04/29 05:55:25 cgd Exp $	*/
 
@@ -87,7 +85,7 @@ tftp_sendfile(int fd, const char *name, const char *mode)
 	volatile int size, convert;
 	volatile off_t amount;
 	struct sockaddr_in from;
-	int fromlen;
+	socklen_t fromlen;
 	FILE *file;
 	u_short ap_opcode, ap_block;
 
@@ -195,7 +193,7 @@ tftp_recvfile(int fd, const char *name, const char *mode)
 	volatile int size, firsttrip;
 	volatile unsigned long amount;
 	struct sockaddr_in from;
-	int fromlen;
+	socklen_t fromlen;
 	FILE *file;
 	volatile int convert;		/* true if converting crlf -> lf */
 	u_short dp_opcode, dp_block;

@@ -250,7 +250,7 @@ synchnet(int f)		/* socket to flush */
   int pktcount = 0;
   char rbuf[PKTSIZE];
   struct sockaddr_in from;
-  int fromlen;
+  socklen_t fromlen;
   fd_set socketset;
   struct timeval notime;
   

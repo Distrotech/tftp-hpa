@@ -1,6 +1,6 @@
 /* -*- c -*- ------------------------------------------------------------- *
  *   
- *   Copyright 2001 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2006 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -215,6 +215,11 @@ typedef uint32_t u_long;
 #else
 typedef unsigned long u_long;
 #endif
+#endif
+
+/* socklen_t */
+#ifndef HAVE_SOCKLEN_T
+typedef int socklen_t;
 #endif
 
 /* sysexits.h */

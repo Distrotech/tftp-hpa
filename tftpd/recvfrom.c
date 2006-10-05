@@ -50,9 +50,50 @@ struct in_pktinfo {
 # define CMSG_SPACE(size) (sizeof(struct cmsghdr) + (size))
 #endif
 
+/*
+ * Check to see if this is a valid local address.  If so, we should
+ * end up having the same local and remote address when trying to
+ * bind to it.
+ */
+static int address_is_local(const struct sockaddr_in *addr)
+{
+  struct sockaddr_in sin;
+  int sockfd = -1;
+  int e;
+  int rv = 0;
+  socklen_t addrlen;
+
+  /* Multicast or universal broadcast address? */
+  if (ntohl(addr->sin_addr.s_addr) >= (224UL << 24))
+    return 0;
+
+  sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
+    goto err;
+
+  if (connect(sockfd, (const struct sockaddr *)addr, sizeof *addr))
+    goto err;
+
+  addrlen = sizeof sin;
+  if (getsockname(sockfd, (struct sockaddr *)&sin, &addrlen))
+    goto err;
+
+  rv = sin.sin_addr.s_addr == addr->sin_addr.s_addr;
+
+ err:
+  e = errno;
+ 
+  if (sockfd >= 0)
+    close(sockfd);
+
+  errno = e;
+  return rv;
+}
+    
+
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
-	   struct sockaddr *from, int *fromlen,
+	   struct sockaddr *from, socklen_t *fromlen,
 	   struct sockaddr_in *myaddr)
 {
   struct msghdr msg;
@@ -127,6 +168,10 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
     }
   }
+
+  /* If the address is not a valid local address, then bind to any address... */
+  if (address_is_local(myaddr) != 1)
+    myaddr->sin_addr.s_addr = INADDR_ANY;
 
   return n;
 }

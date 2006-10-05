@@ -96,13 +96,13 @@ char		buf[PKTSIZE];
 char		ackbuf[PKTSIZE];
 unsigned int	max_blksize = MAX_SEGSIZE;
 
-struct	sockaddr_in from;
-int	fromlen;
-off_t	tsize;
-int     tsize_ok;
+struct sockaddr_in from;
+socklen_t       fromlen;
+off_t	        tsize;
+int             tsize_ok;
 
-int	ndirs;
-const char **dirs;
+int	        ndirs;
+const char    **dirs;
 
 int		secure = 0;
 int		cancreate = 0;
