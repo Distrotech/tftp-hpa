@@ -272,3 +272,41 @@ synchnet(int f)		/* socket to flush */
 
   return pktcount;		/* Return packets drained */
 }
+
+
+int pick_port_bind(int sockfd, struct sockaddr_in *myaddr, unsigned int port_range_from, unsigned int port_range_to)
+{
+  unsigned int port, firstport;
+  int port_range = 0;
+
+  if (port_range_from != 0 && port_range_to != 0) {
+      port_range = 1;
+  }
+
+  firstport = port_range
+    ? port_range_from + rand() % (port_range_to-port_range_from+1)
+    : 0;
+
+  port = firstport;
+
+  do {
+    myaddr->sin_port = htons(port);
+    
+    if (bind(sockfd, (struct sockaddr *)myaddr, sizeof *myaddr) < 0) {
+      /* Some versions of Linux return EINVAL instead of EADDRINUSE */
+      if ( !(port_range && (errno == EINVAL || errno == EADDRINUSE)) )
+	return -1;
+
+      /* Normally, we shouldn't have to loop, but some situations involving
+	 aborted transfers make it possible. */
+    } else {
+      return 0;
+    }
+
+    port++;
+    if ( port > port_range_to )
+      port = port_range_from;
+  } while ( port != firstport );
+
+  return -1;
+}

@@ -74,3 +74,6 @@ extern char *xstrdup(const char *);
 void (*bsd_signal(int, void (*)(int)))(int);
 
 #endif
+
+
+int pick_port_bind(int sockfd, struct sockaddr_in *myaddr, unsigned int from, unsigned int to);

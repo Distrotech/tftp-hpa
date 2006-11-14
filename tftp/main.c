@@ -102,6 +102,9 @@ const char *prompt = "tftp> ";
 sigjmp_buf	toplevel;
 void	intr(int);
 struct	servent *sp;
+int portrange = 0;
+unsigned int portrange_from = 0;
+unsigned int portrange_to   = 0;
 
 void	get (int, char **);
 void	help (int, char **);
@@ -241,6 +244,16 @@ main(int argc, char *argv[])
 	case 'c':
 	  iscmd = 1;
 	  break;
+    case 'R':
+      if ( ++arg >= argc )
+           usage(EX_USAGE);
+      if ( sscanf(argv[arg], "%u:%u", &portrange_from, &portrange_to) != 2 ||
+            portrange_from > portrange_to || portrange_to > 65535 ) {
+         fprintf(stderr, "Bad port range: %s\n", argv[arg]); 
+         exit(EX_USAGE);
+      }
+      portrange = 1;
+      break;
 	case 'h':
 	default:
 	  usage(*optx == 'h' ? 0 : EX_USAGE);
@@ -276,7 +289,7 @@ main(int argc, char *argv[])
   }
   bzero((char *)&s_in, sizeof (s_in));
   s_in.sin_family = AF_INET;
-  if (bind(f, (struct sockaddr *)&s_in, sizeof (s_in)) < 0) {
+  if (pick_port_bind(f, &s_in, portrange_from, portrange_to)) {
     perror("tftp: bind");
     exit(EX_OSERR);
   }
