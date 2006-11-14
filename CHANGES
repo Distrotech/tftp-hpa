@@ -1,3 +1,8 @@
+Changes in 0.44:
+	Allow the client to specify a range of local port numbers,
+	just like the server can.
+
+
 Changes in 0.43:
 	Fix double-free error on ^c in client.
 
