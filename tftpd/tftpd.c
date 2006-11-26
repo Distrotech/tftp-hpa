@@ -555,7 +555,7 @@ main(int argc, char **argv)
     if ( caught_sighup ) {
       caught_sighup = 0;
       if ( standalone ) {
-#ifdef HAVE_REGEX
+#ifdef WITH_REGEX
 	if ( rewrite_file ) {
 	  freerules(rewrite_rules);
 	  rewrite_rules = read_remap_rules(rewrite_file);
