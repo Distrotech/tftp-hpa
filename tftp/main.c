@@ -89,6 +89,7 @@ int	f;
 u_short port;
 int	trace;
 int	verbose;
+int	literal;
 int	connected;
 const struct modes *mode;
 #ifdef WITH_READLINE
@@ -119,6 +120,7 @@ void	settimeout (int, char **);
 void	settrace (int, char **);
 void	setverbose (int, char **);
 void	status (int, char **);
+void	setliteral (int, char **);
 
 static void command (void);
 
@@ -157,6 +159,9 @@ struct cmd cmdtab[] = {
   { "trace",
     "toggle packet tracing",
     settrace },
+  { "literal",
+    "toggle literal mode, ignore ':' in file name",
+    setliteral },
   { "status",
     "show current status",
     status },
@@ -190,7 +195,7 @@ const char *program;
 
 static inline void usage(int errcode)
 {
-  fprintf(stderr, "Usage: %s [-v][-m mode] [host [port]] [-c command]\n", program);
+  fprintf(stderr, "Usage: %s [-v][-l][-m mode] [host [port]] [-c command]\n", program);
   exit(errcode);
 }
 
@@ -223,6 +228,9 @@ main(int argc, char *argv[])
 	  /* Print version and configuration to stdout and exit */
 	  printf("%s\n", TFTP_CONFIG_STR);
 	  exit(0);
+	case 'l':
+	  literal = 1;
+	  break;
 	case 'm':
 	  if ( ++arg >= argc )
 	    usage(EX_USAGE);
@@ -502,7 +510,7 @@ put(int argc, char *argv[])
 		return;
 	}
 	targ = argv[argc - 1];
-	if (strchr(argv[argc - 1], ':')) {
+	if (!literal && strchr(argv[argc - 1], ':')) {
 		struct hostent *hp;
 
 		for (n = 1; n < argc - 1; n++)
@@ -591,14 +599,14 @@ get(int argc, char *argv[])
 	}
 	if (!connected) {
 		for (n = 1; n < argc ; n++)
-			if (strchr(argv[n], ':') == 0) {
+			if (literal || strchr(argv[n], ':') == 0) {
 				getusage(argv[0]);
 				return;
 			}
 	}
 	for (n = 1; n < argc ; n++) {
 		src = strchr(argv[n], ':');
-		if (src == NULL)
+		if (literal || src == NULL)
 			src = argv[n];
 		else {
 			struct hostent *hp;
@@ -700,6 +708,14 @@ settimeout(int argc, char *argv[])
 }
 
 void
+setliteral(int argc, char *argv[])
+{
+	(void)argc; (void)argv;	/* Quiet unused warning */
+	literal = !literal;
+	printf("Literal mode %s.\n", literal ? "on" : "off");
+}
+
+void
 status(int argc, char *argv[])
 {
 	(void)argc; (void)argv;	/* Quiet unused warning */
@@ -707,8 +723,8 @@ status(int argc, char *argv[])
 		printf("Connected to %s.\n", hostname);
 	else
 		printf("Not connected.\n");
-	printf("Mode: %s Verbose: %s Tracing: %s\n", mode->m_mode,
-		verbose ? "on" : "off", trace ? "on" : "off");
+	printf("Mode: %s Verbose: %s Tracing: %s Literal: %s\n", mode->m_mode,
+		verbose ? "on" : "off", trace ? "on" : "off", literal ? "on" : "off");
 	printf("Rexmt-interval: %d seconds, Max-timeout: %d seconds\n",
 		rexmtval, maxtimeout);
 }

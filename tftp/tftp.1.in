@@ -60,6 +60,9 @@ command below.)
 Execute \fIcommand\fP as if it had been entered on the tftp prompt.
 Must be specified last on the command line.
 .TP
+.B \-l
+Default to literal mode. Used to avoid special processing of ':' in a file name.
+.TP
 \fB\-m\fP \fImode\fP
 Set the default transfer mode to \fImode\fP.  This is usually used with \-c.
 .TP
@@ -119,7 +122,12 @@ host, if the host has already been specified, or a string of the form
 .I "host:filename"
 to specify both a host and filename at the same time.  If the latter
 form is used, the last hostname specified becomes the default for
-future transfers.
+future transfers.  Enable
+.B literal
+mode to prevent special treatment of the ':' character (e.g. C:\\dir\\file).
+.TP
+.B literal
+Toggle literal mode.  When set, this mode prevents special treatment of ':' in filenames. 
 .TP
 \fBmode\fP \fItransfer-mode\fP
 Specify the mode for transfers;
@@ -151,7 +159,9 @@ form is used, the hostname specified becomes the default for future
 transfers.  If the remote-directory form is used, the remote host is
 assumed to be a UNIX system or another system using
 .B /
-as directory separator.
+as directory separator.  Enable
+.B literal
+mode to prevent special treatment of the ':' character (e.g. C:\\dir\\file).
 .TP
 .B quit
 Exit
