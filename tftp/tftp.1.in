@@ -31,7 +31,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTP 1 "2 February 2003" "tftp-hpa @@VERSION@@" "User's Manual"
+.TH TFTP 1 "12 December 2006" "tftp-hpa @@VERSION@@" "User's Manual"
 .SH NAME
 .B tftp
 \- IPv4 Trivial File Transfer Protocol client
@@ -61,10 +61,15 @@ Execute \fIcommand\fP as if it had been entered on the tftp prompt.
 Must be specified last on the command line.
 .TP
 .B \-l
-Default to literal mode. Used to avoid special processing of ':' in a file name.
+Default to literal mode. Used to avoid special processing of ':' in a
+file name.
 .TP
 \fB\-m\fP \fImode\fP
 Set the default transfer mode to \fImode\fP.  This is usually used with \-c.
+.TP
+\fB\-R\fP \fIport:port\fP
+Force the originating port number to be in the specified range of port
+numbers.
 .TP
 .B \-v
 Default to verbose mode.

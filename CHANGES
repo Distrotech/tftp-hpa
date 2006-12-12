@@ -1,3 +1,8 @@
+Changes in 0.45:
+	Add -l (literal) option to the client, to override the special
+	treatment of the colon (:) character as a hostname separator.
+
+
 Changes in 0.44:
 	Allow the client to specify a range of local port numbers,
 	just like the server can.
