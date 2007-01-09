@@ -1046,8 +1046,7 @@ rewrite_macros(char macro, char *output)
     
   case 'x':
     if ( output )
-      sprintf(output, "%08X",
-	      ntohl(from.sin_addr.s_addr));
+      sprintf(output, "%08lX", (unsigned long)ntohl(from.sin_addr.s_addr));
     return 8;
 
   default:
