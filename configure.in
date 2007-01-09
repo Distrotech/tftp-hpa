@@ -33,8 +33,6 @@ CFLAGS="$CFLAGS -D_XOPEN_SOURCE_EXTENDED"
 AC_C_CONST
 AC_C_INLINE
 
-AC_SYS_LARGEFILE
-
 PA_ADD_CFLAGS(-W)
 PA_ADD_CFLAGS(-Wall)
 PA_ADD_CFLAGS(-Wpointer-arith)
@@ -81,6 +79,8 @@ AC_CHECK_HEADERS(sys/socket.h)
 AC_CHECK_HEADERS(winsock2.h)
 AC_CHECK_HEADERS(winsock.h)
 
+AC_SYS_LARGEFILE
+
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_MODE_T
@@ -91,7 +91,16 @@ AC_CHECK_TYPES(uint16_t)
 AC_CHECK_TYPES(uint32_t)
 AC_CHECK_TYPES(u_short)
 AC_CHECK_TYPES(u_long)
-AC_CHECK_TYPES(socklen_t)
+
+dnl
+dnl <sys/socket.h> isn't among the list of standard headers that autoconf checks,
+dnl but POSIX requires <sys/socket.h> for socklen_t to be defined.
+dnl
+AC_CHECK_TYPES(socklen_t,,,[
+#ifdef HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+])
 
 AC_SEARCH_LIBS(socket, [socket ws2_32 wsock32], , [AC_MSG_ERROR(socket library not found)])
 AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not found)])
