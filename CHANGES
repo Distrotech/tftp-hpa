@@ -1,3 +1,7 @@
+Changes in 0.46:
+	Minor portability improvements.
+
+
 Changes in 0.45:
 	Add -l (literal) option to the client, to override the special
 	treatment of the colon (:) character as a hostname separator.
