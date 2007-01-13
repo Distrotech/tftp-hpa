@@ -17,8 +17,8 @@ SUB =   lib common tftp tftpd
 
 all:      MCONFIG $(patsubst %, %.build, $(SUB))
 
-tftp.build: lib.build
-tftpd.build: lib.build
+tftp.build: lib.build common.build
+tftpd.build: lib.build common.build
 
 install:  MCONFIG $(patsubst %, %.install, $(SUB))
 
