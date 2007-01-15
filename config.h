@@ -287,6 +287,21 @@ typedef int socklen_t;
 #define EOPTNEG 8
 #endif
 
+/* Prototypes for libxtra functions */
+
+void *xmalloc(size_t);
+char *xstrdup(const char *);
+
+#ifndef HAVE_BSD_SIGNAL
+void (*bsd_signal(int, void (*)(int)))(int);
+#endif
+#ifndef HAVE_DUP2
+int dup2(int, int);
+#endif
+#ifndef HAVE_DAEMON
+int daemon(int, int);
+#endif
+
 /* tftp-hpa version and configuration strings */
 
 #include "version.h"

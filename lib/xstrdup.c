@@ -5,9 +5,7 @@
  *
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "config.h"
 
 char *xstrdup(const char *s)
 {

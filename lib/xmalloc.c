@@ -5,8 +5,7 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "config.h"
 
 void *xmalloc(size_t size)
 {

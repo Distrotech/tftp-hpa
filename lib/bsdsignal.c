@@ -4,11 +4,7 @@
  * Use sigaction() to simulate BSD signal()
  */
 
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-
-void (*bsd_signal(int, void (*)(int)))(int);
+#include "config.h"
 
 void (*bsd_signal(int signum, void (*handler)(int)))(int)
 {

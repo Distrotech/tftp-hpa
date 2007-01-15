@@ -62,18 +62,6 @@ int	writeit(FILE *, struct tftphdr **, int, int);
 extern int segsize;
 #define MAX_SEGSIZE	65464
 
-/*
- * Prototype for xmalloc/xstrdup
- */
-extern void *xmalloc(size_t);
-extern char *xstrdup(const char *);
-
-/*
- * Signal-related stuff
- */
-void (*bsd_signal(int, void (*)(int)))(int);
+int pick_port_bind(int sockfd, struct sockaddr_in *myaddr, unsigned int from, unsigned int to);
 
 #endif
-
-
-int pick_port_bind(int sockfd, struct sockaddr_in *myaddr, unsigned int from, unsigned int to);
