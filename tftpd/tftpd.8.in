@@ -59,6 +59,11 @@ option is ignored, and the
 option can be used to specify a specific local address or port to
 listen to.
 .TP
+.B \-L
+Similar to
+.B \-l
+but do not detach from the foreground process.
+.TP
 \fB\-a\fP \fI[address][:port]\fP
 Specify a specific
 .I address
@@ -66,6 +71,8 @@ and
 .I port
 to listen to when called with the
 .B \-l
+or
+.B \-L
 option.  The default is to listen to the
 .I tftp
 port specified in

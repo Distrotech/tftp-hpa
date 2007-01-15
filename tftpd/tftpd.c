@@ -283,6 +283,7 @@ main(int argc, char **argv)
   int n;
   int fd = 0;
   int standalone = 0;		/* Standalone (listen) mode */
+  int nodaemon = 0;		/* Do not detach process */
   char *address = NULL;		/* Address to listen to */
   pid_t pid;
   mode_t my_umask = 0;
@@ -306,7 +307,7 @@ main(int argc, char **argv)
 
   srand(time(NULL) ^ getpid());
   
-  while ((c = getopt(argc, argv, "cspvVla:B:u:U:r:t:T:R:m:")) != -1)
+  while ((c = getopt(argc, argv, "cspvVlLa:B:u:U:r:t:T:R:m:")) != -1)
     switch (c) {
     case 'c':
       cancreate = 1;
@@ -319,6 +320,10 @@ main(int argc, char **argv)
       break;
     case 'l':
       standalone = 1;
+      break;
+    case 'L':
+      standalone = 1;
+      nodaemon = 1;
       break;
     case 'a':
       address = optarg;
@@ -497,7 +502,7 @@ main(int argc, char **argv)
     }
 
     /* Daemonize this process */
-    if (daemon(0, 0) < 0) {
+    if (!nodaemon && daemon(0, 0) < 0) {
       syslog(LOG_ERR, "cannot daemonize: %m");
       exit(EX_OSERR);
     }
