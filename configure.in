@@ -142,7 +142,6 @@ AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not fo
 AC_SEARCH_LIBS(inet_aton, [nsl resolv], , [AC_MSG_ERROR(inet_aton not found)])
 AC_SEARCH_LIBS(herror, [nsl resolv], , [AC_MSG_ERROR(herror not found)])
 
-AC_CHECK_FUNCS(dup2)
 AC_CHECK_FUNCS(fcntl)
 AC_CHECK_FUNCS(setsid)
 AC_CHECK_FUNCS(recvmsg)
@@ -174,9 +173,11 @@ SRCROOT=`cd $srcdir && pwd`
 OBJROOT=`pwd`
 
 XTRA=false
-AC_SEARCH_LIBS(xmalloc, iberty, , [XTRA=true ; AC_LIBOBJ(xmalloc)])
-AC_SEARCH_LIBS(xstrdup, iberty, , [XTRA=true ; AC_LIBOBJ(xstrdup)])
-AC_SEARCH_LIBS(bsd_signal, bsd, , [XTRA=true ; AC_LIBOBJ(bsdsignal)])
+AC_SEARCH_LIBS(xmalloc, iberty, , [XTRA=true; AC_LIBOBJ(xmalloc)])
+AC_SEARCH_LIBS(xstrdup, iberty, , [XTRA=true; AC_LIBOBJ(xstrdup)])
+AC_SEARCH_LIBS(bsd_signal, bsd, , [XTRA=true; AC_LIBOBJ(bsdsignal)])
+AC_CHECK_FUNCS(daemon, , [XTRA=true; AC_LIBOBJ(daemon)])
+AC_CHECK_FUNCS(dup2, , [XTRA=true; AC_LIBOBJ(dup2)])
 if $XTRA
 then
   XTRALIBS="$OBJROOT/lib/libxtra.a $XTRALIBS"

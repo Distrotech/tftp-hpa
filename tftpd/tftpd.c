@@ -1,5 +1,3 @@
-/* tftp-hpa: $Id$ */
-
 /* $OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $	*/
 
 /*
@@ -499,33 +497,9 @@ main(int argc, char **argv)
     }
 
     /* Daemonize this process */
-    {
-      pid_t f = fork();
-      int nfd;
-      if ( f > 0 )
-	exit(0);
-      if ( f < 0 ) {
-	syslog(LOG_ERR, "cannot fork: %m");
-	exit(EX_OSERR);
-      }
-      nfd = open("/dev/null", O_RDWR);
-      if ( nfd >= 3 ) {
-#ifdef HAVE_DUP2
-	dup2(nfd, 0);
-	dup2(nfd, 1);
-	dup2(nfd, 2);
-#else
-	close(0); dup(nfd);
-	close(1); dup(nfd);
-	close(2); dup(nfd);
-#endif
-	close(nfd);
-      } else if ( nfd < 0 ) {
-	close(0); close(1); close(2);
-      }
-#ifdef HAVE_SETSID
-      setsid();
-#endif
+    if (daemon(0, 0) < 0) {
+      syslog(LOG_ERR, "cannot daemonize: %m");
+      exit(EX_OSERR);
     }
   } else {
     /* 0 is our socket descriptor */
