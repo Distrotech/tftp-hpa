@@ -1,3 +1,10 @@
+Changes in 0.47:
+	Add -L option to the server to run standalone without
+	detaching from the shell.
+
+	Parallel make fix.
+
+
 Changes in 0.46:
 	Minor portability improvements.
 
