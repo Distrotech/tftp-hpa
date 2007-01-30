@@ -502,7 +502,9 @@ main(int argc, char **argv)
     }
 
     /* Daemonize this process */
-    if (!nodaemon && daemon(0, 0) < 0) {
+    /* Note: when running in secure mode (-s), we must not chroot, since
+       we are already in the proper directory. */
+    if (!nodaemon && daemon(secure, 0) < 0) {
       syslog(LOG_ERR, "cannot daemonize: %m");
       exit(EX_OSERR);
     }
