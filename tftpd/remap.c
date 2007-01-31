@@ -1,7 +1,6 @@
-/* $Id$ */
 /* ----------------------------------------------------------------------- *
  *   
- *   Copyright 2001-2004 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2007 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at

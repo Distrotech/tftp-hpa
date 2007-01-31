@@ -1,7 +1,3 @@
-$Id$
-
-	       =======================================
-
 Starting in version 0.27, tftp-hpa has the option of a "use Unix
 permissions" mode.  In this mode, tftpd can access any file accessible
 by the tftpd effective user, specified via the -u option.  This means

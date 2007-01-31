@@ -1,7 +1,6 @@
-dnl $Id$
 dnl  -----------------------------------------------------------------------
 dnl    
-dnl    Copyright 1999-2002 H. Peter Anvin - All Rights Reserved
+dnl    Copyright 1999-2007 H. Peter Anvin - All Rights Reserved
 dnl 
 dnl    This program is free software; you can redistribute it and/or modify
 dnl    it under the terms of the GNU General Public License as published by
