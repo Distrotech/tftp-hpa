@@ -2,32 +2,13 @@ dnl
 dnl autoconf input file to generate MCONFIG
 dnl
 
-AC_PREREQ(2.52)
+AC_PREREQ(2.59)
 AC_INIT(MCONFIG.in)
 AC_PREFIX_DEFAULT(/usr)
 
+AC_USE_SYSTEM_EXTENSIONS
 AC_ISC_POSIX
-AC_AIX
-AC_MINIX
 AC_PROG_CC
-
-dnl
-dnl Feature-test macros.  These need to be set in CFLAGS, rather in
-dnl aconfig.h, or "configure" will run in a different environment than
-dnl we eventually we build in.
-dnl
-
-dnl Needed on Solaris/cc or Solaris/gcc
-CFLAGS="$CFLAGS -D_XPG4_2"
-CFLAGS="$CFLAGS -D_XOPEN_SOURCE"
-CFLAGS="$CFLAGS -D__EXTENSIONS__"
-
-dnl Needed on some glibc systems
-CFLAGS="$CFLAGS -D_GNU_SOURCE"
-
-dnl Needed on Digital Unix
-CFLAGS="$CFLAGS -D_OSF_SOURCE"
-CFLAGS="$CFLAGS -D_XOPEN_SOURCE_EXTENDED"
 
 AC_C_CONST
 AC_C_INLINE
