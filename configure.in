@@ -2,7 +2,7 @@ dnl
 dnl autoconf input file to generate MCONFIG
 dnl
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.61)
 AC_INIT(MCONFIG.in)
 AC_PREFIX_DEFAULT(/usr)
 
