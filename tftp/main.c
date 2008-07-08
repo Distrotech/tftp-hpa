@@ -1,6 +1,3 @@
-/*	$OpenBSD: main.c,v 1.4 1997/01/17 07:13:30 millert Exp $	*/
-/*	$NetBSD: main.c,v 1.6 1995/05/21 16:54:10 mycroft Exp $	*/
-
 /*
  * Copyright (c) 1983, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -35,14 +32,6 @@
  */
 
 #include "common/tftpsubs.h"
-
-#ifndef lint
-static const char *copyright UNUSED = "@(#) Copyright (c) 1983, 1993\n\
-	The Regents of the University of California.  All rights reserved.\n";
-/* static char sccsid[] = "@(#)main.c	8.1 (Berkeley) 6/6/93"; */
-/* static char rcsid[] = "$OpenBSD: main.c,v 1.4 1997/01/17 07:13:30 millert Exp $"; */
-static const char *rcsid UNUSED = "tftp-hpa $Id$";
-#endif                          /* not lint */
 
 /* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
 

@@ -1,8 +1,3 @@
-/* $Id$ */
-
-/* $OpenBSD: tftpsubs.h,v 1.2 1996/06/26 05:40:37 deraadt Exp $	*/
-/* $NetBSD: tftpsubs.h,v 1.2 1994/12/08 09:51:32 jtc Exp $	*/
-
 /*
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -34,8 +29,6 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- *	@(#)tftpsubs.h	8.1 (Berkeley) 6/6/93
  */
 
 /*

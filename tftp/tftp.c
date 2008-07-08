@@ -1,6 +1,3 @@
-/* $OpenBSD: tftp.c,v 1.4 1997/08/06 06:43:45 deraadt Exp $	*/
-/* $NetBSD: tftp.c,v 1.5 1995/04/29 05:55:25 cgd Exp $	*/
-
 /*
  * Copyright (c) 1983, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -35,14 +32,6 @@
  */
 
 #include "common/tftpsubs.h"
-
-#ifndef lint
-/* static char sccsid[] = "@(#)tftp.c	8.1 (Berkeley) 6/6/93"; */
-/* static char rcsid[] = "$OpenBSD: tftp.c,v 1.4 1997/08/06 06:43:45 deraadt Exp $"; */
-static const char *rcsid UNUSED = "tftp-hpa $Id$";
-#endif                          /* not lint */
-
-/* Many bug fixes are from Jim Guyton <guyton@rand-unix> */
 
 /*
  * TFTP User Program -- Protocol Machines
