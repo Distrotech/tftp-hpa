@@ -1,5 +1,3 @@
-/* $OpenBSD: tftpd.c,v 1.13 1999/06/23 17:01:36 deraadt Exp $	*/
-
 /*
  * Copyright (c) 1983 Regents of the University of California.
  * All rights reserved.
@@ -120,13 +118,12 @@ struct options {
     const char *o_opt;
     int (*o_fnc) (char *, char **);
 } options[] = {
-    {
-    "blksize", set_blksize}, {
-    "blksize2", set_blksize2}, {
-    "tsize", set_tsize}, {
-    "timeout", set_timeout}, {
-    "utimeout", set_utimeout}, {
-    NULL, NULL}
+    {"blksize",  set_blksize},
+    {"blksize2", set_blksize2},
+    {"tsize",    set_tsize},
+    {"timeout",  set_timeout},
+    {"utimeout", set_utimeout},
+    {NULL, NULL}
 };
 
 /* Simple handler for SIGHUP */
