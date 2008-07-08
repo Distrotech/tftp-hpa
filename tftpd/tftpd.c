@@ -223,8 +223,8 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
 
             gettimeofday(&t1, NULL);
 
-            dt = (t1.tv_sec - t0.tv_sec) * 1000000 + (t1.tv_usec -
-                                                      t0.tv_usec);
+            dt = (t1.tv_sec - t0.tv_sec) * 1000000 +
+		 (t1.tv_usec - t0.tv_usec);
             *timeout_us_p = timeout_left =
                 (dt >= timeout_us) ? 1 : (timeout_us - dt);
         } while (rv == -1 && err == EINTR);
