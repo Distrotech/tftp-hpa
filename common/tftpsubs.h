@@ -50,18 +50,19 @@
 struct tftphdr;
 
 struct tftphdr *r_init(void);
-void	read_ahead(FILE *, int);
-int	readit(FILE *, struct tftphdr **, int);
+void read_ahead(FILE *, int);
+int readit(FILE *, struct tftphdr **, int);
 
-int	synchnet(int);
+int synchnet(int);
 
 struct tftphdr *w_init(void);
-int	write_behind(FILE *, int);
-int	writeit(FILE *, struct tftphdr **, int, int);
+int write_behind(FILE *, int);
+int writeit(FILE *, struct tftphdr **, int, int);
 
 extern int segsize;
 #define MAX_SEGSIZE	65464
 
-int pick_port_bind(int sockfd, struct sockaddr_in *myaddr, unsigned int from, unsigned int to);
+int pick_port_bind(int sockfd, struct sockaddr_in *myaddr,
+                   unsigned int from, unsigned int to);
 
 #endif

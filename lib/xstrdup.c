@@ -9,12 +9,12 @@
 
 char *xstrdup(const char *s)
 {
-  char *p = strdup(s);
+    char *p = strdup(s);
 
-  if ( !p ) {
-    fprintf(stderr, "Out of memory!\n");
-    exit(128);
-  }
+    if (!p) {
+        fprintf(stderr, "Out of memory!\n");
+        exit(128);
+    }
 
-  return p;
+    return p;
 }

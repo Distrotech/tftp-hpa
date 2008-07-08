@@ -1,6 +1,6 @@
 /* $Id$ */
 /* ----------------------------------------------------------------------- *
- *   
+ *
  *   Copyright 2001 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license

@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------- *
- *   
+ *
  *   Copyright 2001-2007 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
@@ -14,7 +14,7 @@
  * Minor help routines.
  */
 
-#include "config.h"		/* Must be included first! */
+#include "config.h"             /* Must be included first! */
 #include <syslog.h>
 #include "tftpd.h"
 
@@ -22,19 +22,19 @@
  * Set the signal handler and flags.  Basically a user-friendly
  * wrapper around sigaction().
  */
-void set_signal(int signum, void (*handler)(int), int flags)
+void set_signal(int signum, void (*handler) (int), int flags)
 {
-  struct sigaction sa;
+    struct sigaction sa;
 
-  memset(&sa, 0, sizeof sa);
-  sa.sa_handler = handler;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = flags;
-  
-  if ( sigaction(signum, &sa, NULL) ) {
-    syslog(LOG_ERR, "sigaction: %m");
-    exit(EX_OSERR);
-  }
+    memset(&sa, 0, sizeof sa);
+    sa.sa_handler = handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = flags;
+
+    if (sigaction(signum, &sa, NULL)) {
+        syslog(LOG_ERR, "sigaction: %m");
+        exit(EX_OSERR);
+    }
 }
 
 /*
@@ -42,14 +42,14 @@ void set_signal(int signum, void (*handler)(int), int flags)
  */
 void *tfmalloc(size_t size)
 {
-  void *p = malloc(size);
+    void *p = malloc(size);
 
-  if ( !p ) {
-    syslog(LOG_ERR, "malloc: %m");
-    exit(EX_OSERR);
-  }
+    if (!p) {
+        syslog(LOG_ERR, "malloc: %m");
+        exit(EX_OSERR);
+    }
 
-  return p;
+    return p;
 }
 
 /*
@@ -57,13 +57,12 @@ void *tfmalloc(size_t size)
  */
 char *tfstrdup(const char *str)
 {
-  char *p = strdup(str);
+    char *p = strdup(str);
 
-  if ( !p ) {
-    syslog(LOG_ERR, "strdup: %m");
-    exit(EX_OSERR);
-  }
+    if (!p) {
+        syslog(LOG_ERR, "strdup: %m");
+        exit(EX_OSERR);
+    }
 
-  return p;
+    return p;
 }
-  

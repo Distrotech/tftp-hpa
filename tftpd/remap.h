@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------- *
- *   
+ *
  *   Copyright 2001-2007 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
@@ -26,7 +26,7 @@ struct rule;
    macro character is passed as the first argument; the output buffer,
    if any, is passed as the second argument.  The function should return
    the number of characters output, or -1 on failure. */
-typedef int (*match_pattern_callback)(char, char *);
+typedef int (*match_pattern_callback) (char, char *);
 
 /* Read a rule file */
 struct rule *parserulefile(FILE *);
@@ -36,8 +36,7 @@ void freerules(struct rule *);
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *, const struct rule *, int,
-		     match_pattern_callback, const char **);
+                     match_pattern_callback, const char **);
 
-#endif /* WITH_REGEX */
-#endif /* TFTPD_REMAP_H */
-
+#endif                          /* WITH_REGEX */
+#endif                          /* TFTPD_REMAP_H */

@@ -9,12 +9,12 @@
 
 void *xmalloc(size_t size)
 {
-  void *p = malloc(size);
+    void *p = malloc(size);
 
-  if ( !p ) {
-    fprintf(stderr, "Out of memory!\n");
-    exit(128);
-  }
+    if (!p) {
+        fprintf(stderr, "Out of memory!\n");
+        exit(128);
+    }
 
-  return p;
+    return p;
 }
