@@ -31,6 +31,9 @@ MANDIR  = @mandir@
 # System binaries
 SBINDIR = @sbindir@
 
+# Data root directory
+DATAROOTDIR = @datarootdir@
+
 # Binary suffixes
 O = @OBJEXT@
 X = @EXEEXT@
