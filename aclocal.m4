@@ -87,6 +87,71 @@ AC_DEFUN(PA_STRUCT_IN_PKTINFO,
 #include <sys/uio.h>
   ])])
 
+
+dnl ------------------------------------------------------------------------
+dnl  PA_STRUCT_SOCKADDR_IN6
+dnl
+dnl Look for definition of struct sockaddr_in6, which at least has an
+dnl sin6_addr member
+dnl
+AH_TEMPLATE([HAVE_STRUCT_SOCKADDR_IN6],
+[Define if struct sockaddr_in6 is defined.])
+
+AC_DEFUN(PA_STRUCT_SOCKADDR_IN6,
+ [AC_CHECK_MEMBER(struct sockaddr_in6.sin6_addr,
+  [
+   AC_DEFINE(HAVE_STRUCT_SOCKADDR_IN6)
+   HAVE_INET6=true;
+  ],
+  [
+   HAVE_INET6=false;
+  ],
+  [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+  ])])
+
+dnl ------------------------------------------------------------------------
+dnl  PA_STRUCT_ADDRINFO
+dnl
+dnl Look for definition of struct addrinfo, which at least has an
+dnl ai_addr member
+dnl
+AH_TEMPLATE([HAVE_STRUCT_ADDRINFO],
+[Define if struct addrinfo is defined.])
+
+AC_DEFUN(PA_STRUCT_ADDRINFO,
+ [AC_CHECK_MEMBER(struct addrinfo.ai_addr,
+  [AC_DEFINE(HAVE_STRUCT_ADDRINFO)],
+  [],
+  [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+  ])])
+
+dnl ------------------------------------------------------------------------
+dnl  PA_STRUCT_IN6_PKTINFO
+dnl
+dnl Look for definition of struct in6_pktinfo, which at least has an
+dnl ipi6_addr member
+dnl
+AH_TEMPLATE([HAVE_STRUCT_IN6_PKTINFO],
+[Define if struct in6_pktinfo is defined.])
+
+AC_DEFUN(PA_STRUCT_IN6_PKTINFO,
+ [AC_CHECK_MEMBER(struct in6_pktinfo.ipi6_addr,
+  [AC_DEFINE(HAVE_STRUCT_IN6_PKTINFO)],
+  [],
+  [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+  ])])
+
 dnl --------------------------------------------------------------------------
 dnl PA_HAVE_TCPWRAPPERS
 dnl
@@ -189,3 +254,27 @@ int main()
 [
  AC_MSG_RESULT(no)
 ])])
+
+dnl --------------------------------------------------------------------------
+dnl  PA_SEARCH_LIBS_AND_ADD
+dnl
+dnl  PA_SEARCH_LIBS_AND_ADD(function, libraries [,function to add])
+dnl --------------------------------------------------------------------------
+
+AC_DEFUN(PA_SEARCH_LIBS_AND_ADD,
+ [
+  AH_TEMPLATE(AS_TR_CPP(HAVE_$1), [Define if $1 function was found])
+  AC_SEARCH_LIBS($1, $2,
+   [
+    AC_DEFINE_UNQUOTED(AS_TR_CPP(HAVE_$1))
+    pa_add_$1=false;
+   ],
+   [
+    XTRA=true;
+    if test $# -eq 3; then
+      AC_LIBOBJ($3)
+    else
+      AC_LIBOBJ($1)
+    fi
+    pa_add_$1=true;
+   ])])

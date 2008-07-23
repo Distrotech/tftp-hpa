@@ -52,6 +52,7 @@ AC_CHECK_HEADERS(sys/stat.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(sys/types.h)
 AC_CHECK_HEADERS(arpa/inet.h)
+AC_CHECK_HEADERS(netdb.h)
 AC_HEADER_TIME
 dnl This is needed on some versions of FreeBSD...
 AC_CHECK_HEADERS(machine/param.h)
@@ -118,9 +119,6 @@ AC_CHECK_TYPES(socklen_t,,,
 ])
 
 AC_SEARCH_LIBS(socket, [socket ws2_32 wsock32], , [AC_MSG_ERROR(socket library not found)])
-AC_SEARCH_LIBS(gethostbyname, [nsl resolv], , [AC_MSG_ERROR(gethostbyname not found)])
-AC_SEARCH_LIBS(inet_aton, [nsl resolv], , [AC_MSG_ERROR(inet_aton not found)])
-AC_SEARCH_LIBS(herror, [nsl resolv], , [AC_MSG_ERROR(herror not found)])
 
 AC_CHECK_FUNCS(fcntl)
 AC_CHECK_FUNCS(setsid)
@@ -137,6 +135,7 @@ AC_CHECK_FUNCS(strtoull)
 
 PA_MSGHDR_MSG_CONTROL
 PA_STRUCT_IN_PKTINFO
+PA_STRUCT_ADDRINFO
 
 PA_HEADER_DEFINES(fcntl.h, int, O_NONBLOCK)
 PA_HEADER_DEFINES(fcntl.h, int, O_BINARY)
@@ -153,9 +152,30 @@ SRCROOT=`cd $srcdir && pwd`
 OBJROOT=`pwd`
 
 XTRA=false
-AC_SEARCH_LIBS(xmalloc, iberty, , [XTRA=true; AC_LIBOBJ(xmalloc)])
-AC_SEARCH_LIBS(xstrdup, iberty, , [XTRA=true; AC_LIBOBJ(xstrdup)])
-AC_SEARCH_LIBS(bsd_signal, bsd, , [XTRA=true; AC_LIBOBJ(bsdsignal)])
+PA_SEARCH_LIBS_AND_ADD(xmalloc, iberty)
+PA_SEARCH_LIBS_AND_ADD(xstrdup, iberty)
+PA_SEARCH_LIBS_AND_ADD(bsd_signal, bsd, bsdsignal)
+PA_SEARCH_LIBS_AND_ADD(getaddrinfo, [nsl resolv])
+if $pa_add_getaddrinfo
+then
+    AC_SEARCH_LIBS(gethostbyname, [nsl resolv],
+      [AC_SEARCH_LIBS(herror, [nsl resolv], ,
+	 [AC_MSG_ERROR(herror not found)])],
+      [AC_MSG_ERROR(gethostbyname not found)])
+else
+    AC_SEARCH_LIBS(freeaddrinfo, [nsl resolv], ,
+      [AC_MSG_ERROR(getaddrinfo but not freeaddrinfo found)])
+    AC_SEARCH_LIBS(gai_strerror, [nsl resolv], ,
+      [AC_MSG_ERROR(getaddrinfo but not gai_strerror found)])
+fi
+
+PA_SEARCH_LIBS_AND_ADD(inet_ntop, [nsl resolv])
+if $pa_add_inet_ntop
+then
+    AC_SEARCH_LIBS(inet_ntoa, [nsl resolv], ,
+      [AC_MSG_ERROR(inet_ntoa not found)])
+fi
+
 AC_CHECK_FUNCS(daemon, , [XTRA=true; AC_LIBOBJ(daemon)])
 AC_CHECK_FUNCS(dup2, , [XTRA=true; AC_LIBOBJ(dup2)])
 if $XTRA
@@ -225,6 +245,27 @@ PA_WITH_BOOL(readline, 1,
 
 TFTP_LIBS="$LIBS $XTRALIBS"
 LIBS="$common_libs"
+
+dnl
+dnl   Check for IPV6 and disable-ipv6
+dnl
+PA_STRUCT_SOCKADDR_IN6
+AC_MSG_CHECKING([for IPv6 support])
+PA_WITH_BOOL(ipv6, 1,
+[  --without-ipv6      disable the support for IPv6],
+[
+    if  $HAVE_INET6
+    then
+	AC_MSG_RESULT(yes)
+        AC_DEFINE(HAVE_IPV6, 1, [Define if IPv6 support is enabled.])
+        PA_STRUCT_IN6_PKTINFO
+    else
+	AC_MSG_RESULT(no)
+        AC_MSG_WARN([*** we do not have required IPv6 structs - IPv6 will be disabled])
+    fi
+],
+[AC_MSG_RESULT(disabled)])
+
 
 AC_SUBST(SRCROOT)
 AC_SUBST(OBJROOT)

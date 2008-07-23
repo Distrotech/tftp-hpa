@@ -106,6 +106,9 @@
 #endif
 #endif
 #endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -299,6 +302,49 @@ int dup2(int, int);
 #endif
 #ifndef HAVE_DAEMON
 int daemon(int, int);
+#endif
+
+#ifndef HAVE_GETADDRINFO
+#ifndef HAVE_STRUCT_ADDRINFO
+struct addrinfo {
+    int     ai_flags;
+    int     ai_family;
+    int     ai_socktype;
+    int     ai_protocol;
+    size_t  ai_addrlen;
+    struct sockaddr *ai_addr;
+    char    *ai_canonname;
+    struct addrinfo *ai_next;
+};
+#endif
+int getaddrinfo(const char *, const char *, const struct addrinfo *,
+                struct addrinfo **);
+void freeaddrinfo(struct addrinfo *);
+const char *gai_strerror(int);
+
+#ifndef AI_CANONNAME
+#define AI_CANONNAME    0x0002  /* Request for canonical name.  */
+#endif
+
+#ifndef EAI_NONAME
+#define EAI_NONAME      -2    /* NAME or SERVICE is unknown.  */
+#endif
+#ifndef EAI_ADDRFAMILY
+#define EAI_ADDRFAMILY -9    /* Address family for NAME not supported.  */
+#endif
+#ifndef EAI_MEMORY
+#define EAI_MEMORY      -10   /* Memory allocation failure.  */
+#endif
+#ifndef EAI_SYSTEM
+#define EAI_SYSTEM      -11   /* System error returned in rrno'.  */
+#endif
+#endif
+
+#ifndef HAVE_INET_NTOP
+const char *inet_ntop(int, const void *, char *, socklen_t);
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 48
+#endif
 #endif
 
 /* tftp-hpa version and configuration strings */
