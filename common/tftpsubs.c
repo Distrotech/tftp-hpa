@@ -237,7 +237,7 @@ int synchnet(int f)
 {                               /* socket to flush */
     int pktcount = 0;
     char rbuf[PKTSIZE];
-    struct sockaddr_in from;
+    union sock_addr from;
     socklen_t fromlen;
     fd_set socketset;
     struct timeval notime;
@@ -253,15 +253,15 @@ int synchnet(int f)
 
         /* Otherwise drain the packet */
         pktcount++;
-        fromlen = sizeof from;
+        fromlen = sizeof(from);
         (void)recvfrom(f, rbuf, sizeof(rbuf), 0,
-                       (struct sockaddr *)&from, &fromlen);
+                       &from.sa, &fromlen);
     }
 
     return pktcount;            /* Return packets drained */
 }
 
-int pick_port_bind(int sockfd, struct sockaddr_in *myaddr,
+int pick_port_bind(int sockfd, union sock_addr *myaddr,
                    unsigned int port_range_from,
                    unsigned int port_range_to)
 {
@@ -279,9 +279,8 @@ int pick_port_bind(int sockfd, struct sockaddr_in *myaddr,
     port = firstport;
 
     do {
-        myaddr->sin_port = htons(port);
-
-        if (bind(sockfd, (struct sockaddr *)myaddr, sizeof *myaddr) < 0) {
+        sa_set_port(myaddr, htons(port));
+        if (bind(sockfd, &myaddr->sa, SOCKLEN(myaddr)) < 0) {
             /* Some versions of Linux return EINVAL instead of EADDRINUSE */
             if (!(port_range && (errno == EINVAL || errno == EADDRINUSE)))
                 return -1;
@@ -298,4 +297,35 @@ int pick_port_bind(int sockfd, struct sockaddr_in *myaddr,
     } while (port != firstport);
 
     return -1;
+}
+
+int
+set_sock_addr(char *host,union sock_addr  *s, char **name)
+{
+    struct addrinfo *addrResult;
+    struct addrinfo hints;
+    int err;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = s->sa.sa_family;
+    hints.ai_flags = AI_CANONNAME;
+    err = getaddrinfo(host, NULL, &hints, &addrResult);
+    if (err) {
+        printf("Error : %s\n", gai_strerror(err));
+        printf("%s: unknown host\n", host);
+        return err;
+    }
+    if (addrResult == NULL) {
+        printf("%s: unknown host\n", host);
+        return EAI_NONAME;
+    }
+    memcpy(s, addrResult->ai_addr, addrResult->ai_addrlen);
+    if (name) {
+        if (addrResult->ai_canonname)
+            *name = xstrdup(addrResult->ai_canonname);
+        else
+            *name = xstrdup(host);
+    }
+    freeaddrinfo(addrResult);
+    return 0;
 }

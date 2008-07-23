@@ -40,7 +40,6 @@
  */
 #include <sys/file.h>
 #include <ctype.h>
-#include <netdb.h>
 #ifdef WITH_READLINE
 #include <readline/readline.h>
 #ifdef HAVE_READLINE_HISTORY_H
@@ -72,8 +71,16 @@ static const struct modes modes[] = {
 #define MODE_NETASCII (&modes[0])
 #define MODE_DEFAULT  MODE_NETASCII
 
-struct sockaddr_in peeraddr;
-int f;
+#ifdef HAVE_IPV6
+int ai_fam = AF_UNSPEC;
+int ai_fam_sock = AF_UNSPEC;
+#else
+int ai_fam = AF_INET;
+int ai_fam_sock = AF_INET;
+#endif
+
+union sock_addr peeraddr;
+int f = -1;
 u_short port;
 int trace;
 int verbose;
@@ -184,14 +191,18 @@ const char *program;
 static inline void usage(int errcode)
 {
     fprintf(stderr,
+#ifdef HAVE_IPV6
+            "Usage: %s [-4][-6][-v][-l][-m mode] [host [port]] [-c command]\n",
+#else
             "Usage: %s [-v][-l][-m mode] [host [port]] [-c command]\n",
+#endif
             program);
     exit(errcode);
 }
 
 int main(int argc, char *argv[])
 {
-    struct sockaddr_in s_in;
+    union sock_addr sa;
     int arg;
     static int pargc, peerargc;
     static int iscmd = 0;
@@ -210,6 +221,14 @@ int main(int argc, char *argv[])
         if (argv[arg][0] == '-') {
             for (optx = &argv[arg][1]; *optx; optx++) {
                 switch (*optx) {
+#ifdef HAVE_IPV6
+                case '4':
+                    ai_fam = AF_INET;
+                    break;
+                case '6':
+                    ai_fam = AF_INET6;
+                    break;
+#endif
                 case 'v':
                     verbose = 1;
                     break;
@@ -268,6 +287,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    ai_fam_sock = ai_fam;
+
     pargv = argv + arg;
     pargc = argc - arg;
 
@@ -283,18 +304,7 @@ int main(int argc, char *argv[])
         sp->s_port = htons(IPPORT_TFTP);
         sp->s_proto = (char *)"udp";
     }
-    port = sp->s_port;          /* Default port */
-    f = socket(AF_INET, SOCK_DGRAM, 0);
-    if (f < 0) {
-        perror("tftp: socket");
-        exit(EX_OSERR);
-    }
-    bzero((char *)&s_in, sizeof(s_in));
-    s_in.sin_family = AF_INET;
-    if (pick_port_bind(f, &s_in, portrange_from, portrange_to)) {
-        perror("tftp: bind");
-        exit(EX_OSERR);
-    }
+
     bsd_signal(SIGINT, intr);
 
     if (peerargc) {
@@ -302,6 +312,21 @@ int main(int argc, char *argv[])
         if (sigsetjmp(toplevel, 1) != 0)
             exit(EX_NOHOST);
         setpeer(peerargc, peerargv);
+    }
+
+    if (ai_fam_sock == AF_UNSPEC)
+        ai_fam_sock = AF_INET;
+
+    f = socket(ai_fam_sock, SOCK_DGRAM, 0);
+    if (f < 0) {
+        perror("tftp: socket");
+        exit(EX_OSERR);
+    }
+    bzero(&sa, sizeof(sa));
+    sa.sa.sa_family = ai_fam_sock;
+    if (pick_port_bind(f, &sa, portrange_from, portrange_to)) {
+        perror("tftp: bind");
+        exit(EX_OSERR);
     }
 
     if (iscmd && pargc) {
@@ -375,7 +400,7 @@ static void getmoreargs(const char *partial, const char *mprompt)
 
 void setpeer(int argc, char *argv[])
 {
-    struct hostent *host;
+    int err;
 
     if (argc < 2) {
         getmoreargs("connect ", "(to) ");
@@ -388,16 +413,34 @@ void setpeer(int argc, char *argv[])
         return;
     }
 
-    host = gethostbyname(argv[1]);
-    if (host == 0) {
+    peeraddr.sa.sa_family = ai_fam;
+    err = set_sock_addr(argv[1], &peeraddr, &hostname);
+    if (err) {
         connected = 0;
-        printf("%s: unknown host\n", argv[1]);
         return;
     }
-    peeraddr.sin_family = host->h_addrtype;
-    bcopy(host->h_addr, &peeraddr.sin_addr, host->h_length);
-    hostname = xstrdup(host->h_name);
+    ai_fam = peeraddr.sa.sa_family;
+    if (f == -1) { /* socket not open */
+        ai_fam_sock = ai_fam;
+    } else { /* socket was already open */
+        if (ai_fam_sock != ai_fam) { /* need reopen socken for new family */
+            union sock_addr sa;
 
+            close(f);
+            ai_fam_sock = ai_fam;
+            f = socket(ai_fam_sock, SOCK_DGRAM, 0);
+            if (f < 0) {
+                perror("tftp: socket");
+                exit(EX_OSERR);
+            }
+            bzero((char *)&sa, sizeof (sa));
+            sa.sa.sa_family = ai_fam_sock;
+            if (pick_port_bind(f, &sa, portrange_from, portrange_to)) {
+                perror("tftp: bind");
+                exit(EX_OSERR);
+            }
+        }
+    }
     port = sp->s_port;
     if (argc == 3) {
         struct servent *usp;
@@ -418,9 +461,13 @@ void setpeer(int argc, char *argv[])
     }
 
     if (verbose) {
+        char tmp[INET6_ADDRSTRLEN], *tp;
+        tp = (char *)inet_ntop(peeraddr.sa.sa_family, SOCKADDR_P(&peeraddr),
+                               tmp, INET6_ADDRSTRLEN);
+        if (!tp)
+            tp = (char *)"???";
         printf("Connected to %s (%s), port %u\n",
-               hostname, inet_ntoa(peeraddr.sin_addr),
-               (unsigned int)ntohs(port));
+               hostname, tp, (unsigned int)ntohs(port));
     }
     connected = 1;
 }
@@ -484,7 +531,7 @@ static void settftpmode(const struct modes *newmode)
 void put(int argc, char *argv[])
 {
     int fd;
-    int n;
+    int n, err;
     char *cp, *targ;
 
     if (argc < 2) {
@@ -499,8 +546,6 @@ void put(int argc, char *argv[])
     }
     targ = argv[argc - 1];
     if (!literal && strchr(argv[argc - 1], ':')) {
-        struct hostent *hp;
-
         for (n = 1; n < argc - 1; n++)
             if (strchr(argv[n], ':')) {
                 putusage(argv[0]);
@@ -509,16 +554,14 @@ void put(int argc, char *argv[])
         cp = argv[argc - 1];
         targ = strchr(cp, ':');
         *targ++ = 0;
-        hp = gethostbyname(cp);
-        if (hp == NULL) {
-            fprintf(stderr, "tftp: %s: ", cp);
-            herror((char *)NULL);
+        peeraddr.sa.sa_family = ai_fam;
+        err = set_sock_addr(cp, &peeraddr,&hostname);
+        if (err) {
+            connected = 0;
             return;
         }
-        bcopy(hp->h_addr, &peeraddr.sin_addr, hp->h_length);
-        peeraddr.sin_family = hp->h_addrtype;
+        ai_fam = peeraddr.sa.sa_family;
         connected = 1;
-        hostname = xstrdup(hp->h_name);
     }
     if (!connected) {
         printf("No target machine specified.\n");
@@ -535,7 +578,7 @@ void put(int argc, char *argv[])
         if (verbose)
             printf("putting %s to %s:%s [%s]\n",
                    cp, hostname, targ, mode->m_mode);
-        peeraddr.sin_port = port;
+        sa_set_port(&peeraddr, port);
         tftp_sendfile(fd, targ, mode->m_mode);
         return;
     }
@@ -554,7 +597,7 @@ void put(int argc, char *argv[])
         if (verbose)
             printf("putting %s to %s:%s [%s]\n",
                    argv[n], hostname, targ, mode->m_mode);
-        peeraddr.sin_port = port;
+        sa_set_port(&peeraddr, port);
         tftp_sendfile(fd, targ, mode->m_mode);
     }
 }
@@ -597,19 +640,15 @@ void get(int argc, char *argv[])
         if (literal || src == NULL)
             src = argv[n];
         else {
-            struct hostent *hp;
+            int err;
 
             *src++ = 0;
-            hp = gethostbyname(argv[n]);
-            if (hp == NULL) {
-                fprintf(stderr, "tftp: %s: ", argv[n]);
-                herror((char *)NULL);
+            peeraddr.sa.sa_family = ai_fam;
+            err = set_sock_addr(argv[n], &peeraddr, &hostname);
+            if (err)
                 continue;
-            }
-            bcopy(hp->h_addr, (caddr_t) & peeraddr.sin_addr, hp->h_length);
-            peeraddr.sin_family = hp->h_addrtype;
+            ai_fam = peeraddr.sa.sa_family;
             connected = 1;
-            hostname = xstrdup(hp->h_name);
         }
         if (argc < 4) {
             cp = argc == 3 ? argv[2] : tail(src);
@@ -623,7 +662,7 @@ void get(int argc, char *argv[])
             if (verbose)
                 printf("getting from %s:%s to %s [%s]\n",
                        hostname, src, cp, mode->m_mode);
-            peeraddr.sin_port = port;
+            sa_set_port(&peeraddr, port);
             tftp_recvfile(fd, src, mode->m_mode);
             break;
         }
@@ -638,7 +677,7 @@ void get(int argc, char *argv[])
         if (verbose)
             printf("getting from %s:%s to %s [%s]\n",
                    hostname, src, cp, mode->m_mode);
-        peeraddr.sin_port = port;
+        sa_set_port(&peeraddr, port);
         tftp_recvfile(fd, src, mode->m_mode);
     }
 }

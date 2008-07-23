@@ -18,8 +18,8 @@
  */
 
 #include "config.h"             /* Must be included first! */
-#include "recvfrom.h"
 #include "common/tftpsubs.h"
+#include "recvfrom.h"
 #ifdef HAVE_MACHINE_PARAM_H
 #include <machine/param.h>      /* Needed on some versions of FreeBSD */
 #endif
@@ -55,31 +55,47 @@ struct in_pktinfo {
  * end up having the same local and remote address when trying to
  * bind to it.
  */
-static int address_is_local(const struct sockaddr_in *addr)
+static int address_is_local(const union sock_addr *addr)
 {
-    struct sockaddr_in sin;
+    union sock_addr sa;
     int sockfd = -1;
     int e;
     int rv = 0;
     socklen_t addrlen;
 
     /* Multicast or universal broadcast address? */
-    if (ntohl(addr->sin_addr.s_addr) >= (224UL << 24))
+    if (addr->sa.sa_family == AF_INET) {
+        if (ntohl(addr->si.sin_addr.s_addr) >= (224UL << 24))
+            return 0;
+    }
+#ifdef HAVE_IPV6
+    else if (addr->sa.sa_family == AF_INET6) {
+        if (IN6_IS_ADDR_MULTICAST(&addr->s6.sin6_addr))
+            return 0;
+    }
+#endif
+    else
         return 0;
 
-    sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
     if (sockfd < 0)
         goto err;
 
-    if (connect(sockfd, (const struct sockaddr *)addr, sizeof *addr))
+    if (connect(sockfd, &addr->sa, SOCKLEN(addr)))
         goto err;
 
-    addrlen = sizeof sin;
-    if (getsockname(sockfd, (struct sockaddr *)&sin, &addrlen))
+    addrlen = SOCKLEN(addr);
+    if (getsockname(sockfd, (struct sockaddr *)&sa, &addrlen))
         goto err;
 
-    rv = sin.sin_addr.s_addr == addr->sin_addr.s_addr;
-
+    if (addr->sa.sa_family == AF_INET)
+        rv = sa.si.sin_addr.s_addr == addr->si.sin_addr.s_addr;
+#ifdef HAVE_IPV6
+    else if (addr->sa.sa_family == AF_INET6)
+        rv = IN6_ARE_ADDR_EQUAL(&sa.s6.sin6_addr, &addr->s6.sin6_addr);
+#endif
+    else
+        rv = 0;
   err:
     e = errno;
 
@@ -93,7 +109,7 @@ static int address_is_local(const struct sockaddr_in *addr)
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
            struct sockaddr *from, socklen_t * fromlen,
-           struct sockaddr_in *myaddr)
+           union sock_addr *myaddr)
 {
     struct msghdr msg;
     struct iovec iov;
@@ -107,23 +123,41 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 #else
         char control[CMSG_SPACE(sizeof(struct in_addr))];
 #endif
+#ifdef HAVE_IPV6
+#ifdef HAVE_STRUCT_IN6_PKTINFO
+        char control6[CMSG_SPACE(sizeof(struct in6_addr)) +
+                     CMSG_SPACE(sizeof(struct in6_pktinfo))];
+#else
+        char control6[CMSG_SPACE(sizeof(struct in6_addr))];
+#endif
+#endif
     } control_un;
     int on = 1;
 #ifdef IP_PKTINFO
     struct in_pktinfo pktinfo;
 #endif
+#ifdef HAVE_STRUCT_IN6_PKTINFO
+    struct in6_pktinfo pktinfo6;
+#endif
 
     /* Try to enable getting the return address */
 #ifdef IP_RECVDSTADDR
-    setsockopt(s, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on));
+    if (from->sa_family == AF_INET)
+        setsockopt(s, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on));
 #endif
 #ifdef IP_PKTINFO
-    setsockopt(s, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on));
+    if (from->sa_family == AF_INET)
+        setsockopt(s, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on));
 #endif
-
+#ifdef HAVE_IPV6
+#ifdef IPV6_RECVPKTINFO
+    if (from->sa_family == AF_INET6)
+        setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));
+#endif
+#endif
     bzero(&msg, sizeof msg);    /* Clear possible system-dependent fields */
     msg.msg_control = control_un.control;
-    msg.msg_controllen = sizeof(control_un.control);
+    msg.msg_controllen = sizeof(control_un);
     msg.msg_flags = 0;
 
     msg.msg_name = from;
@@ -139,8 +173,8 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
     *fromlen = msg.msg_namelen;
 
     if (myaddr) {
-        bzero(myaddr, sizeof(struct sockaddr_in));
-        myaddr->sin_family = AF_INET;
+        bzero(myaddr, sizeof(*myaddr));
+        myaddr->sa.sa_family = from->sa_family;
 
         if (msg.msg_controllen < sizeof(struct cmsghdr) ||
             (msg.msg_flags & MSG_CTRUNC))
@@ -149,31 +183,61 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
         for (cmptr = CMSG_FIRSTHDR(&msg); cmptr != NULL;
              cmptr = CMSG_NXTHDR(&msg, cmptr)) {
 
+            if (from->sa_family == AF_INET) {
+                myaddr->sa.sa_family = AF_INET;
 #ifdef IP_RECVDSTADDR
-            if (cmptr->cmsg_level == IPPROTO_IP &&
-                cmptr->cmsg_type == IP_RECVDSTADDR) {
-                memcpy(&myaddr->sin_addr, CMSG_DATA(cmptr),
-                       sizeof(struct in_addr));
-            }
+                if (cmptr->cmsg_level == IPPROTO_IP &&
+                    cmptr->cmsg_type == IP_RECVDSTADDR) {
+                    memcpy(&myaddr->si.sin_addr, CMSG_DATA(cmptr),
+                           sizeof(struct in_addr));
+                }
 #endif
 
 #ifdef IP_PKTINFO
-            if (cmptr->cmsg_level == IPPROTO_IP &&
-                cmptr->cmsg_type == IP_PKTINFO) {
-                memcpy(&pktinfo, CMSG_DATA(cmptr),
-                       sizeof(struct in_pktinfo));
-                memcpy(&myaddr->sin_addr, &pktinfo.ipi_addr,
-                       sizeof(struct in_addr));
+                if (cmptr->cmsg_level == IPPROTO_IP &&
+                    cmptr->cmsg_type == IP_PKTINFO) {
+                    memcpy(&pktinfo, CMSG_DATA(cmptr),
+                           sizeof(struct in_pktinfo));
+                    memcpy(&myaddr->si.sin_addr, &pktinfo.ipi_addr,
+                           sizeof(struct in_addr));
+                }
+#endif
             }
+#ifdef HAVE_IPV6
+            else if (from->sa_family == AF_INET6) {
+                myaddr->sa.sa_family = AF_INET6;
+#ifdef IP6_RECVDSTADDR
+                if (cmptr->cmsg_level == IPPROTO_IPV6 &&
+                    cmptr->cmsg_type == IPV6_RECVDSTADDR )
+                    memcpy(&myaddr->s6.sin6_addr, CMSG_DATA(cmptr),
+                           sizeof(struct in6_addr));
 #endif
 
+#ifdef HAVE_STRUCT_IN6_PKTINFO
+                if (cmptr->cmsg_level == IPPROTO_IPV6 &&
+                    (cmptr->cmsg_type == IPV6_RECVPKTINFO ||
+                     cmptr->cmsg_type == IPV6_PKTINFO)) {
+                    memcpy(&pktinfo6, CMSG_DATA(cmptr),
+                           sizeof(struct in6_pktinfo));
+                    memcpy(&myaddr->s6.sin6_addr, &pktinfo6.ipi6_addr,
+                           sizeof(struct in6_addr));
+                }
+#endif
+            }
+#endif
+        }
+        /* If the address is not a valid local address,
+         * then bind to any address...
+         */
+        if (address_is_local(myaddr) != 1) {
+            if (myaddr->sa.sa_family == AF_INET)
+                ((struct sockaddr_in *)myaddr)->sin_addr.s_addr = INADDR_ANY;
+#ifdef HAVE_IPV6
+            else if (myaddr->sa.sa_family == AF_INET6)
+                memset(&myaddr->s6.sin6_addr, 0, sizeof(struct in6_addr));
+#endif
         }
     }
-
-    /* If the address is not a valid local address, then bind to any address... */
-    if (address_is_local(myaddr) != 1)
-        myaddr->sin_addr.s_addr = INADDR_ANY;
-
     return n;
 }
 
@@ -181,15 +245,13 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
-           struct sockaddr *from, int *fromlen, struct sockaddr_in *myaddr)
+           struct sockaddr *from, int *fromlen, union sock_addr *myaddr)
 {
     /* There is no way we can get the local address, fudge it */
 
-    bzero(myaddr, sizeof(struct sockaddr_in));
-    myaddr->sin_family = AF_INET;
-
-    myaddr->sin_port = htons(IPPORT_TFTP);
-    bzero(&myaddr->sin_addr, sizeof(myaddr->sin_addr));
+    bzero(myaddr, sizeof(*myaddr));
+    myaddr->sa.sa_family = from->sa_family;
+    sa_set_port(myaddr, htons(IPPORT_TFTP));
 
     return recvfrom(s, buf, len, flags, from, fromlen);
 }

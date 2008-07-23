@@ -38,8 +38,8 @@
  */
 #include "extern.h"
 
-extern struct sockaddr_in peeraddr;     /* filled in by main */
-extern int f;                   /* the opened socket */
+extern union sock_addr peeraddr; /* filled in by main */
+extern int f;                    /* the opened socket */
 extern int trace;
 extern int verbose;
 extern int rexmtval;
@@ -71,7 +71,7 @@ void tftp_sendfile(int fd, const char *name, const char *mode)
     volatile u_short block;
     volatile int size, convert;
     volatile off_t amount;
-    struct sockaddr_in from;
+    union sock_addr from;
     socklen_t fromlen;
     FILE *file;
     u_short ap_opcode, ap_block;
@@ -105,7 +105,7 @@ void tftp_sendfile(int fd, const char *name, const char *mode)
         if (trace)
             tpacket("sent", dp, size + 4);
         n = sendto(f, dp, size + 4, 0,
-                   (struct sockaddr *)&peeraddr, sizeof(peeraddr));
+                   &peeraddr.sa, SOCKLEN(&peeraddr));
         if (n != size + 4) {
             perror("tftp: sendto");
             goto abort;
@@ -116,14 +116,14 @@ void tftp_sendfile(int fd, const char *name, const char *mode)
             do {
                 fromlen = sizeof(from);
                 n = recvfrom(f, ackbuf, sizeof(ackbuf), 0,
-                             (struct sockaddr *)&from, &fromlen);
+                             &from.sa, &fromlen);
             } while (n <= 0);
             alarm(0);
             if (n < 0) {
                 perror("tftp: recvfrom");
                 goto abort;
             }
-            peeraddr.sin_port = from.sin_port;  /* added */
+            sa_set_port(&peeraddr, SOCKPORT(&from));  /* added */
             if (trace)
                 tpacket("received", ap, n);
             /* should verify packet came from server */
@@ -176,7 +176,7 @@ void tftp_recvfile(int fd, const char *name, const char *mode)
     volatile u_short block;
     volatile int size, firsttrip;
     volatile unsigned long amount;
-    struct sockaddr_in from;
+    union sock_addr from;
     socklen_t fromlen;
     FILE *file;
     volatile int convert;       /* true if converting crlf -> lf */
@@ -207,8 +207,8 @@ void tftp_recvfile(int fd, const char *name, const char *mode)
       send_ack:
         if (trace)
             tpacket("sent", ap, size);
-        if (sendto(f, ackbuf, size, 0, (struct sockaddr *)&peeraddr,
-                   sizeof(peeraddr)) != size) {
+        if (sendto(f, ackbuf, size, 0, &peeraddr.sa,
+                   SOCKLEN(&peeraddr)) != size) {
             alarm(0);
             perror("tftp: sendto");
             goto abort;
@@ -219,14 +219,14 @@ void tftp_recvfile(int fd, const char *name, const char *mode)
             do {
                 fromlen = sizeof(from);
                 n = recvfrom(f, dp, PKTSIZE, 0,
-                             (struct sockaddr *)&from, &fromlen);
+                             &from.sa, &fromlen);
             } while (n <= 0);
             alarm(0);
             if (n < 0) {
                 perror("tftp: recvfrom");
                 goto abort;
             }
-            peeraddr.sin_port = from.sin_port;  /* added */
+            sa_set_port(&peeraddr, SOCKPORT(&from));  /* added */
             if (trace)
                 tpacket("received", dp, n);
             /* should verify client address */
@@ -266,7 +266,7 @@ void tftp_recvfile(int fd, const char *name, const char *mode)
     ap->th_opcode = htons((u_short) ACK);       /* has seen err msg */
     ap->th_block = htons((u_short) block);
     (void)sendto(f, ackbuf, 4, 0, (struct sockaddr *)&peeraddr,
-                 sizeof(peeraddr));
+                 SOCKLEN(&peeraddr));
     write_behind(file, convert);        /* flush last buffer */
     fclose(file);
     stopclock();
@@ -341,8 +341,8 @@ static void nak(int error, const char *msg)
 
     if (trace)
         tpacket("sent", tp, length);
-    if (sendto(f, ackbuf, length, 0, (struct sockaddr *)&peeraddr,
-               sizeof(peeraddr)) != length)
+    if (sendto(f, ackbuf, length, 0, &peeraddr.sa,
+               SOCKLEN(&peeraddr)) != length)
         perror("nak");
 }
 

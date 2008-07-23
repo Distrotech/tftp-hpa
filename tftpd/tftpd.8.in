@@ -40,13 +40,19 @@
 .I directory...
 .SH DESCRIPTION
 .B tftpd
-is a server for the IPv4 Trivial File Transfer Protocol.  The TFTP
+is a server for the Trivial File Transfer Protocol.  The TFTP
 protocol is extensively used to support remote booting of diskless
 devices.  The server is normally started by
 .BR inetd ,
 but can also run standalone.
 .PP
 .SH OPTIONS
+.TP
+.B \-4
+Connect with IPv4 only, if IPv6 support was compiled in.
+.TP
+.B \-6
+Connect with IPv6 only, if IPv6 support was compiled in.
 .TP
 .B \-l
 Run the server in standalone (listen) mode, rather than run from

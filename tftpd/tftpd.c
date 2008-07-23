@@ -42,7 +42,6 @@
 
 #include <sys/ioctl.h>
 #include <signal.h>
-#include <netdb.h>
 #include <ctype.h>
 #include <pwd.h>
 #include <limits.h>
@@ -65,6 +64,12 @@ int allow_severity = -1;        /* Don't log at all */
 struct request_info wrap_request;
 #endif
 
+#ifdef HAVE_IPV6
+int ai_fam = AF_UNSPEC;
+#else
+int ai_fam = AF_INET;
+#endif
+
 #define	TIMEOUT 1000000         /* Default timeout (us) */
 #define TRIES   6               /* Number of attempts to send each packet */
 #define TIMEOUT_LIMIT ((1 << TRIES)-1)
@@ -82,7 +87,9 @@ char buf[PKTSIZE];
 char ackbuf[PKTSIZE];
 unsigned int max_blksize = MAX_SEGSIZE;
 
-struct sockaddr_in from;
+char tmpbuf[INET6_ADDRSTRLEN], *tmp_p;
+
+union sock_addr from;
 socklen_t fromlen;
 off_t tsize;
 int tsize_ok;
@@ -254,10 +261,16 @@ int main(int argc, char **argv)
     struct tftphdr *tp;
     struct passwd *pw;
     struct options *opt;
-    struct sockaddr_in myaddr;
-    struct sockaddr_in bindaddr;
+    union sock_addr myaddr;
+    struct sockaddr_in bindaddr4;
+#ifdef HAVE_IPV6
+    struct sockaddr_in6 bindaddr6;
+#endif
     int n;
-    int fd = 0;
+    int fd = -1;
+    int fd4 = -1;
+    int fd6 = -1;
+    int fdmax = 0;
     int standalone = 0;         /* Standalone (listen) mode */
     int nodaemon = 0;           /* Do not detach process */
     char *address = NULL;       /* Address to listen to */
@@ -283,8 +296,16 @@ int main(int argc, char **argv)
 
     srand(time(NULL) ^ getpid());
 
-    while ((c = getopt(argc, argv, "cspvVlLa:B:u:U:r:t:T:R:m:")) != -1)
+    while ((c = getopt(argc, argv, "46cspvVlLa:B:u:U:r:t:T:R:m:")) != -1)
         switch (c) {
+#ifdef HAVE_IPV6
+        case '4':
+            ai_fam = AF_INET;
+            break;
+        case '6':
+            ai_fam = AF_INET6;
+            break;
+#endif
         case 'c':
             cancreate = 1;
             break;
@@ -417,12 +438,6 @@ int main(int argc, char **argv)
     if (spec_umask || !unixperms)
         umask(my_umask);
 
-    /* Note: on Cygwin, select() on a nonblocking socket becomes
-       a nonblocking select. */
-#ifndef __CYGWIN__
-    set_socket_nonblock(fd, 1);
-#endif
-
 #ifdef WITH_REGEX
     if (rewrite_file)
         rewrite_rules = read_remap_rules(rewrite_file);
@@ -430,16 +445,45 @@ int main(int argc, char **argv)
 
     /* If we're running standalone, set up the input port */
     if (standalone) {
-        fd = socket(PF_INET, SOCK_DGRAM, 0);
-
-        memset(&bindaddr, 0, sizeof bindaddr);
-        bindaddr.sin_family = AF_INET;
-        bindaddr.sin_addr.s_addr = INADDR_ANY;
-        bindaddr.sin_port = htons(IPPORT_TFTP);
-
+#ifdef HAVE_IPV6
+        if (ai_fam != AF_INET6) {
+#endif
+            fd4 = socket(AF_INET, SOCK_DGRAM, 0);
+            if (fd4 < 0) {
+                syslog(LOG_ERR, "cannot open IPv4 socket: %m");
+                exit(EX_OSERR);
+            }
+#ifndef __CYGWIN__
+            set_socket_nonblock(fd4, 1);
+#endif
+            memset(&bindaddr4, 0, sizeof bindaddr4);
+            bindaddr4.sin_family = AF_INET;
+            bindaddr4.sin_addr.s_addr = INADDR_ANY;
+            bindaddr4.sin_port = htons(IPPORT_TFTP);
+#ifdef HAVE_IPV6
+        }
+        if (ai_fam != AF_INET) {
+            fd6 = socket(AF_INET6, SOCK_DGRAM, 0);
+            if (fd6 < 0) {
+                if (fd4 < 0) {
+                    syslog(LOG_ERR, "cannot open IPv6 socket: %m");
+                    exit(EX_OSERR);
+                } else {
+                    syslog(LOG_ERR,
+                           "cannot open IPv6 socket, disable IPv6: %m");
+                }
+            }
+#ifndef __CYGWIN__
+            set_socket_nonblock(fd6, 1);
+#endif
+            memset(&bindaddr6, 0, sizeof bindaddr6);
+            bindaddr6.sin6_family = AF_INET6;
+            bindaddr6.sin6_port = htons(IPPORT_TFTP);
+        }
+#endif
         if (address) {
             char *portptr, *eportptr;
-            struct hostent *hostent;
+            int err;
             struct servent *servent;
             unsigned long port;
 
@@ -447,17 +491,40 @@ int main(int argc, char **argv)
             portptr = strrchr(address, ':');
             if (portptr)
                 *portptr++ = '\0';
-
+            else
+                portptr = (char *)"tftp";
             if (*address) {
-                hostent = gethostbyname(address);
-                if (!hostent || hostent->h_addrtype != AF_INET) {
-                    syslog(LOG_ERR,
-                           "cannot resolve local bind address: %s",
-                           address);
-                    exit(EX_NOINPUT);
+                if (fd4 >= 0) {
+                    bindaddr4.sin_family = AF_INET;
+                    err = set_sock_addr(address,
+                                        (union sock_addr *)&bindaddr4, NULL);
+                    if (err) {
+                        syslog(LOG_ERR,
+                               "cannot resolve local IPv4 bind address: %s",
+                               address);
+                        exit(EX_NOINPUT);
+                    }
                 }
-                memcpy(&bindaddr.sin_addr, hostent->h_addr,
-                       hostent->h_length);
+#ifdef HAVE_IPV6
+                if (fd6 >= 0) {
+                    err = set_sock_addr(address,
+                                        (union sock_addr *)&bindaddr6, NULL);
+                    if (err) {
+                        if (fd4 >= 0) {
+                            syslog(LOG_ERR,
+                                   "cannot resolve local IPv6 bind address: %s"
+                                   "; using IPv4 only", address);
+                            close(fd6);
+                            fd6 = -1;
+                        } else {
+                            syslog(LOG_ERR,
+                                   "cannot resolve local IPv6 bind address: %s",
+                                   address);
+                            exit(EX_NOINPUT);
+                        }
+                    }
+                }
+#endif
             } else {
                 /* Default to using INADDR_ANY */
             }
@@ -465,10 +532,20 @@ int main(int argc, char **argv)
             if (portptr && *portptr) {
                 servent = getservbyname(portptr, "udp");
                 if (servent) {
-                    bindaddr.sin_port = servent->s_port;
+                    if (fd4 >= 0)
+                        bindaddr4.sin_port = servent->s_port;
+#ifdef HAVE_IPV6
+                    if (fd6 >= 0)
+                        bindaddr6.sin6_port = servent->s_port;
+#endif
                 } else if ((port = strtoul(portptr, &eportptr, 0))
                            && !*eportptr) {
-                    bindaddr.sin_port = htons(port);
+                    if (fd4 >= 0)
+                        bindaddr4.sin_port = htons(port);
+#ifdef HAVE_IPV6
+                    if (fd6 >= 0)
+                        bindaddr6.sin6_port = htons(port);
+#endif
                 } else if (!strcmp(portptr, "tftp")) {
                     /* It's TFTP, we're OK */
                 } else {
@@ -479,11 +556,37 @@ int main(int argc, char **argv)
             }
         }
 
-        if (bind(fd, (struct sockaddr *)&bindaddr, sizeof bindaddr) < 0) {
-            syslog(LOG_ERR, "cannot bind to local socket: %m");
-            exit(EX_OSERR);
+        if (fd4 >= 0) {
+            if (bind(fd4, (struct sockaddr *)&bindaddr4,
+              sizeof(bindaddr4)) < 0) {
+                syslog(LOG_ERR, "cannot bind to local IPv4 socket: %m");
+                exit(EX_OSERR);
+            }
         }
-
+#ifdef HAVE_IPV6
+        if (fd6 >= 0) {
+            int on = 1;
+#if defined(IPV6_V6ONLY)
+            if (setsockopt(fd6, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&on,
+              sizeof(on))) {
+                syslog(LOG_ERR, "cannot setsockopt IPV6_V6ONLY %m");
+            }
+#endif
+            if (bind(fd6, (struct sockaddr *)&bindaddr6,
+              sizeof(bindaddr6)) < 0) {
+                if (fd4 >= 0) {
+                    syslog(LOG_ERR,
+                           "cannot bind to local IPv6 socket,"
+                           "IPv6 disabled: %m");
+                    close(fd6);
+                    fd6 = -1;
+                } else {
+                    syslog(LOG_ERR, "cannot bind to local IPv6 socket: %m");
+                    exit(EX_OSERR);
+                }
+            }
+        }
+#endif
         /* Daemonize this process */
         /* Note: when running in secure mode (-s), we must not chroot, since
            we are already in the proper directory. */
@@ -491,10 +594,21 @@ int main(int argc, char **argv)
             syslog(LOG_ERR, "cannot daemonize: %m");
             exit(EX_OSERR);
         }
+        if (fd6 > fd4)
+            fdmax = fd6;
+        else
+            fdmax = fd4;
     } else {
         /* 0 is our socket descriptor */
         close(1);
         close(2);
+        fd = 0;
+        fdmax = 0;
+        /* Note: on Cygwin, select() on a nonblocking socket becomes
+           a nonblocking select. */
+#ifndef __CYGWIN__
+        set_socket_nonblock(fd, 1);
+#endif
     }
 
     /* Disable path MTU discovery */
@@ -533,29 +647,61 @@ int main(int argc, char **argv)
         }
 
         FD_ZERO(&readset);
-        FD_SET(fd, &readset);
+        if (standalone) {
+            if (fd4 >= 0) {
+                FD_SET(fd4, &readset);
+#ifdef __CYGWIN__
+                /* On Cygwin, select() on a nonblocking socket returns
+                   immediately, with a rv of 0! */
+                set_socket_nonblock(fd4, 0);
+#endif
+            }
+            if (fd6 >= 0) {
+                FD_SET(fd6, &readset);
+#ifdef __CYGWIN__
+                /* On Cygwin, select() on a nonblocking socket returns
+                   immediately, with a rv of 0! */
+                set_socket_nonblock(fd6, 0);
+#endif
+            }
+        } else { /* fd always 0 */
+            fd = 0;
+#ifdef __CYGWIN__
+            /* On Cygwin, select() on a nonblocking socket returns
+               immediately, with a rv of 0! */
+            set_socket_nonblock(fd, 0);
+#endif
+            FD_SET(fd, &readset);
+        }
         tv_waittime.tv_sec = waittime;
         tv_waittime.tv_usec = 0;
 
-#ifdef __CYGWIN__
-        /* On Cygwin, select() on a nonblocking socket returns immediately,
-           with a rv of 0! */
-        set_socket_nonblock(fd, 0);
-#endif
 
         /* Never time out if we're in standalone mode */
-        rv = select(fd + 1, &readset, NULL, NULL,
+        rv = select(fdmax + 1, &readset, NULL, NULL,
                     standalone ? NULL : &tv_waittime);
         if (rv == -1 && errno == EINTR)
             continue;           /* Signal caught, reloop */
+
         if (rv == -1) {
             syslog(LOG_ERR, "select loop: %m");
             exit(EX_IOERR);
         } else if (rv == 0) {
             exit(0);            /* Timeout, return to inetd */
         }
+
+        if (standalone) {
+            if ((fd4 >= 0) && FD_ISSET(fd4, &readset))
+                fd = fd4;
+            else if ((fd6 >= 0) && FD_ISSET(fd6, &readset))
+                fd = fd6;
+            else /* not in set ??? */
+                continue;
+        }
 #ifdef __CYGWIN__
-        set_socket_nonblock(fd, 1);
+        /* On Cygwin, select() on a nonblocking socket returns
+           immediately, with a rv of 0! */
+        set_socket_nonblock(fd, 0);
 #endif
 
         fromlen = sizeof(from);
@@ -570,18 +716,32 @@ int main(int argc, char **argv)
                 exit(EX_IOERR);
             }
         }
-
-        if (from.sin_family != AF_INET) {
-            syslog(LOG_ERR,
-                   "received address was not AF_INET, please check your inetd config");
+#ifdef HAVE_IPV6
+        if ((from.sa.sa_family != AF_INET) && (from.sa.sa_family != AF_INET6)) {
+            syslog(LOG_ERR, "received address was not AF_INET/AF_INET6,"
+                   " please check your inetd config");
+#else
+        if (from.sa.sa_family != AF_INET) {
+            syslog(LOG_ERR, "received address was not AF_INET,"
+                   " please check your inetd config");
+#endif
             exit(EX_PROTOCOL);
         }
 
-        if (standalone && myaddr.sin_addr.s_addr == INADDR_ANY) {
-            /* myrecvfrom() didn't capture the source address; but we might
-               have bound to a specific address, if so we should use it */
-            memcpy(&myaddr.sin_addr, &bindaddr.sin_addr,
-                   sizeof bindaddr.sin_addr);
+        if (standalone) {
+            if ((from.sa.sa_family == AF_INET) &&
+              (myaddr.si.sin_addr.s_addr == INADDR_ANY)) {
+                /* myrecvfrom() didn't capture the source address; but we might
+                   have bound to a specific address, if so we should use it */
+                memcpy(SOCKADDR_P(&myaddr), &bindaddr4.sin_addr,
+                       sizeof(bindaddr4.sin_addr));
+#ifdef HAVE_IPV6
+            } else if ((from.sa.sa_family == AF_INET6) &&
+              IN6_IS_ADDR_UNSPECIFIED(SOCKADDR_P(&myaddr))) {
+                memcpy(SOCKADDR_P(&myaddr), &bindaddr6.sin6_addr,
+                       sizeof(bindaddr6.sin6_addr));
+#endif
+            }
         }
 
         /*
@@ -609,14 +769,19 @@ int main(int argc, char **argv)
                  RQ_FILE, fd,
                  RQ_CLIENT_SIN, &from, RQ_SERVER_SIN, &myaddr, 0);
     sock_methods(&wrap_request);
+
+    tmp_p = (char *)inet_ntop(myaddr.sa.sa_family, SOCKADDR_P(&myaddr),
+                              tmpbuf, INET6_ADDRSTRLEN);
+    if (!tmp_p) {
+        tmp_p = tmpbuf;
+        strcpy(tmpbuf, "???");
+    }
     if (hosts_access(&wrap_request) == 0) {
         if (deny_severity != -1)
-            syslog(deny_severity, "connection refused from %s",
-                   inet_ntoa(from.sin_addr));
+            syslog(deny_severity, "connection refused from %s", tmp_p);
         exit(EX_NOPERM);        /* Access denied */
     } else if (allow_severity != -1) {
-        syslog(allow_severity, "connect from %s",
-               inet_ntoa(from.sin_addr));
+        syslog(allow_severity, "connect from %s", tmp_p);
     }
 #endif
 
@@ -626,7 +791,7 @@ int main(int argc, char **argv)
     /* Get a socket.  This has to be done before the chroot(), since
        some systems require access to /dev to create a socket. */
 
-    peer = socket(AF_INET, SOCK_DGRAM, 0);
+    peer = socket(myaddr.sa.sa_family, SOCK_DGRAM, 0);
     if (peer < 0) {
         syslog(LOG_ERR, "socket: %m");
         exit(EX_IOERR);
@@ -677,16 +842,13 @@ int main(int argc, char **argv)
         exit(EX_OSERR);
     }
 
-    /* Other basic setup */
-    from.sin_family = AF_INET;
-
     /* Process the request... */
     if (pick_port_bind(peer, &myaddr, portrange_from, portrange_to) < 0) {
         syslog(LOG_ERR, "bind: %m");
         exit(EX_IOERR);
     }
 
-    if (connect(peer, (struct sockaddr *)&from, sizeof from) < 0) {
+    if (connect(peer, &from.sa, SOCKLEN(&from)) < 0) {
         syslog(LOG_ERR, "connect: %m");
         exit(EX_IOERR);
     }
@@ -776,16 +938,22 @@ int tftp(struct tftphdr *tp, int size)
                 exit(0);
             }
             if (verbosity >= 1) {
+                tmp_p = (char *)inet_ntop(from.sa.sa_family, SOCKADDR_P(&from),
+                                          tmpbuf, INET6_ADDRSTRLEN);
+                if (!tmp_p) {
+                    tmp_p = tmpbuf;
+                    strcpy(tmpbuf, "???");
+                }
                 if (filename == origfilename
                     || !strcmp(filename, origfilename))
                     syslog(LOG_NOTICE, "%s from %s filename %s\n",
                            tp_opcode == WRQ ? "WRQ" : "RRQ",
-                           inet_ntoa(from.sin_addr), filename);
+                           tmp_p, filename);
                 else
                     syslog(LOG_NOTICE,
                            "%s from %s filename %s remapped to %s\n",
                            tp_opcode == WRQ ? "WRQ" : "RRQ",
-                           inet_ntoa(from.sin_addr), origfilename,
+                           tmp_p, origfilename,
                            filename);
             }
             ecode =
@@ -998,20 +1166,41 @@ int rewrite_macros(char macro, char *output);
 
 int rewrite_macros(char macro, char *output)
 {
-    char *p;
+    char *p, tb[INET6_ADDRSTRLEN];
+    int l=0;
 
     switch (macro) {
     case 'i':
-        p = inet_ntoa(from.sin_addr);
-        if (output)
+        p = (char *)inet_ntop(from.sa.sa_family, SOCKADDR_P(&from),
+                              tb, INET6_ADDRSTRLEN);
+        if (output && p)
             strcpy(output, p);
-        return strlen(p);
+        if (!p)
+            return 0;
+        else
+            return strlen(p);
 
     case 'x':
-        if (output)
-            sprintf(output, "%08lX",
-                    (unsigned long)ntohl(from.sin_addr.s_addr));
-        return 8;
+        if (output) {
+            if (from.sa.sa_family == AF_INET) {
+                sprintf(output, "%08lX",
+                    (unsigned long)ntohl(from.si.sin_addr.s_addr));
+                l = 8;
+#ifdef HAVE_IPV6
+            } else {
+                unsigned char *c = (unsigned char *)SOCKADDR_P(&from);
+                p = tb;
+                for (l = 0; l < 16; l++) {
+                    sprintf(p, "%02X", *c);
+                    c++;
+                    p += 2;
+                }
+                strcpy(output, tb);
+                l = strlen(tb);
+#endif
+            }
+        }
+        return l;
 
     default:
         return -1;
@@ -1398,8 +1587,14 @@ static void nak(int error, const char *msg)
     length += 4;                /* Add space for header */
 
     if (verbosity >= 2) {
+        tmp_p = (char *)inet_ntop(from.sa.sa_family, SOCKADDR_P(&from),
+                                  tmpbuf, INET6_ADDRSTRLEN);
+        if (!tmp_p) {
+            tmp_p = tmpbuf;
+            strcpy(tmpbuf, "???");
+        }
         syslog(LOG_INFO, "sending NAK (%d, %s) to %s",
-               error, tp->th_msg, inet_ntoa(from.sin_addr));
+               error, tp->th_msg, tmp_p);
     }
 
     if (send(peer, buf, length, 0) != length)
