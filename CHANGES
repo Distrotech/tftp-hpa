@@ -1,3 +1,7 @@
+Changes in 0.49:
+	Add IPv6 support.  Patch by Karsten Keil.
+
+
 Changes in 0.48:
 	Unbreak -l -s in the server, which was broken in 0.47.
 
