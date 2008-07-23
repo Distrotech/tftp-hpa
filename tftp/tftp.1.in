@@ -30,7 +30,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTP 1 "12 December 2006" "tftp-hpa @@VERSION@@" "User's Manual"
+.TH TFTP 1 "23 July 2008" "tftp-hpa @@VERSION@@" "User's Manual"
 .SH NAME
 .B tftp
 \- IPv4 Trivial File Transfer Protocol client
@@ -56,9 +56,10 @@ command below.)
 .SH OPTIONS
 .TP
 .B \-4
-Connect with IPv4 only, if IPv6 support was compiled in.
+Connect with IPv4 only, even if IPv6 support was compiled in.
 .TP
 .B \-6
+Connect with IPv6 only, if compiled in.
 .TP
 \fB\-c\fP \fIcommand\fP
 Execute \fIcommand\fP as if it had been entered on the tftp prompt.

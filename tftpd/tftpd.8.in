@@ -30,7 +30,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "16 February 2006" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "23 July 2008" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server
@@ -49,10 +49,10 @@ but can also run standalone.
 .SH OPTIONS
 .TP
 .B \-4
-Connect with IPv4 only, if IPv6 support was compiled in.
+Connect with IPv4 only, even if IPv6 support was compiled in.
 .TP
 .B \-6
-Connect with IPv6 only, if IPv6 support was compiled in.
+Connect with IPv6 only, if compiled in.
 .TP
 .B \-l
 Run the server in standalone (listen) mode, rather than run from

@@ -221,10 +221,10 @@ int main(int argc, char *argv[])
         if (argv[arg][0] == '-') {
             for (optx = &argv[arg][1]; *optx; optx++) {
                 switch (*optx) {
-#ifdef HAVE_IPV6
                 case '4':
                     ai_fam = AF_INET;
                     break;
+#ifdef HAVE_IPV6
                 case '6':
                     ai_fam = AF_INET6;
                     break;

@@ -298,10 +298,10 @@ int main(int argc, char **argv)
 
     while ((c = getopt(argc, argv, "46cspvVlLa:B:u:U:r:t:T:R:m:")) != -1)
         switch (c) {
-#ifdef HAVE_IPV6
         case '4':
             ai_fam = AF_INET;
             break;
+#ifdef HAVE_IPV6
         case '6':
             ai_fam = AF_INET6;
             break;
