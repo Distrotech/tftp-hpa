@@ -61,13 +61,13 @@
 int deny_severity = LOG_WARNING;
 int allow_severity = -1;        /* Don't log at all */
 
-struct request_info wrap_request;
+static struct request_info wrap_request;
 #endif
 
 #ifdef HAVE_IPV6
-int ai_fam = AF_UNSPEC;
+static int ai_fam = AF_UNSPEC;
 #else
-int ai_fam = AF_INET;
+static int ai_fam = AF_INET;
 #endif
 
 #define	TIMEOUT 1000000         /* Default timeout (us) */
@@ -75,29 +75,29 @@ int ai_fam = AF_INET;
 #define TIMEOUT_LIMIT ((1 << TRIES)-1)
 
 const char *__progname;
-int peer;
-unsigned long timeout = TIMEOUT;        /* Current timeout value */
-unsigned long rexmtval = TIMEOUT;       /* Basic timeout value */
-unsigned long maxtimeout = TIMEOUT_LIMIT * TIMEOUT;
-int timeout_quit = 0;
-sigjmp_buf timeoutbuf;
+static int peer;
+static unsigned long timeout  = TIMEOUT;        /* Current timeout value */
+static unsigned long rexmtval = TIMEOUT;       /* Basic timeout value */
+static unsigned long maxtimeout = TIMEOUT_LIMIT * TIMEOUT;
+static int timeout_quit = 0;
+static sigjmp_buf timeoutbuf;
 
 #define	PKTSIZE	MAX_SEGSIZE+4
-char buf[PKTSIZE];
-char ackbuf[PKTSIZE];
-unsigned int max_blksize = MAX_SEGSIZE;
+static char buf[PKTSIZE];
+static char ackbuf[PKTSIZE];
+static unsigned int max_blksize = MAX_SEGSIZE;
 
-char tmpbuf[INET6_ADDRSTRLEN], *tmp_p;
+static char tmpbuf[INET6_ADDRSTRLEN], *tmp_p;
 
-union sock_addr from;
-socklen_t fromlen;
-off_t tsize;
-int tsize_ok;
+static union sock_addr from;
+static socklen_t fromlen;
+static off_t tsize;
+static int tsize_ok;
 
-int ndirs;
-const char **dirs;
+static int ndirs;
+static const char **dirs;
 
-int secure = 0;
+static int secure = 0;
 int cancreate = 0;
 int unixperms = 0;
 int portrange = 0;
@@ -111,15 +111,14 @@ static struct rule *rewrite_rules = NULL;
 
 int tftp(struct tftphdr *, int);
 static void nak(int, const char *);
-void timer(int);
-void justquit(int);
-void do_opt(char *, char *, char **);
+static void timer(int);
+static void do_opt(char *, char *, char **);
 
-int set_blksize(char *, char **);
-int set_blksize2(char *, char **);
-int set_tsize(char *, char **);
-int set_timeout(char *, char **);
-int set_utimeout(char *, char **);
+static int set_blksize(char *, char **);
+static int set_blksize2(char *, char **);
+static int set_tsize(char *, char **);
+static int set_timeout(char *, char **);
+static int set_utimeout(char *, char **);
 
 struct options {
     const char *o_opt;
@@ -889,10 +888,10 @@ int main(int argc, char **argv)
     exit(0);
 }
 
-char *rewrite_access(char *, int, const char **);
-int validate_access(char *, int, struct formats *, const char **);
-void tftp_sendfile(struct formats *, struct tftphdr *, int);
-void tftp_recvfile(struct formats *, struct tftphdr *, int);
+static char *rewrite_access(char *, int, const char **);
+static int validate_access(char *, int, struct formats *, const char **);
+static void tftp_sendfile(struct formats *, struct tftphdr *, int);
+static void tftp_recvfile(struct formats *, struct tftphdr *, int);
 
 struct formats {
     const char *f_mode;
@@ -1021,7 +1020,7 @@ static int blksize_set;
 /*
  * Set a non-standard block size (c.f. RFC2348)
  */
-int set_blksize(char *val, char **ret)
+static int set_blksize(char *val, char **ret)
 {
     static char b_ret[6];
     unsigned int sz;
@@ -1048,7 +1047,7 @@ int set_blksize(char *val, char **ret)
 /*
  * Set a power-of-two block size (nonstandard)
  */
-int set_blksize2(char *val, char **ret)
+static int set_blksize2(char *val, char **ret)
 {
     static char b_ret[6];
     unsigned int sz;
@@ -1086,7 +1085,7 @@ int set_blksize2(char *val, char **ret)
  * For netascii mode, we don't know the size ahead of time;
  * so reject the option.
  */
-int set_tsize(char *val, char **ret)
+static int set_tsize(char *val, char **ret)
 {
     static char b_ret[sizeof(uintmax_t) * CHAR_BIT / 3 + 2];
     uintmax_t sz;
@@ -1109,7 +1108,7 @@ int set_tsize(char *val, char **ret)
  * to be the (default) retransmission timeout, but being an
  * integer in seconds it seems a bit limited.
  */
-int set_timeout(char *val, char **ret)
+static int set_timeout(char *val, char **ret)
 {
     static char b_ret[4];
     unsigned long to;
@@ -1128,7 +1127,7 @@ int set_timeout(char *val, char **ret)
 }
 
 /* Similar, but in microseconds.  We allow down to 10 ms. */
-int set_utimeout(char *val, char **ret)
+static int set_utimeout(char *val, char **ret)
 {
     static char b_ret[4];
     unsigned long to;
@@ -1149,7 +1148,7 @@ int set_utimeout(char *val, char **ret)
 /*
  * Parse RFC2347 style options
  */
-void do_opt(char *opt, char *val, char **ap)
+static void do_opt(char *opt, char *val, char **ap)
 {
     struct options *po;
     char *ret;
@@ -1188,9 +1187,7 @@ void do_opt(char *opt, char *val, char **ap)
  *
  * Return -1 on failure.
  */
-int rewrite_macros(char macro, char *output);
-
-int rewrite_macros(char macro, char *output)
+static int rewrite_macros(char macro, char *output)
 {
     char *p, tb[INET6_ADDRSTRLEN];
     int l=0;
@@ -1236,7 +1233,7 @@ int rewrite_macros(char macro, char *output)
 /*
  * Modify the filename, if applicable.  If it returns NULL, deny the access.
  */
-char *rewrite_access(char *filename, int mode, const char **msg)
+static char *rewrite_access(char *filename, int mode, const char **msg)
 {
     if (rewrite_rules) {
         char *newname =
@@ -1248,7 +1245,7 @@ char *rewrite_access(char *filename, int mode, const char **msg)
 }
 
 #else
-char *rewrite_access(char *filename, int mode, const char **msg)
+static char *rewrite_access(char *filename, int mode, const char **msg)
 {
     (void)mode;                 /* Avoid warning */
     (void)msg;
@@ -1256,7 +1253,7 @@ char *rewrite_access(char *filename, int mode, const char **msg)
 }
 #endif
 
-FILE *file;
+static FILE *file;
 /*
  * Validate file access.  Since we
  * have no uid or gid, for now require
@@ -1268,9 +1265,8 @@ FILE *file;
  * Note also, full path name must be
  * given as we have no login directory.
  */
-int
-validate_access(char *filename, int mode,
-                struct formats *pf, const char **errmsg)
+static int validate_access(char *filename, int mode,
+			   struct formats *pf, const char **errmsg)
 {
     struct stat stbuf;
     int i, len;
@@ -1378,7 +1374,7 @@ validate_access(char *filename, int mode,
 /*
  * Send the requested file.
  */
-void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+static void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
     struct tftphdr *dp;
     struct tftphdr *ap;         /* ack packet */
@@ -1472,17 +1468,10 @@ void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
     (void)fclose(file);
 }
 
-/* Bail out signal handler */
-void justquit(int sig)
-{
-    (void)sig;                  /* Suppress unused warning */
-    exit(0);
-}
-
 /*
  * Receive a file.
  */
-void tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+static void tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 {
     struct tftphdr *dp;
     int n, size;
