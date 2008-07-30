@@ -74,15 +74,11 @@ union sock_addr {
 #endif
 
 #ifdef HAVE_IPV6
-int is_numeric_ipv6(char *);
+int is_numeric_ipv6(const char *);
 char *strip_address(char *);
 #else
 #define is_numeric_ipv6(a)      0
-
-static inline char *strip_address(char *addr)
-{
-    return addr;
-}
+#define strip_address(a)	(a)
 #endif
 
 static inline int sa_set_port(union sock_addr *s, u_short port)

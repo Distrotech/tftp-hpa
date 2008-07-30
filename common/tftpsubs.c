@@ -331,7 +331,7 @@ set_sock_addr(char *host,union sock_addr  *s, char **name)
 }
 
 #ifdef HAVE_IPV6
-int is_numeric_ipv6(char *addr)
+int is_numeric_ipv6(const char *p)
 {
     /* A numeric IPv6 address consist at least of 2 ':' and
      * it may have sequences of hex-digits and maybe contain
@@ -339,31 +339,55 @@ int is_numeric_ipv6(char *addr)
      * we do not check here, if it is a valid IPv6 address
      * only if is something like a numeric IPv6 address or something else
      */
-    size_t l;
-    char *p, s = 0;
+    int colon = 0;
+    int dot = 0;
+    int bracket = 0;
+    char c;
 
-    if (!addr)
+    if (!p)
         return 0;
-    p = strrchr(addr, ']');
-    if (p) {
-        s = *p;
-        *p = 0;
+
+    if (*p == '[') {
+	bracket = 1;
+	p++;
     }
-    l = strlen(addr);
-    if (p)
-        *p = s;
-    if (l<2)
-        return 0;
-    if (l != strspn(addr, "0123456789ABCDEFabcdef:.["))
-        return 0;
-    p = strchr(addr, ':');
-    if (p) {
-        p++;
-        p = strchr(addr, ':');
-        if (p)
-            return 1;
+
+    while ((c = *p++) && c != ']') {
+	switch (c) {
+	case ':':
+	    colon++;
+	    break;
+	case '.':
+	    dot++;
+	    break;
+	case '0': case '1': case '2': case '3': case '4':
+	case '5': case '6': case '7': case '8': case '9':
+	case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+	case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+	    break;
+	default:
+	    return 0;		/* Invalid character */
+	}
     }
-    return 0;
+
+    if (colon < 2 || colon > 7)
+	return 0;
+
+    if (dot) {
+	/* An IPv4-mapped address in dot-quad form will have 3 dots */
+	if (dot != 3)
+	    return 0;
+	/* The IPv4-mapped address takes the space of one colon */
+	if (colon > 6)
+	    return 0;
+    }
+
+    /* If bracketed, must be closed, and vice versa */
+    if (bracket ^ (c == ']'))
+	return 0;
+
+    /* Otherwise, assume we're okay */
+    return 1;
 }
 
 /* strip [] from numeric IPv6 addreses */
