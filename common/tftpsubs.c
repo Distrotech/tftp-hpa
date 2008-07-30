@@ -309,7 +309,7 @@ set_sock_addr(char *host,union sock_addr  *s, char **name)
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = s->sa.sa_family;
     hints.ai_flags = AI_CANONNAME;
-    err = getaddrinfo(host, NULL, &hints, &addrResult);
+    err = getaddrinfo(strip_address(host), NULL, &hints, &addrResult);
     if (err) {
         printf("Error : %s\n", gai_strerror(err));
         printf("%s: unknown host\n", host);
@@ -329,3 +329,57 @@ set_sock_addr(char *host,union sock_addr  *s, char **name)
     freeaddrinfo(addrResult);
     return 0;
 }
+
+#ifdef HAVE_IPV6
+int is_numeric_ipv6(char *addr)
+{
+    /* A numeric IPv6 address consist at least of 2 ':' and
+     * it may have sequences of hex-digits and maybe contain
+     * a '.' from a IPv4 mapped address and maybe is enclosed in []
+     * we do not check here, if it is a valid IPv6 address
+     * only if is something like a numeric IPv6 address or something else
+     */
+    size_t l;
+    char *p, s = 0;
+
+    if (!addr)
+        return 0;
+    p = strrchr(addr, ']');
+    if (p) {
+        s = *p;
+        *p = 0;
+    }
+    l = strlen(addr);
+    if (p)
+        *p = s;
+    if (l<2)
+        return 0;
+    if (l != strspn(addr, "0123456789ABCDEFabcdef:.["))
+        return 0;
+    p = strchr(addr, ':');
+    if (p) {
+        p++;
+        p = strchr(addr, ':');
+        if (p)
+            return 1;
+    }
+    return 0;
+}
+
+/* strip [] from numeric IPv6 addreses */
+
+char *strip_address(char *addr)
+{
+    char *p;
+
+    if (is_numeric_ipv6(addr) && (*addr == '[')) {
+        p = addr + strlen(addr);
+        p--;
+        if (*p == ']') {
+            *p = 0;
+            addr++;
+        }
+    }
+    return addr;
+}
+#endif

@@ -256,6 +256,28 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
     }
 }
 
+static int split_port(char **ap, char **pp)
+{
+    char *a, *p;
+
+    a = *ap;
+    if (is_numeric_ipv6(a)) {
+        if (*a++ != '[')
+            return 1;
+        *ap = a;
+        p = strrchr(a, ']');
+        if (!p)
+            return 1;
+        *p++ = 0;
+        a = p;
+    }
+    p = strrchr(a, ':');
+    if (p)
+        *p++ = 0;
+    *pp = p;
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     struct tftphdr *tp;
@@ -482,16 +504,19 @@ int main(int argc, char **argv)
         }
 #endif
         if (address) {
-            char *portptr, *eportptr;
+            char *portptr = NULL, *eportptr;
             int err;
             struct servent *servent;
             unsigned long port;
 
             address = tfstrdup(address);
-            portptr = strrchr(address, ':');
-            if (portptr)
-                *portptr++ = '\0';
-            else
+            err = split_port(&address, &portptr);
+            if (err) {
+                syslog(LOG_ERR,
+                       "Numeric IPv6 addresses need to be enclosed in []");
+                exit(EX_USAGE);
+            }
+            if (!portptr)
                 portptr = (char *)"tftp";
             if (*address) {
                 if (fd4 >= 0) {
@@ -507,6 +532,7 @@ int main(int argc, char **argv)
                 }
 #ifdef HAVE_IPV6
                 if (fd6 >= 0) {
+                    bindaddr6.sin6_family = AF_INET6;
                     err = set_sock_addr(address,
                                         (union sock_addr *)&bindaddr6, NULL);
                     if (err) {

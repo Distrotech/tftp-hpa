@@ -83,6 +83,10 @@ option.  The default is to listen to the
 port specified in
 .I /etc/services
 on all local addresses.
+
+.B Please note:
+Numeric IPv6 adresses must be enclosed in square brackets
+to avoid ambiguity with the optional port information.
 .TP
 .B \-c
 Allow new files to be created.  By default,
