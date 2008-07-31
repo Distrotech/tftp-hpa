@@ -1,0 +1,16 @@
+/MCONFIG
+/aconfig.h
+/aconfig.h.in
+/autom4te.cache
+/config.log
+/config.status
+/configure
+/version.h
+/tftp/tftp
+/tftpd/tftpd
+*.1
+*.8
+*.a
+*.o
+*~
+\#*
