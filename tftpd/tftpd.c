@@ -258,23 +258,36 @@ static int recv_time(int s, void *rbuf, int len, unsigned int flags,
 static int split_port(char **ap, char **pp)
 {
     char *a, *p;
+    int  ret = AF_UNSPEC;
 
     a = *ap;
+#ifdef HAVE_IPV6
     if (is_numeric_ipv6(a)) {
         if (*a++ != '[')
-            return 1;
+            return -1;
         *ap = a;
         p = strrchr(a, ']');
         if (!p)
-            return 1;
+            return -1;
         *p++ = 0;
         a = p;
+        ret = AF_INET6;
+        p = strrchr(a, ':');
+        if (p)
+            *p++ = 0;
+    } else
+#endif
+    {
+        struct in_addr in;
+
+        p = strrchr(a, ':');
+        if (p)
+            *p++ = 0;
+        if (inet_aton(a, &in))
+            ret = AF_INET;
     }
-    p = strrchr(a, ':');
-    if (p)
-        *p++ = 0;
     *pp = p;
-    return 0;
+    return ret;
 }
 
 enum long_only_options {
@@ -542,7 +555,26 @@ int main(int argc, char **argv)
 
             address = tfstrdup(address);
             err = split_port(&address, &portptr);
-            if (err) {
+            switch (err) {
+            case AF_INET:
+#ifdef HAVE_IPV6
+                if (fd6 >= 0) {
+                    close(fd6);
+                    fd6 = -1;
+                    ai_fam = AF_INET;
+                }
+                break;
+            case AF_INET6:
+                if (fd4 >= 0) {
+                    close(fd4);
+                    fd4 = -1;
+                    ai_fam = AF_INET6;
+                }
+                break;
+#endif
+            case AF_UNSPEC:
+                break;
+            default:
                 syslog(LOG_ERR,
                        "Numeric IPv6 addresses need to be enclosed in []");
                 exit(EX_USAGE);
@@ -556,8 +588,8 @@ int main(int argc, char **argv)
                                         (union sock_addr *)&bindaddr4, NULL);
                     if (err) {
                         syslog(LOG_ERR,
-                               "cannot resolve local IPv4 bind address: %s",
-                               address);
+                               "cannot resolve local IPv4 bind address: %s, %s",
+                               address, gai_strerror(err));
                         exit(EX_NOINPUT);
                     }
                 }
@@ -570,13 +602,14 @@ int main(int argc, char **argv)
                         if (fd4 >= 0) {
                             syslog(LOG_ERR,
                                    "cannot resolve local IPv6 bind address: %s"
-                                   "; using IPv4 only", address);
+                                   "(%s); using IPv4 only",
+                                   address, gai_strerror(err));
                             close(fd6);
                             fd6 = -1;
                         } else {
                             syslog(LOG_ERR,
-                                   "cannot resolve local IPv6 bind address: %s",
-                                   address);
+                                   "cannot resolve local IPv6 bind address: %s"
+                                   "(%s)", address, gai_strerror(err));
                             exit(EX_NOINPUT);
                         }
                     }

@@ -175,6 +175,7 @@ then
     AC_SEARCH_LIBS(inet_ntoa, [nsl resolv], ,
       [AC_MSG_ERROR(inet_ntoa not found)])
 fi
+AC_SEARCH_LIBS(inet_aton, [nsl resolv], ,[AC_MSG_ERROR(inet_aton not found)])
 
 AC_CHECK_FUNCS(daemon, , [XTRA=true; AC_LIBOBJ(daemon)])
 AC_CHECK_FUNCS(dup2, , [XTRA=true; AC_LIBOBJ(dup2)])

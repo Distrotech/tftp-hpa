@@ -310,15 +310,10 @@ set_sock_addr(char *host,union sock_addr  *s, char **name)
     hints.ai_family = s->sa.sa_family;
     hints.ai_flags = AI_CANONNAME;
     err = getaddrinfo(strip_address(host), NULL, &hints, &addrResult);
-    if (err) {
-        printf("Error : %s\n", gai_strerror(err));
-        printf("%s: unknown host\n", host);
+    if (err)
         return err;
-    }
-    if (addrResult == NULL) {
-        printf("%s: unknown host\n", host);
+    if (addrResult == NULL)
         return EAI_NONAME;
-    }
     memcpy(s, addrResult->ai_addr, addrResult->ai_addrlen);
     if (name) {
         if (addrResult->ai_canonname)
