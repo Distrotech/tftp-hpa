@@ -3,7 +3,7 @@
 .\" Copyright (c) 1990, 1993, 1994
 .\"     The Regents of the University of California.  All rights reserved.
 .\"
-.\" Copyright 2001 H. Peter Anvin - All Rights Reserved
+.\" Copyright 2001-2008 H. Peter Anvin - All Rights Reserved
 .\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "23 July 2008" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "30 July 2008" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- IPv4 Trivial File Transfer Protocol server
@@ -48,36 +48,37 @@ but can also run standalone.
 .PP
 .SH OPTIONS
 .TP
-.B \-4
+\fB\-\-ipv4\fP, \fB\-4\fP
 Connect with IPv4 only, even if IPv6 support was compiled in.
 .TP
-.B \-6
+\fB\-\-ipv6\fP, \fB\-6\fP
 Connect with IPv6 only, if compiled in.
 .TP
-.B \-l
+\fB\-l\fP, \fB\-\-listen\fP
 Run the server in standalone (listen) mode, rather than run from
 .BR inetd .
 In listen mode, the
-.B \-t
+.B \-\-timeout
 option is ignored, and the
-.B \-a
+.B \-\-address
 option can be used to specify a specific local address or port to
 listen to.
 .TP
-.B \-L
+\fB\-\-foreground\fP, \fB\-L\fP
 Similar to
-.B \-l
-but do not detach from the foreground process.
+.B \-\-listen
+but do not detach from the foreground process.  Implies
+.BR \-\-listen .
 .TP
-\fB\-a\fP \fI[address][:port]\fP
+\fB\-\-address\fP \fI[address][:port]\fP, \fB\-a\fP \fI[address][:port]\fP
 Specify a specific
 .I address
 and
 .I port
 to listen to when called with the
-.B \-l
+.B \-\-listen
 or
-.B \-L
+.B \-\-foreground
 option.  The default is to listen to the
 .I tftp
 port specified in
@@ -88,29 +89,29 @@ on all local addresses.
 Numeric IPv6 adresses must be enclosed in square brackets
 to avoid ambiguity with the optional port information.
 .TP
-.B \-c
+\fB\-\-create\fP, \fB\-c\fP
 Allow new files to be created.  By default,
 .B tftpd
 will only allow upload of files that already exist.  Files are created
 with default permissions allowing anyone to read or write them, unless
 the
-.B \-p
+.B \-\-permissive
 or
-.B \-U
+.B \-\-umask
 options are specified.
 .TP
-.B \-s
+\fB\-\-secure\fP, \fB\-s\fP
 Change root directory on startup.  This means the remote host does not
 need to pass along the directory as part of the transfer, and may add
 security.  When
-.B \-s
+.B \-\-secure
 is specified, exactly one
 .I directory
 should be specified on the command line.  The use of this option is
 recommended for security as well as compatibility with some boot ROMs
 which cannot be easily made to include a directory name in its request.
 .TP
-\fB\-u\fP \fIusername\fP
+\fB\-\-user\fP \fIusername\fP, \fB\-u\fP \fIusername\fP
 Specify the username which
 .B tftpd
 will run as; the default is "nobody".  The user ID, group ID, and (if
@@ -118,21 +119,21 @@ possible on the platform) the supplementary group IDs will be set to
 the ones specified in the system permission database for this
 username.
 .TP
-\fB\-U\fP \fIumask\fP
+\fB\-\-umask\fP \fIumask\fP, \fB\-U\fP \fIumask\fP
 Sets the \fIumask\fP for newly created files to the specified value.
 The default is zero (anyone can read or write) if the
-.B \-p
+.B \-\-permissive
 option is not specified, or inherited from the invoking process if
-.B \-p
+.B \-\-permissive
 is specified.
 .TP
-.B \-p
+\fB\-\-permissive\fP, \fB\-p\fP
 Perform no additional permissions checks above the normal
 system-provided access controls for the user specified via the
-.B \-u
+.B \-\-user
 option.
 .TP
-\fB\-t\fP \fItimeout\fP
+\fB\-\-timeout\fP \fItimeout\fP, \fB\-t\fP \fItimeout\fP
 When run from
 .B inetd
 this specifies how long, in seconds, to wait for a second connection
@@ -141,7 +142,7 @@ before terminating the server.
 will then respawn the server when another request comes in.  The
 default is 900 (15 minutes.)
 .TP
-\fB\-T\fP \fItimeout\fP
+\fB\-\-retransmit\fP \fItimeout, \fP\fB\-T\fP \fItimeout\fP
 Determine the default timeout, in microseconds, before the first
 packet is retransmitted.  This can be modified by the client if the
 .B timeout
@@ -149,7 +150,7 @@ or
 .B utimeout
 option is negotiated.  The default is 1000000 (1 second.)
 .TP
-\fB\-m\fP \fIremap-file\fP
+\fB\-\-mapfile\fP \fIremap-file\fP, \fB\-m\fP \fIremap-file\fP
 Specify the use of filename remapping.  The
 .I remap-file
 is a file containing the remapping rules.  See the section on filename
@@ -157,16 +158,19 @@ remapping below.  This option may not be compiled in, see the output of
 .B "in.tftpd \-V"
 to verify whether or not it is available.
 .TP
-.B \-v
+\fB\-\-verbose\fP, \fB\-v\fP
 Increase the logging verbosity of
 .BR tftpd .
 This flag can be specified multiple times for even higher verbosity.
 .TP
-\fB\-r\fP \fItftp-option\fP
+\fB\-\-verbosity\fP \fIvalue\fP
+Set the verbosity value to \fIvalue\fP.
+.TP
+\fB\-\-refuse\fP \fItftp-option\fP, \fB\-r\fP \fItftp-option\fP
 Indicate that a specific RFC 2347 TFTP option should never be
 accepted.
 .TP
-\fB\-B\fP \fImax-block-size\fP
+\fB\-\-blocksize\fP \fImax-block-size\fP, \fB\-B\fP \fImax-block-size\fP
 Specifies the maximum permitted block size.  The permitted range for
 this parameter is from 512 to 65464.  Some embedded clients request
 large block sizes and yet do not handle fragmented packets correctly;
@@ -175,11 +179,11 @@ MTU on your network minus 32 bytes (20 bytes for IP, 8 for UDP, and 4
 for TFTP; less if you use IP options on your network.)  For example,
 on a standard Ethernet (MTU 1500) a value of 1468 is reasonable.
 .TP
-\fB\-R\fP \fIport:port\fP
+\fB\-\-port-range\fP \fIport:port\fP, \fB\-R\fP \fIport:port\fP
 Force the server port number (the Transaction ID) to be in the
 specified range of port numbers.
 .TP
-.B \-V
+\fB\-\-version\fP, \fB\-V\fP
 Print the version number and configuration to standard output, then
 exit gracefully.
 .SH "RFC 2347 OPTION NEGOTIATION"
@@ -216,7 +220,7 @@ Set the time before the server retransmits a packet, in seconds.
 Set the time before the server retransmits a packet, in microseconds.
 .PP
 The
-.B \-r
+.B \-\-refuse
 option can be used to disable specific options; this may be necessary
 to work around bugs in specific TFTP client implementations.  For
 example, some TFTP clients have been found to request the
@@ -225,7 +229,7 @@ option, but crash with an error if they actually get the option
 accepted by the server.
 .SH "FILENAME REMAPPING"
 The
-.B \-m
+.B \-\-mapfile
 option specifies a file which contains filename remapping rules.  Each
 non-comment line (comments begin with hash marks,
 .BR # )
@@ -340,17 +344,17 @@ The use of TFTP services does not require an account or password on
 the server system.  Due to the lack of authentication information,
 .B tftpd
 will allow only publicly readable files (o+r) to be accessed, unless the
-.B \-p
+.B \-\-permissive
 option is specified.  Files may be written only if they already exist
 and are publicly writable, unless the
-.B \-c
+.B \-\-create
 option is specified.  Note that this extends the concept of ``public''
 to include all users on all hosts that can be reached through the
 network; this may not be appropriate on all systems, and its
 implications should be considered before enabling TFTP service.
 Typically, some kind of firewall or packet-filter solution should be
 employed.  If appropriately compiled (see the output of
-.BR  "in.tftpd \-V" )
+.BR  "in.tftpd \-\-version" )
 .B tftpd
 will query the
 .BR hosts_access (5)
@@ -360,7 +364,7 @@ and rely on firewalling or kernel-based packet filters instead.
 .PP
 The server should be set to run as the user with the lowest possible
 privilege; please see the
-.B \-u
+.B \-\-user
 flag.  It is probably a good idea to set up a specific user account for
 .BR tftpd ,
 rather than letting it run as "nobody", to guard against privilege
@@ -372,12 +376,12 @@ with a list of directories by including pathnames as server program
 arguments on the command line.  In this case access is restricted to
 files whole names are prefixed by one of the given directories.  If
 possible, it is recommended that the
-.B \-s
+.B \-\-secure
 flag is used to set up a chroot() environment for the server to run in
 once a connection has been set up.
 .PP
 Finally, the filename remapping
-.RB ( \-m
+.RB ( \-\-mapfile
 flag) support can be used to provide a limited amount of additional
 access control.
 .SH "CONFORMING TO"

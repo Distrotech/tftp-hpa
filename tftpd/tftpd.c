@@ -277,6 +277,34 @@ static int split_port(char **ap, char **pp)
     return 0;
 }
 
+enum long_only_options {
+    OPT_VERBOSITY	= 256,
+};
+    
+static struct option long_options[] = {
+    { "ipv4",        0, NULL, '4' },
+    { "ipv6",        0, NULL, '6' },
+    { "create",      0, NULL, 'c' },
+    { "secure",      0, NULL, 's' },
+    { "permissive",  0, NULL, 'p' },
+    { "verbose",     0, NULL, 'v' },
+    { "verbosity",   1, NULL, OPT_VERBOSITY },
+    { "version",     0, NULL, 'V' },
+    { "listen",      0, NULL, 'l' },
+    { "foreground",  0, NULL, 'L' },
+    { "address",     1, NULL, 'a' },
+    { "blocksize",   1, NULL, 'B' },
+    { "user",        1, NULL, 'u' },
+    { "umask",       1, NULL, 'U' },
+    { "refuse",      1, NULL, 'r' },
+    { "timeout",     1, NULL, 't' },
+    { "retransmit",  1, NULL, 'T' },
+    { "port-range",  1, NULL, 'R' },
+    { "map-file",    1, NULL, 'm' },
+    { NULL, 0, NULL, 0 }
+};
+static const char short_options[] = "46cspvVlLa:B:u:U:r:t:T:R:m:";
+
 int main(int argc, char **argv)
 {
     struct tftphdr *tp;
@@ -317,7 +345,8 @@ int main(int argc, char **argv)
 
     srand(time(NULL) ^ getpid());
 
-    while ((c = getopt(argc, argv, "46cspvVlLa:B:u:U:r:t:T:R:m:")) != -1)
+    while ((c = getopt_long(argc, argv, short_options, long_options, NULL))
+	   != -1)
         switch (c) {
         case '4':
             ai_fam = AF_INET;
@@ -419,6 +448,9 @@ int main(int argc, char **argv)
         case 'v':
             verbosity++;
             break;
+	case OPT_VERBOSITY:
+	    verbosity = atoi(optarg);
+	    break;
         case 'V':
             /* Print configuration to stdout and exit */
             printf("%s\n", TFTPD_CONFIG_STR);

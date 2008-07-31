@@ -35,7 +35,6 @@ AC_CHECK_HEADERS(inttypes.h)
 AC_CHECK_HEADERS(stdint.h)
 PA_CHECK_INTTYPES_H_SANE
 AC_CHECK_HEADERS(fcntl.h)
-AC_CHECK_HEADERS(getopt.h)
 AC_CHECK_HEADERS(grp.h)
 AC_CHECK_HEADERS(libgen.h)
 AC_CHECK_HEADERS(memory.h)
@@ -155,6 +154,7 @@ XTRA=false
 PA_SEARCH_LIBS_AND_ADD(xmalloc, iberty)
 PA_SEARCH_LIBS_AND_ADD(xstrdup, iberty)
 PA_SEARCH_LIBS_AND_ADD(bsd_signal, bsd, bsdsignal)
+PA_SEARCH_LIBS_AND_ADD(getopt_long, getopt, getopt_long)
 PA_SEARCH_LIBS_AND_ADD(getaddrinfo, [nsl resolv])
 if $pa_add_getaddrinfo
 then
