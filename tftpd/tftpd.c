@@ -327,6 +327,7 @@ int main(int argc, char **argv)
     struct sockaddr_in bindaddr4;
 #ifdef HAVE_IPV6
     struct sockaddr_in6 bindaddr6;
+    int force_ipv6 = 0;
 #endif
     int n;
     int fd = -1;
@@ -367,6 +368,7 @@ int main(int argc, char **argv)
 #ifdef HAVE_IPV6
         case '6':
             ai_fam = AF_INET6;
+            force_ipv6 = 1;
             break;
 #endif
         case 'c':
@@ -561,6 +563,12 @@ int main(int argc, char **argv)
                 if (fd6 >= 0) {
                     close(fd6);
                     fd6 = -1;
+                    if (ai_fam == AF_INET6) {
+                        syslog(LOG_ERR,
+                               "Address %s is not in address family AF_INET6",
+                               address);
+                        exit(EX_USAGE);
+                    }
                     ai_fam = AF_INET;
                 }
                 break;
@@ -568,6 +576,12 @@ int main(int argc, char **argv)
                 if (fd4 >= 0) {
                     close(fd4);
                     fd4 = -1;
+                    if (ai_fam == AF_INET) {
+                        syslog(LOG_ERR,
+                               "Address %s is not in address family AF_INET",
+                               address);
+                        exit(EX_USAGE);
+                    }
                     ai_fam = AF_INET6;
                 }
                 break;
@@ -655,12 +669,12 @@ int main(int argc, char **argv)
         }
 #ifdef HAVE_IPV6
         if (fd6 >= 0) {
-            int on = 1;
 #if defined(IPV6_V6ONLY)
-            if (setsockopt(fd6, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&on,
-              sizeof(on))) {
-                syslog(LOG_ERR, "cannot setsockopt IPV6_V6ONLY %m");
-            }
+            int on = 1;
+            if (fd4 >= 0 || force_ipv6)
+                if (setsockopt(fd6, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&on,
+                  sizeof(on)))
+                    syslog(LOG_ERR, "cannot setsockopt IPV6_V6ONLY %m");
 #endif
             if (bind(fd6, (struct sockaddr *)&bindaddr6,
               sizeof(bindaddr6)) < 0) {
