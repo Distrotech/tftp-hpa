@@ -308,7 +308,9 @@ set_sock_addr(char *host,union sock_addr  *s, char **name)
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = s->sa.sa_family;
-    hints.ai_flags = AI_CANONNAME;
+    hints.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
     err = getaddrinfo(strip_address(host), NULL, &hints, &addrResult);
     if (err)
         return err;
