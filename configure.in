@@ -224,7 +224,7 @@ dnl These libraries apply to the client only
 dnl
 
 AH_TEMPLATE([WITH_READLINE],
-[Define if we are compiling with readline command-line editing.])
+[Define if we are compiling with readline/editline command-line editing.])
 
 PA_WITH_BOOL(readline, 1,
 [  --without-readline      disable the use of readline command-line editing],
@@ -235,13 +235,17 @@ PA_WITH_BOOL(readline, 1,
 		AC_SEARCH_LIBS(tputs, [termcap terminfo])
 
 		AC_SEARCH_LIBS(readline, [readline history],
-		[
-			AC_DEFINE(WITH_READLINE)
-		],
-		[],
-		[-ltermcap])
+		[AC_DEFINE(WITH_READLINE)])
 		AC_CHECK_HEADERS(readline/history.h)
-	])
+	],
+	[AC_CHECK_HEADER(editline/readline.h,
+	[
+		dnl editline may need libtermcap or somesuch...
+		AC_SEARCH_LIBS(tputs, [termcap terminfo])
+
+		AC_SEARCH_LIBS(editline, [edit],
+		[AC_DEFINE(WITH_READLINE)])
+	])])
 ],:)
 
 TFTP_LIBS="$LIBS $XTRALIBS"
