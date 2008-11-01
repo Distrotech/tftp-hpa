@@ -841,9 +841,10 @@ int main(int argc, char **argv)
                        sizeof(bindaddr4.sin_addr));
 #ifdef HAVE_IPV6
             } else if ((from.sa.sa_family == AF_INET6) &&
-              IN6_IS_ADDR_UNSPECIFIED(SOCKADDR_P(&myaddr))) {
-                memcpy(SOCKADDR_P(&myaddr), &bindaddr6.sin6_addr,
-                       sizeof(bindaddr6.sin6_addr));
+		       IN6_IS_ADDR_UNSPECIFIED((struct in6_addr *)
+					       SOCKADDR_P(&myaddr))) {
+		memcpy(SOCKADDR_P(&myaddr), &bindaddr6.sin6_addr,
+		       sizeof(bindaddr6.sin6_addr));
 #endif
             }
         }
