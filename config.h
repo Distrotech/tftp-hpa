@@ -321,14 +321,6 @@ int getaddrinfo(const char *, const char *, const struct addrinfo *,
 void freeaddrinfo(struct addrinfo *);
 const char *gai_strerror(int);
 
-#ifndef AI_CANONNAME
-#define AI_CANONNAME    0x0002  /* Request for canonical name.  */
-#endif
-
-#ifndef AI_ADDRCONFIG
-#define AI_ADDRCONFIG   0x0020  /* Use configuration of this host to choose
-                                   returned address type..  */
-#endif
 
 #ifndef EAI_NONAME
 #define EAI_NONAME      -2    /* NAME or SERVICE is unknown.  */
@@ -342,6 +334,14 @@ const char *gai_strerror(int);
 #ifndef EAI_SYSTEM
 #define EAI_SYSTEM      -11   /* System error returned in `errno'.  */
 #endif
+#endif
+
+#ifndef AI_CANONNAME
+#define AI_CANONNAME    0
+#endif
+
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG   0
 #endif
 
 #ifndef INET6_ADDRSTRLEN
