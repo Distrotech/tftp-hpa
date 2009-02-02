@@ -81,6 +81,7 @@ static unsigned long rexmtval = TIMEOUT;       /* Basic timeout value */
 static unsigned long maxtimeout = TIMEOUT_LIMIT * TIMEOUT;
 static int timeout_quit = 0;
 static sigjmp_buf timeoutbuf;
+static uint16_t rollover_val = 0;
 
 #define	PKTSIZE	MAX_SEGSIZE+4
 static char buf[PKTSIZE];
@@ -119,6 +120,7 @@ static int set_blksize2(char *, char **);
 static int set_tsize(char *, char **);
 static int set_timeout(char *, char **);
 static int set_utimeout(char *, char **);
+static int set_rollover(char *, char **);
 
 struct options {
     const char *o_opt;
@@ -129,6 +131,7 @@ struct options {
     {"tsize",    set_tsize},
     {"timeout",  set_timeout},
     {"utimeout", set_utimeout},
+    {"rollover", set_rollover},
     {NULL, NULL}
 };
 
@@ -1161,6 +1164,23 @@ static int set_blksize2(char *val, char **ret)
 }
 
 /*
+ * Set the block number rollover value
+ */
+static int set_rollover(char *val, char **ret)
+{
+  uintmax_t ro;
+  char *vend;
+
+  ro = strtoumax(val, &vend, 10);
+  if (ro > 65535 || *vend)
+    return 0;
+
+  rollover_val = (uint16_t)ro;
+  *ret = val;
+  return 1;
+}
+
+/*
  * Return a file size (c.f. RFC2349)
  * For netascii mode, we don't know the size ahead of time;
  * so reject the option.
@@ -1542,7 +1562,8 @@ static void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
             }
 
         }
-        block++;
+	if (!++block)
+	  block = rollover_val;
     } while (size == segsize);
   abort:
     (void)fclose(file);
@@ -1575,7 +1596,8 @@ static void tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
             ap->th_block = htons((u_short) block);
             acksize = 4;
         }
-        block++;
+        if (!++block)
+	  block = rollover_val;
         (void)sigsetjmp(timeoutbuf, 1);
       send_ack:
         r_timeout = timeout;

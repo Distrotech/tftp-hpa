@@ -218,6 +218,10 @@ Set the time before the server retransmits a packet, in seconds.
 .TP
 \fButimeout\fP (nonstandard)
 Set the time before the server retransmits a packet, in microseconds.
+.TP
+\fBrollover\fP (nonstandard)
+Set the block number to resume at after a block number rollover.  The
+default and recommended value is zero.
 .PP
 The
 .B \-\-refuse
