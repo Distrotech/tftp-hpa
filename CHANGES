@@ -2,6 +2,12 @@ Changes in 5.0:
 	Try to on platforms with getaddrinfo() without AI_ADDRCONFIG or
 	AI_CANONNAME.
 
+	Implement the "rollover" option, for clients which want block
+	number to rollover to anything other than zero.
+
+	Correctly disable PMTU in standalone mode.  Patch by Florian
+	Lohoff.
+
 
 Changes in 0.49:
 	Add IPv6 support.  Patch by Karsten Keil.
