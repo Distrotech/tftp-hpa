@@ -719,7 +719,7 @@ int main(int argc, char **argv)
     }
 
     /* Disable path MTU discovery */
-    pmtu_discovery_off(0);
+    pmtu_discovery_off(fd);
 
     /* This means we don't want to wait() for children */
 #ifdef SA_NOCLDWAIT
@@ -962,7 +962,7 @@ int main(int argc, char **argv)
     }
 
     /* Disable path MTU discovery */
-    pmtu_discovery_off(0);
+    pmtu_discovery_off(peer);
 
     tp = (struct tftphdr *)buf;
     tp_opcode = ntohs(tp->th_opcode);
