@@ -1,3 +1,2 @@
 #!/bin/sh
-autoheader
-autoconf
+make autoconf
