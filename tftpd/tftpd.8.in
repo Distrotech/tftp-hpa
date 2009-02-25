@@ -3,7 +3,7 @@
 .\" Copyright (c) 1990, 1993, 1994
 .\"     The Regents of the University of California.  All rights reserved.
 .\"
-.\" Copyright 2001-2008 H. Peter Anvin - All Rights Reserved
+.\" Copyright 2001-2009 H. Peter Anvin - All Rights Reserved
 .\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
@@ -30,10 +30,10 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "30 July 2008" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "24 February 2009" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
-\- IPv4 Trivial File Transfer Protocol server
+\- Trivial File Transfer Protocol server
 .SH SYNOPSIS
 .B in.tftpd
 .RI [ options... ]
