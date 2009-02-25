@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1983 Regents of the University of California.
+ * Copyright (c) 1999-2009 H. Peter Anvin
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
