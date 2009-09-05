@@ -870,6 +870,15 @@ int main(int argc, char **argv)
     /* Ignore SIGHUP */
     set_signal(SIGHUP, SIG_IGN, 0);
 
+    /* Make sure the log socket is still connected.  This has to be
+       done before the chroot, while /dev/log is still accessible.
+       When not running standalone, there is little chance that the
+       syslog daemon gets restarted by the time we get here. */
+    if (secure && standalone) {
+        closelog();
+        openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+    }
+
 #ifdef HAVE_TCPWRAPPERS
     /* Verify if this was a legal request for us.  This has to be
        done before the chroot, while /etc is still accessible. */
