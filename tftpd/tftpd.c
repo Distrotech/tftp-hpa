@@ -144,6 +144,13 @@ static void handle_sighup(int sig)
     caught_sighup = 1;
 }
 
+/* Handle exit requests by SIGTERM and SIGINT */
+static volatile sig_atomic_t exit_signal = 0;
+static void handle_exit(int sig)
+{
+    exit_signal = sig;
+}
+
 /* Handle timeout signal or timeout event */
 void timer(int sig)
 {
@@ -318,9 +325,10 @@ static struct option long_options[] = {
     { "retransmit",  1, NULL, 'T' },
     { "port-range",  1, NULL, 'R' },
     { "map-file",    1, NULL, 'm' },
+    { "pidfile",     1, NULL, 'P' },
     { NULL, 0, NULL, 0 }
 };
-static const char short_options[] = "46cspvVlLa:B:u:U:r:t:T:R:m:";
+static const char short_options[] = "46cspvVlLa:B:u:U:r:t:T:R:m:P:";
 
 int main(int argc, char **argv)
 {
@@ -352,6 +360,7 @@ int main(int argc, char **argv)
 #ifdef WITH_REGEX
     char *rewrite_file = NULL;
 #endif
+    const char *pidfile = NULL;
     u_short tp_opcode;
 
     /* basename() is way too much of a pain from a portability standpoint */
@@ -475,6 +484,9 @@ int main(int argc, char **argv)
             printf("%s\n", TFTPD_CONFIG_STR);
             exit(0);
             break;
+        case 'P':
+            pidfile = optarg;
+            break;
         default:
             syslog(LOG_ERR, "Unknown option: '%c'", optopt);
             break;
@@ -507,16 +519,19 @@ int main(int argc, char **argv)
         exit(EX_NOUSER);
     }
 
-    if (spec_umask || !unixperms)
-        umask(my_umask);
-
 #ifdef WITH_REGEX
     if (rewrite_file)
         rewrite_rules = read_remap_rules(rewrite_file);
 #endif
 
+    if (pidfile && !standalone) {
+        syslog(LOG_WARNING, "not in standalone mode, ignoring pid file");
+        pidfile = NULL;
+    }
+
     /* If we're running standalone, set up the input port */
     if (standalone) {
+        FILE *pf;
 #ifdef HAVE_IPV6
         if (ai_fam != AF_INET6) {
 #endif
@@ -702,6 +717,20 @@ int main(int argc, char **argv)
             syslog(LOG_ERR, "cannot daemonize: %m");
             exit(EX_OSERR);
         }
+        set_signal(SIGTERM, handle_exit, 0);
+        set_signal(SIGINT,  handle_exit, 0);
+        if (pidfile) {
+            pf = fopen (pidfile, "w");
+            if (!pf) {
+                syslog(LOG_ERR, "cannot open pid file '%s' for writing: %m", pidfile);
+                pidfile = NULL;
+            } else {
+                if (fprintf(pf, "%d\n", getpid()) < 0)
+                    syslog(LOG_ERR, "error writing pid file '%s': %m", pidfile);
+                if (fclose(pf))
+                    syslog(LOG_ERR, "error closing pid file '%s': %m", pidfile);
+            }
+        }
         if (fd6 > fd4)
             fdmax = fd6;
         else
@@ -734,10 +763,22 @@ int main(int argc, char **argv)
        lose packets as a result. */
     set_signal(SIGHUP, handle_sighup, 0);
 
+    if (spec_umask || !unixperms)
+        umask(my_umask);
+
     while (1) {
         fd_set readset;
         struct timeval tv_waittime;
         int rv;
+
+        if (exit_signal) { /* happens in standalone mode only */
+            if (pidfile && unlink(pidfile)) {
+                syslog(LOG_WARNING, "error removing pid file '%s': %m", pidfile);
+                exit(EX_OSERR);
+            } else {
+                exit(0);
+            }
+	}
 
         if (caught_sighup) {
             caught_sighup = 0;

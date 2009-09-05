@@ -133,6 +133,11 @@ system-provided access controls for the user specified via the
 .B \-\-user
 option.
 .TP
+\fB\-\-pidfile\fP \fIpidfile\fP, \fB\-P\fP \fIpidfile\fP When run in
+standalone mode, write the process ID of the listening server into
+\fIpidfile\fP.  On normal termination (SIGTERM or SIGINT) the pid file
+is automatically removed.
+.TP
 \fB\-\-timeout\fP \fItimeout\fP, \fB\-t\fP \fItimeout\fP
 When run from
 .B inetd
