@@ -364,7 +364,7 @@ int main(int argc, char **argv)
     srand(time(NULL) ^ getpid());
 
     while ((c = getopt_long(argc, argv, short_options, long_options, NULL))
-	   != -1)
+           != -1)
         switch (c) {
         case '4':
             ai_fam = AF_INET;
@@ -467,9 +467,9 @@ int main(int argc, char **argv)
         case 'v':
             verbosity++;
             break;
-	case OPT_VERBOSITY:
-	    verbosity = atoi(optarg);
-	    break;
+        case OPT_VERBOSITY:
+            verbosity = atoi(optarg);
+            break;
         case 'V':
             /* Print configuration to stdout and exit */
             printf("%s\n", TFTPD_CONFIG_STR);
