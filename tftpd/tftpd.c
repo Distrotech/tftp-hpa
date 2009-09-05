@@ -696,7 +696,7 @@ int main(int argc, char **argv)
         }
 #endif
         /* Daemonize this process */
-        /* Note: when running in secure mode (-s), we must not chroot, since
+        /* Note: when running in secure mode (-s), we must not chdir, since
            we are already in the proper directory. */
         if (!nodaemon && daemon(secure, 0) < 0) {
             syslog(LOG_ERR, "cannot daemonize: %m");
