@@ -32,7 +32,7 @@ MANDIR  = @mandir@
 SBINDIR = @sbindir@
 
 # Data root directory
-DATAROOTDIR = @datarootdir@
+datarootdir = @datarootdir@
 
 # Binary suffixes
 O = @OBJEXT@
