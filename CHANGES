@@ -1,3 +1,12 @@
+Changes in 5.1:
+	Add -P option to write a PID file.  Patch by Ferenc Wagner.
+
+	Bounce the syslog socket in standalone mode, in case the
+	syslog daemon has been restarted.  Patch by Ferenc Wagner.
+
+	Build fixes.
+
+
 Changes in 5.0:
 	Try to on platforms with getaddrinfo() without AI_ADDRCONFIG or
 	AI_CANONNAME.
