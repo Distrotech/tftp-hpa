@@ -30,7 +30,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "24 February 2009" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "14 September 2009" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- Trivial File Transfer Protocol server
@@ -133,10 +133,10 @@ system-provided access controls for the user specified via the
 .B \-\-user
 option.
 .TP
-\fB\-\-pidfile\fP \fIpidfile\fP, \fB\-P\fP \fIpidfile\fP When run in
-standalone mode, write the process ID of the listening server into
-\fIpidfile\fP.  On normal termination (SIGTERM or SIGINT) the pid file
-is automatically removed.
+\fB\-\-pidfile\fP \fIpidfile\fP, \fB\-P\fP \fIpidfile\fP
+When run in standalone mode, write the process ID of the listening
+server into \fIpidfile\fP.  On normal termination (SIGTERM or SIGINT)
+the pid file is automatically removed.
 .TP
 \fB\-\-timeout\fP \fItimeout\fP, \fB\-t\fP \fItimeout\fP
 When run from
