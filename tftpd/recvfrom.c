@@ -245,7 +245,8 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
-           struct sockaddr *from, int *fromlen, union sock_addr *myaddr)
+           struct sockaddr *from, socklen_t * fromlen,
+           union sock_addr *myaddr)
 {
     /* There is no way we can get the local address, fudge it */
 
