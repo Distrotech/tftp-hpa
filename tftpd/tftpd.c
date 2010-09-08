@@ -1646,6 +1646,10 @@ static void tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
             ap->th_opcode = htons((u_short) ACK);
             ap->th_block = htons((u_short) block);
             acksize = 4;
+            /* If we're sending a regular ACK, that means we have successfully
+             * sent the OACK. Clear oap so that we won't try to send another
+             * OACK when the block number wraps back to 0. */
+            oap = NULL;
         }
         if (!++block)
 	  block = rollover_val;
