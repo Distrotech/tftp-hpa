@@ -35,7 +35,7 @@ struct rule *parserulefile(FILE *);
 void freerules(struct rule *);
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
-char *rewrite_string(const char *, const struct rule *, int,
+char *rewrite_string(const char *, const struct rule *, char,
                      match_pattern_callback, const char **);
 
 #endif                          /* WITH_REGEX */

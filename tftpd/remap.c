@@ -30,14 +30,13 @@
 #define RULE_EXIT	0x04    /* Exit after matching this rule */
 #define RULE_RESTART	0x08    /* Restart at the top after matching this rule */
 #define RULE_ABORT	0x10    /* Terminate processing with an error */
-#define RULE_GETONLY	0x20    /* Applicable to GET only */
-#define RULE_PUTONLY	0x40    /* Applicable to PUT only */
-#define RULE_INVERSE	0x80    /* Execute if regex *doesn't* match */
+#define RULE_INVERSE	0x20    /* Execute if regex *doesn't* match */
 
 struct rule {
     struct rule *next;
     int nrule;
     int rule_flags;
+    char rule_mode;
     regex_t rx;
     const char *pattern;
 };
@@ -221,14 +220,12 @@ static int parseline(char *line, struct rule *r, int lineno)
         case 'i':
             rxflags |= REG_ICASE;
             break;
-        case 'G':
-            r->rule_flags |= RULE_GETONLY;
-            break;
-        case 'P':
-            r->rule_flags |= RULE_PUTONLY;
-            break;
         case '~':
             r->rule_flags |= RULE_INVERSE;
+            break;
+	case 'G':
+	case 'P':
+            r->rule_mode = *p;
             break;
         default:
             syslog(LOG_ERR,
@@ -329,7 +326,7 @@ void freerules(struct rule *r)
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *input, const struct rule *rules,
-                     int is_put, match_pattern_callback macrosub,
+                     char mode, match_pattern_callback macrosub,
                      const char **errmsg)
 {
     char *current = tfstrdup(input);
@@ -348,10 +345,8 @@ char *rewrite_string(const char *input, const struct rule *rules,
     }
 
     for (ruleptr = rules; ruleptr; ruleptr = ruleptr->next) {
-        if (((ruleptr->rule_flags & RULE_GETONLY) && is_put) ||
-            ((ruleptr->rule_flags & RULE_PUTONLY) && !is_put)) {
+	if (ruleptr->rule_mode && ruleptr->rule_mode != mode)
             continue;           /* Rule not applicable, try next */
-        }
 
         if (!deadman--) {
             syslog(LOG_WARNING,

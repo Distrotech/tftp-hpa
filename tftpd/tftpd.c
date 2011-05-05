@@ -1388,7 +1388,8 @@ static char *rewrite_access(char *filename, int mode, const char **msg)
 {
     if (rewrite_rules) {
         char *newname =
-            rewrite_string(filename, rewrite_rules, mode != RRQ,
+            rewrite_string(filename, rewrite_rules,
+			   mode != RRQ ? 'P' : 'G',
                            rewrite_macros, msg);
         filename = newname;
     }
