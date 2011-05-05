@@ -1023,18 +1023,19 @@ int main(int argc, char **argv)
 }
 
 static char *rewrite_access(char *, int, const char **);
-static int validate_access(char *, int, struct formats *, const char **);
-static void tftp_sendfile(struct formats *, struct tftphdr *, int);
-static void tftp_recvfile(struct formats *, struct tftphdr *, int);
+static int validate_access(char *, int, const struct formats *, const char **);
+static void tftp_sendfile(const struct formats *, struct tftphdr *, int);
+static void tftp_recvfile(const struct formats *, struct tftphdr *, int);
 
 struct formats {
     const char *f_mode;
     char *(*f_rewrite) (char *, int, const char **);
-    int (*f_validate) (char *, int, struct formats *, const char **);
-    void (*f_send) (struct formats *, struct tftphdr *, int);
-    void (*f_recv) (struct formats *, struct tftphdr *, int);
+    int (*f_validate) (char *, int, const struct formats *, const char **);
+    void (*f_send) (const struct formats *, struct tftphdr *, int);
+    void (*f_recv) (const struct formats *, struct tftphdr *, int);
     int f_convert;
-} formats[] = {
+};
+static const struct formats formats[] = {
     {
     "netascii", rewrite_access, validate_access, tftp_sendfile,
             tftp_recvfile, 1}, {
@@ -1050,7 +1051,7 @@ int tftp(struct tftphdr *tp, int size)
 {
     char *cp, *end;
     int argn, ecode;
-    struct formats *pf = NULL;
+    const struct formats *pf = NULL;
     char *origfilename;
     char *filename, *mode = NULL;
     const char *errmsgptr;
@@ -1418,7 +1419,7 @@ static FILE *file;
  * given as we have no login directory.
  */
 static int validate_access(char *filename, int mode,
-			   struct formats *pf, const char **errmsg)
+			   const struct formats *pf, const char **errmsg)
 {
     struct stat stbuf;
     int i, len;
@@ -1526,7 +1527,7 @@ static int validate_access(char *filename, int mode,
 /*
  * Send the requested file.
  */
-static void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+static void tftp_sendfile(const struct formats *pf, struct tftphdr *oap, int oacklen)
 {
     struct tftphdr *dp;
     struct tftphdr *ap;         /* ack packet */
@@ -1624,7 +1625,7 @@ static void tftp_sendfile(struct formats *pf, struct tftphdr *oap, int oacklen)
 /*
  * Receive a file.
  */
-static void tftp_recvfile(struct formats *pf, struct tftphdr *oap, int oacklen)
+static void tftp_recvfile(const struct formats *pf, struct tftphdr *oap, int oacklen)
 {
     struct tftphdr *dp;
     int n, size;
