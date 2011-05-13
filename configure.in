@@ -46,6 +46,7 @@ AC_CHECK_HEADERS(strings.h)
 AC_CHECK_HEADERS(sysexits.h)
 AC_CHECK_HEADERS(time.h)
 AC_CHECK_HEADERS(unistd.h)
+AC_CHECK_HEADERS(sys/file.h)
 AC_CHECK_HEADERS(sys/filio.h)
 AC_CHECK_HEADERS(sys/stat.h)
 AC_CHECK_HEADERS(sys/time.h)
@@ -139,6 +140,11 @@ PA_STRUCT_ADDRINFO
 PA_HEADER_DEFINES(fcntl.h, int, O_NONBLOCK)
 PA_HEADER_DEFINES(fcntl.h, int, O_BINARY)
 PA_HEADER_DEFINES(fcntl.h, int, O_TEXT)
+
+PA_HEADER_DEFINES(fcntl.h, int, F_SETLK)
+
+PA_HEADER_DEFINES(sys/file.h, int, LOCK_SH)
+PA_HEADER_DEFINES(sys/file.h, int, LOCK_EX)
 
 AH_TEMPLATE([HAVE_SIGSETJMP],
 [Define if we have sigsetjmp, siglongjmp and sigjmp_buf.])

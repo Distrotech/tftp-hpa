@@ -179,6 +179,26 @@ static struct rule *read_remap_rules(const char *file)
 }
 #endif
 
+/*
+ * Rules for locking files; return 0 on success, -1 on failure
+ */
+static int lock_file(int fd, int lock_write)
+{
+#if defined(HAVE_FCNTL) && defined(HAVE_F_SETLK_DEFINITION)
+  struct flock fl;
+
+  fl.l_type   = lock_write ? F_WRLCK : F_RDLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start  = 0;
+  fl.l_len    = 0;		/* Whole file */
+  return fcntl(fd, F_SETLK, &fl);
+#elif defined(HAVE_LOCK_SH_DEFINITION)
+  return flock(fd, lock_write ? LOCK_EX|LOCK_NB : LOCK_SH|LOCK_NB);
+#else
+  return 0;			/* Hope & pray... */
+#endif
+}
+
 static void set_socket_nonblock(int fd, int flag)
 {
     int err;
@@ -1463,10 +1483,12 @@ static int validate_access(char *filename, int mode,
      * We use different a different permissions scheme if `cancreate' is
      * set.
      */
-    wmode = O_WRONLY |
-        (cancreate ? O_CREAT : 0) |
-        (unixperms ? O_TRUNC : 0) | (pf->f_convert ? O_TEXT : O_BINARY);
+    wmode = O_WRONLY | (cancreate ? O_CREAT : 0) | (pf->f_convert ? O_TEXT : O_BINARY);
     rmode = O_RDONLY | (pf->f_convert ? O_TEXT : O_BINARY);
+
+#ifndef HAVE_FTRUNCATE
+    wmode |= O_TRUNC;		/* This really sucks on a dupe */
+#endif
 
     fd = open(filename, mode == RRQ ? rmode : wmode, 0666);
     if (fd < 0) {
@@ -1486,6 +1508,10 @@ static int validate_access(char *filename, int mode,
     if (fstat(fd, &stbuf) < 0)
         exit(EX_OSERR);         /* This shouldn't happen */
 
+    /* A duplicate RRQ or (worse!) WRQ packet could really cause havoc... */
+    if (lock_file(fd, mode != RRQ))
+	exit(0);
+
     if (mode == RRQ) {
         if (!unixperms && (stbuf.st_mode & (S_IREAD >> 6)) == 0) {
             *errmsg = "File must have global read permissions";
@@ -1500,15 +1526,15 @@ static int validate_access(char *filename, int mode,
                 *errmsg = "File must have global write permissions";
                 return (EACCESS);
             }
-
-            /* We didn't get to truncate the file at open() time */
-#ifdef HAVE_FTRUNCATE
-            if (ftruncate(fd, (off_t) 0)) {
-                *errmsg = "Cannot reset file size";
-                return (EACCESS);
-            }
-#endif
         }
+
+#ifdef HAVE_FTRUNCATE
+	/* We didn't get to truncate the file at open() time */
+	if (ftruncate(fd, (off_t) 0)) {
+	  *errmsg = "Cannot reset file size";
+	  return (EACCESS);
+	}
+#endif
         tsize = 0;
         tsize_ok = 1;
     }
