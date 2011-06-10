@@ -114,18 +114,18 @@ static struct rule *rewrite_rules = NULL;
 int tftp(struct tftphdr *, int);
 static void nak(int, const char *);
 static void timer(int);
-static void do_opt(char *, char *, char **);
+static void do_opt(const char *, const char *, char **);
 
-static int set_blksize(char *, char **);
-static int set_blksize2(char *, char **);
-static int set_tsize(char *, char **);
-static int set_timeout(char *, char **);
-static int set_utimeout(char *, char **);
-static int set_rollover(char *, char **);
+static int set_blksize(uintmax_t *);
+static int set_blksize2(uintmax_t *);
+static int set_tsize(uintmax_t *);
+static int set_timeout(uintmax_t *);
+static int set_utimeout(uintmax_t *);
+static int set_rollover(uintmax_t *);
 
 struct options {
     const char *o_opt;
-    int (*o_fnc) (char *, char **);
+    int (*o_fnc)(uintmax_t *);
 } options[] = {
     {"blksize",  set_blksize},
     {"blksize2", set_blksize2},
@@ -1175,48 +1175,38 @@ static int blksize_set;
 /*
  * Set a non-standard block size (c.f. RFC2348)
  */
-static int set_blksize(char *val, char **ret)
+static int set_blksize(uintmax_t *vp)
 {
-    static char b_ret[6];
-    unsigned int sz;
-    char *vend;
+    uintmax_t sz = *vp;
 
-    sz = (unsigned int)strtoul(val, &vend, 10);
-
-    if (blksize_set || *vend)
+    if (blksize_set)
         return 0;
 
     if (sz < 8)
-        return (0);
+        return 0;
     else if (sz > max_blksize)
         sz = max_blksize;
 
-    segsize = sz;
-    sprintf(*ret = b_ret, "%u", sz);
-
+    *vp = segsize = sz;
     blksize_set = 1;
-
-    return (1);
+    return 1;
 }
 
 /*
  * Set a power-of-two block size (nonstandard)
  */
-static int set_blksize2(char *val, char **ret)
+static int set_blksize2(uintmax_t *vp)
 {
-    static char b_ret[6];
-    unsigned int sz;
-    char *vend;
+    uintmax_t sz = *vp;
 
-    sz = (unsigned int)strtoul(val, &vend, 10);
-
-    if (blksize_set || *vend)
+    if (blksize_set)
         return 0;
 
     if (sz < 8)
         return (0);
     else if (sz > max_blksize)
         sz = max_blksize;
+    else
 
     /* Convert to a power of two */
     if (sz & (sz - 1)) {
@@ -1227,29 +1217,23 @@ static int set_blksize2(char *val, char **ret)
         sz = sz1;
     }
 
-    segsize = sz;
-    sprintf(*ret = b_ret, "%u", sz);
-
+    *vp = segsize = sz;
     blksize_set = 1;
-
-    return (1);
+    return 1;
 }
 
 /*
  * Set the block number rollover value
  */
-static int set_rollover(char *val, char **ret)
+static int set_rollover(uintmax_t *vp)
 {
-  uintmax_t ro;
-  char *vend;
+    uintmax_t ro = *vp;
+    
+    if (ro > 65535)
+	return 0;
 
-  ro = strtoumax(val, &vend, 10);
-  if (ro > 65535 || *vend)
-    return 0;
-
-  rollover_val = (uint16_t)ro;
-  *ret = val;
-  return 1;
+    rollover_val = (uint16_t)ro;
+    return 1;
 }
 
 /*
@@ -1257,22 +1241,18 @@ static int set_rollover(char *val, char **ret)
  * For netascii mode, we don't know the size ahead of time;
  * so reject the option.
  */
-static int set_tsize(char *val, char **ret)
+static int set_tsize(uintmax_t *vp)
 {
-    static char b_ret[sizeof(uintmax_t) * CHAR_BIT / 3 + 2];
-    uintmax_t sz;
-    char *vend;
+    uintmax_t sz = *vp;
 
-    sz = strtoumax(val, &vend, 10);
-
-    if (!tsize_ok || *vend)
+    if (!tsize_ok)
         return 0;
 
     if (sz == 0)
-        sz = (uintmax_t) tsize;
+        sz = tsize;
 
-    sprintf(*ret = b_ret, "%" PRIuMAX, sz);
-    return (1);
+    *vp = sz;
+    return 1;
 }
 
 /*
@@ -1280,74 +1260,86 @@ static int set_tsize(char *val, char **ret)
  * to be the (default) retransmission timeout, but being an
  * integer in seconds it seems a bit limited.
  */
-static int set_timeout(char *val, char **ret)
+static int set_timeout(uintmax_t *vp)
 {
-    static char b_ret[4];
-    unsigned long to;
-    char *vend;
+    uintmax_t to = *vp;
 
-    to = strtoul(val, &vend, 10);
-
-    if (to < 1 || to > 255 || *vend)
+    if (to < 1 || to > 255)
         return 0;
 
     rexmtval = timeout = to * 1000000UL;
     maxtimeout = rexmtval * TIMEOUT_LIMIT;
 
-    sprintf(*ret = b_ret, "%lu", to);
-    return (1);
+    return 1;
 }
 
 /* Similar, but in microseconds.  We allow down to 10 ms. */
-static int set_utimeout(char *val, char **ret)
+static int set_utimeout(uintmax_t *vp)
 {
-    static char b_ret[4];
-    unsigned long to;
-    char *vend;
+    uintmax_t to = *vp;
 
-    to = strtoul(val, &vend, 10);
-
-    if (to < 10000UL || to > 255000000UL || *vend)
+    if (to < 10000UL || to > 255000000UL)
         return 0;
 
     rexmtval = timeout = to;
     maxtimeout = rexmtval * TIMEOUT_LIMIT;
 
-    sprintf(*ret = b_ret, "%lu", to);
-    return (1);
+    return 1;
 }
 
 /*
- * Parse RFC2347 style options
+ * Conservative calculation for the size of a buffer which can hold an
+ * arbitrary integer
  */
-static void do_opt(char *opt, char *val, char **ap)
+#define OPTBUFSIZE	(sizeof(uintmax_t) * CHAR_BIT / 3 + 3)
+
+/*
+ * Parse RFC2347 style options; we limit the arguments to positive
+ * integers which matches all our current options.
+ */
+static void do_opt(const char *opt, const char *val, char **ap)
 {
     struct options *po;
-    char *ret;
+    char retbuf[OPTBUFSIZE];
+    char *p = *ap;
+    size_t optlen, retlen;
+    char *vend;
+    uintmax_t v;
 
     /* Global option-parsing variables initialization */
     blksize_set = 0;
 
-    if (!*opt)
+    if (!*opt || !*val)
         return;
+
+    errno = 0;
+    v = strtoumax(val, &vend, 10);
+    if (*vend || errno == ERANGE)
+	return;
 
     for (po = options; po->o_opt; po++)
         if (!strcasecmp(po->o_opt, opt)) {
-            if (po->o_fnc(val, &ret)) {
-                if (*ap + strlen(opt) + strlen(ret) + 2 >=
-                    ackbuf + sizeof(ackbuf)) {
+            if (po->o_fnc(&v)) {
+		optlen = strlen(opt);
+		retlen = sprintf(retbuf, "%"PRIuMAX, v);
+
+                if (p + optlen + retlen + 2 >= ackbuf + sizeof(ackbuf)) {
                     nak(EOPTNEG, "Insufficient space for options");
                     exit(0);
                 }
-                *ap = strrchr(strcpy(strrchr(strcpy(*ap, opt), '\0') + 1,
-                                     ret), '\0') + 1;
+		
+		memcpy(p, opt, optlen+1);
+		p += optlen+1;
+		memcpy(p, retbuf, retlen+1);
+		p += retlen+1;
             } else {
                 nak(EOPTNEG, "Unsupported option(s) requested");
                 exit(0);
             }
             break;
         }
-    return;
+
+    *ap = p;
 }
 
 #ifdef WITH_REGEX
