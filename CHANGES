@@ -9,6 +9,8 @@ Changes in 5.1:
 	Fix handling of block number wraparound after a successful
 	options negotiation.
 
+	Fix a buffer overflow in option parsing.
+
 
 Changes in 5.0:
 	Try to on platforms with getaddrinfo() without AI_ADDRCONFIG or
