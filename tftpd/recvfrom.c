@@ -51,52 +51,59 @@ struct in_pktinfo {
 #endif
 
 /*
- * Check to see if this is a valid local address.  If so, we should
- * end up having the same local and remote address when trying to
- * bind to it.
+ * Check to see if this is a valid local address, meaning that we can
+ * legally bind to it.
  */
 static int address_is_local(const union sock_addr *addr)
 {
-    union sock_addr sa;
+    union sock_addr sa1, sa2;
     int sockfd = -1;
     int e;
     int rv = 0;
     socklen_t addrlen;
 
+    memcpy(&sa1, addr, sizeof sa1);
+
     /* Multicast or universal broadcast address? */
-    if (addr->sa.sa_family == AF_INET) {
-        if (ntohl(addr->si.sin_addr.s_addr) >= (224UL << 24))
+    if (sa1.sa.sa_family == AF_INET) {
+        if (ntohl(sa1.si.sin_addr.s_addr) >= (224UL << 24))
             return 0;
+	sa1.si.sin_port = 0;	/* Any port */
     }
 #ifdef HAVE_IPV6
-    else if (addr->sa.sa_family == AF_INET6) {
-        if (IN6_IS_ADDR_MULTICAST(&addr->s6.sin6_addr))
+    else if (sa1.sa.sa_family == AF_INET6) {
+        if (IN6_IS_ADDR_MULTICAST(&sa1.s6.sin6_addr))
             return 0;
+	sa1.s6.sin6_port = 0;	/* Any port */
     }
 #endif
     else
         return 0;
 
-    sockfd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
+    sockfd = socket(sa1.sa.sa_family, SOCK_DGRAM, 0);
     if (sockfd < 0)
         goto err;
 
-    if (connect(sockfd, &addr->sa, SOCKLEN(addr)))
+    if (bind(sockfd, &sa1.sa, SOCKLEN(&sa1)))
         goto err;
 
     addrlen = SOCKLEN(addr);
-    if (getsockname(sockfd, (struct sockaddr *)&sa, &addrlen))
+    if (getsockname(sockfd, (struct sockaddr *)&sa2, &addrlen))
         goto err;
 
-    if (addr->sa.sa_family == AF_INET)
-        rv = sa.si.sin_addr.s_addr == addr->si.sin_addr.s_addr;
+    if (sa1.sa.sa_family != sa2.sa.sa_family)
+	goto err;
+
+    if (sa2.sa.sa_family == AF_INET)
+        rv = sa1.si.sin_addr.s_addr == sa2.si.sin_addr.s_addr;
 #ifdef HAVE_IPV6
-    else if (addr->sa.sa_family == AF_INET6)
-        rv = IN6_ARE_ADDR_EQUAL(&sa.s6.sin6_addr, &addr->s6.sin6_addr);
+    else if (sa2.sa.sa_family == AF_INET6)
+        rv = IN6_ARE_ADDR_EQUAL(&sa1.s6.sin6_addr, &sa2.s6.sin6_addr);
 #endif
     else
         rv = 0;
-  err:
+
+err:
     e = errno;
 
     if (sockfd >= 0)
