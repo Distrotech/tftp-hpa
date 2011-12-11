@@ -1,3 +1,8 @@
+Changes in 5.2:
+	Fix breakage on newer Linux when a single interface has
+	multiple IP addresses.
+
+
 Changes in 5.1:
 	Add -P option to write a PID file.  Patch by Ferenc Wagner.
 
