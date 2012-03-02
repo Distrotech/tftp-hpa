@@ -222,12 +222,15 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
 #ifdef HAVE_STRUCT_IN6_PKTINFO
                 if (cmptr->cmsg_level == IPPROTO_IPV6 &&
-                    (cmptr->cmsg_type == IPV6_RECVPKTINFO ||
+		    (
+#ifdef IPV6_RECVPKTINFO
+		     cmptr->cmsg_type == IPV6_RECVPKTINFO ||
+#endif
                      cmptr->cmsg_type == IPV6_PKTINFO)) {
-                    memcpy(&pktinfo6, CMSG_DATA(cmptr),
-                           sizeof(struct in6_pktinfo));
-                    memcpy(&myaddr->s6.sin6_addr, &pktinfo6.ipi6_addr,
-                           sizeof(struct in6_addr));
+		    memcpy(&pktinfo6, CMSG_DATA(cmptr),
+			   sizeof(struct in6_pktinfo));
+		    memcpy(&myaddr->s6.sin6_addr, &pktinfo6.ipi6_addr,
+			   sizeof(struct in6_addr));
                 }
 #endif
             }
