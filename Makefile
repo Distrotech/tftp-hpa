@@ -7,7 +7,7 @@ SUB =   lib common tftp tftpd
 	$(MAKE) -C $(patsubst %.build, %, $@)
 
 %.install: MCONFIG aconfig.h version.h
-	$(MAKE) -C $(patsubst %.install, %, $@) install
+	$(MAKE) -C $(patsubst %.install, %, $@) INSTALLROOT=$(DESTDIR) install
 
 %.clean:
 	$(MAKE) -C $(patsubst %.clean, %, $@) clean
