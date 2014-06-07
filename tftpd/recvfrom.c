@@ -113,6 +113,25 @@ err:
     return rv;
 }
 
+#ifdef HAVE_IPV6
+static void normalize_ip6_compat(union sock_addr *myaddr)
+{
+    static const uint8_t ip6_compat_prefix[12] =
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
+    struct sockaddr_in in;
+
+    if (!memcmp(&myaddr->s6.sin6_addr, ip6_compat_prefix,
+		sizeof ip6_compat_prefix)) {
+	bzero(&in, sizeof in);
+	in.sin_family = AF_INET;
+	in.sin_port = myaddr->s6.sin6_port;
+	memcpy(&in.sin_addr, (const char *)&myaddr->s6.sin6_addr +
+	       sizeof ip6_compat_prefix, sizeof in.sin_addr);
+	memcpy(&myaddr->si, &in, sizeof in);
+    }
+}
+#endif
+
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
            struct sockaddr *from, socklen_t * fromlen,
@@ -233,6 +252,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 			   sizeof(struct in6_addr));
                 }
 #endif
+		normalize_ip6_compat(myaddr);
             }
 #endif
         }
