@@ -30,7 +30,7 @@
 .\" SUCH DAMAGE.
 .\"
 .\"----------------------------------------------------------------------- */
-.TH TFTPD 8 "14 September 2009" "tftp-hpa @@VERSION@@" "System Manager's Manual"
+.TH TFTPD 8 "7 June 2014" "tftp-hpa @@VERSION@@" "System Manager's Manual"
 .SH NAME
 .B tftpd
 \- Trivial File Transfer Protocol server
@@ -295,6 +295,12 @@ This rule applies to GET (RRQ) requests only.
 .B P
 This rule applies to PUT (WRQ) requests only.
 .TP
+.B 4
+This rule applies to IPv4 sessions only.
+.TP
+.B 6
+This rule applies to IPv6 sessions only.
+.TP
 .B ~
 Inverse the sense of this rule, i.e. execute the
 .I operation
@@ -318,12 +324,14 @@ subexpressions, \\( ... \\), of the
 pattern.
 .TP
 \fB\\i\fP
-The IP address of the requesting host, in dotted-quad notation
-(e.g. 192.0.2.169).
+The IP address of the requesting host, in dotted-quad notation for
+IPv4 (e.g. 192.0.2.169) or conventional colon form for IPv6
+(e.g. 2001:db8::1).
 .TP
 \fB\\x\fP
-The IP address of the requesting host, in hexadecimal notation
-(e.g. C00002A9).
+The IP address of the requesting host, in expanded hexadecimal
+notation (e.g. C00002A9 for IPv4, or 20010DB8000000000000000000000001
+for IPv6).
 .TP
 \fB\\\\\fP
 Literal backslash.
