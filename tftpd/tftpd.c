@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1983 Regents of the University of California.
  * Copyright (c) 1999-2009 H. Peter Anvin
- * Copyright (c) 2011 Intel Corporation; author: H. Peter Anvin
+ * Copyright (c) 2011-2014 Intel Corporation; author: H. Peter Anvin
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1039,18 +1039,18 @@ int main(int argc, char **argv)
     tp = (struct tftphdr *)buf;
     tp_opcode = ntohs(tp->th_opcode);
     if (tp_opcode == RRQ || tp_opcode == WRQ)
-        tftp(tp, n);
+	tftp(tp, n);
     exit(0);
 }
 
-static char *rewrite_access(char *, int, const char **);
+static char *rewrite_access(char *, int, int, const char **);
 static int validate_access(char *, int, const struct formats *, const char **);
 static void tftp_sendfile(const struct formats *, struct tftphdr *, int);
 static void tftp_recvfile(const struct formats *, struct tftphdr *, int);
 
 struct formats {
     const char *f_mode;
-    char *(*f_rewrite) (char *, int, const char **);
+    char *(*f_rewrite) (char *, int, int, const char **);
     int (*f_validate) (char *, int, const struct formats *, const char **);
     void (*f_send) (const struct formats *, struct tftphdr *, int);
     void (*f_recv) (const struct formats *, struct tftphdr *, int);
@@ -1112,9 +1112,8 @@ int tftp(struct tftphdr *tp, int size)
                 nak(EBADOP, "Unknown mode");
                 exit(0);
             }
-            if (!(filename =
-                  (*pf->f_rewrite) (origfilename, tp_opcode,
-                                    &errmsgptr))) {
+            if (!(filename = (*pf->f_rewrite)
+		  (origfilename, tp_opcode, from.sa.sa_family, &errmsgptr))) {
                 nak(EACCESS, errmsgptr);        /* File denied by mapping rule */
                 exit(0);
             }
@@ -1398,12 +1397,13 @@ static int rewrite_macros(char macro, char *output)
 /*
  * Modify the filename, if applicable.  If it returns NULL, deny the access.
  */
-static char *rewrite_access(char *filename, int mode, const char **msg)
+static char *rewrite_access(char *filename, int mode, int af,
+			     const char **msg)
 {
     if (rewrite_rules) {
         char *newname =
             rewrite_string(filename, rewrite_rules,
-			   mode != RRQ ? 'P' : 'G',
+			   mode != RRQ ? 'P' : 'G', af,
                            rewrite_macros, msg);
         filename = newname;
     }
@@ -1411,10 +1411,11 @@ static char *rewrite_access(char *filename, int mode, const char **msg)
 }
 
 #else
-static char *rewrite_access(char *filename, int mode, const char **msg)
+static char *rewrite_access(char *filename, int mode, int af, const char **msg)
 {
     (void)mode;                 /* Avoid warning */
     (void)msg;
+    (void)af;
     return filename;
 }
 #endif

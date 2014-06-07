@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------- *
  *
- *   Copyright 2001-2007 H. Peter Anvin - All Rights Reserved
+ *   Copyright 2001-2014 H. Peter Anvin - All Rights Reserved
  *
  *   This program is free software available under the same license
  *   as the "OpenBSD" operating system, distributed at
@@ -31,6 +31,8 @@
 #define RULE_RESTART	0x08    /* Restart at the top after matching this rule */
 #define RULE_ABORT	0x10    /* Terminate processing with an error */
 #define RULE_INVERSE	0x20    /* Execute if regex *doesn't* match */
+#define RULE_IPV4	0x40	/* IPv4 only */
+#define RULE_IPV6	0x80	/* IPv6 only */
 
 struct rule {
     struct rule *next;
@@ -223,6 +225,12 @@ static int parseline(char *line, struct rule *r, int lineno)
         case '~':
             r->rule_flags |= RULE_INVERSE;
             break;
+	case '4':
+	    r->rule_flags |= RULE_IPV4;
+	    break;
+	case '6':
+	    r->rule_flags |= RULE_IPV6;
+	    break;
 	case 'G':
 	case 'P':
             r->rule_mode = *p;
@@ -326,7 +334,7 @@ void freerules(struct rule *r)
 
 /* Execute a rule set on a string; returns a malloc'd new string. */
 char *rewrite_string(const char *input, const struct rule *rules,
-                     char mode, match_pattern_callback macrosub,
+                     char mode, int af, match_pattern_callback macrosub,
                      const char **errmsg)
 {
     char *current = tfstrdup(input);
@@ -346,6 +354,12 @@ char *rewrite_string(const char *input, const struct rule *rules,
 
     for (ruleptr = rules; ruleptr; ruleptr = ruleptr->next) {
 	if (ruleptr->rule_mode && ruleptr->rule_mode != mode)
+            continue;           /* Rule not applicable, try next */
+
+	if ((ruleptr->rule_flags & RULE_IPV4) && (af != AF_INET))
+            continue;           /* Rule not applicable, try next */
+
+	if ((ruleptr->rule_flags & RULE_IPV6) && (af != AF_INET6))
             continue;           /* Rule not applicable, try next */
 
         if (!deadman--) {
