@@ -155,7 +155,7 @@ or
 .B utimeout
 option is negotiated.  The default is 1000000 (1 second.)
 .TP
-\fB\-\-mapfile\fP \fIremap-file\fP, \fB\-m\fP \fIremap-file\fP
+\fB\-\-map-file\fP \fIremap-file\fP, \fB\-m\fP \fIremap-file\fP
 Specify the use of filename remapping.  The
 .I remap-file
 is a file containing the remapping rules.  See the section on filename
@@ -238,7 +238,7 @@ option, but crash with an error if they actually get the option
 accepted by the server.
 .SH "FILENAME REMAPPING"
 The
-.B \-\-mapfile
+.B \-\-map-file
 option specifies a file which contains filename remapping rules.  Each
 non-comment line (comments begin with hash marks,
 .BR # )
@@ -398,7 +398,7 @@ flag is used to set up a chroot() environment for the server to run in
 once a connection has been set up.
 .PP
 Finally, the filename remapping
-.RB ( \-\-mapfile
+.RB ( \-\-map-file
 flag) support can be used to provide a limited amount of additional
 access control.
 .SH "CONFORMING TO"
