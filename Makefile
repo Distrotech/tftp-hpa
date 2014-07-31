@@ -58,8 +58,12 @@ aconfig.h: MCONFIG
 
 # Adding "configure" to the dependencies serializes this with running
 # autoconf, because there are apparently race conditions between
-# autoconf and autoheader.
-aconfig.h.in: configure.in configure aclocal.m4
+# autoconf and autoheader.  And worse than that, even when autoconf
+# cleanly returns first, autoheader will truncate the timestamp of
+# aconfig.h.in to second resolution, so on a filesystem with subsecond
+# resolution it can appear older than configure (which isn't truncated).
+# So make it an order-only prerequisite to avoid looping regenerating it.
+aconfig.h.in: configure.in aclocal.m4 | configure
 	rm -f aconfig.h.in aconfig.h
 	autoheader
 
