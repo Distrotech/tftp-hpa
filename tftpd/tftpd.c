@@ -76,7 +76,7 @@ static int ai_fam = AF_INET;
 #define TRIES   6               /* Number of attempts to send each packet */
 #define TIMEOUT_LIMIT ((1 << TRIES)-1)
 
-const char *__progname;
+const char *tftpd_progname;
 static int peer;
 static unsigned long timeout  = TIMEOUT;        /* Current timeout value */
 static unsigned long rexmtval = TIMEOUT;       /* Basic timeout value */
@@ -387,9 +387,9 @@ int main(int argc, char **argv)
     /* basename() is way too much of a pain from a portability standpoint */
 
     p = strrchr(argv[0], '/');
-    __progname = (p && p[1]) ? p + 1 : argv[0];
+    tftpd_progname = (p && p[1]) ? p + 1 : argv[0];
 
-    openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+    openlog(tftpd_progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
 
     srand(time(NULL) ^ getpid());
 
@@ -938,14 +938,14 @@ int main(int argc, char **argv)
        syslog daemon gets restarted by the time we get here. */
     if (secure && standalone) {
         closelog();
-        openlog(__progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
+        openlog(tftpd_progname, LOG_PID | LOG_NDELAY, LOG_DAEMON);
     }
 
 #ifdef HAVE_TCPWRAPPERS
     /* Verify if this was a legal request for us.  This has to be
        done before the chroot, while /etc is still accessible. */
     request_init(&wrap_request,
-                 RQ_DAEMON, __progname,
+                 RQ_DAEMON, tftpd_progname,
                  RQ_FILE, fd,
                  RQ_CLIENT_SIN, &from, RQ_SERVER_SIN, &myaddr, 0);
     sock_methods(&wrap_request);
