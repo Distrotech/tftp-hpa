@@ -93,7 +93,6 @@ static unsigned int max_blksize = MAX_SEGSIZE;
 static char tmpbuf[INET6_ADDRSTRLEN], *tmp_p;
 
 static union sock_addr from;
-static socklen_t fromlen;
 static off_t tsize;
 static int tsize_ok;
 
@@ -874,9 +873,7 @@ int main(int argc, char **argv)
         set_socket_nonblock(fd, 0);
 #endif
 
-        fromlen = sizeof(from);
-        n = myrecvfrom(fd, buf, sizeof(buf), 0,
-                       (struct sockaddr *)&from, &fromlen, &myaddr);
+        n = myrecvfrom(fd, buf, sizeof(buf), 0, &from, &myaddr);
 
         if (n < 0) {
             if (E_WOULD_BLOCK(errno) || errno == EINTR) {

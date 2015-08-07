@@ -113,14 +113,15 @@ err:
     return rv;
 }
 
-#ifdef HAVE_IPV6
 static void normalize_ip6_compat(union sock_addr *myaddr)
 {
+#ifdef HAVE_IPV6
     static const uint8_t ip6_compat_prefix[12] =
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff };
     struct sockaddr_in in;
 
-    if (!memcmp(&myaddr->s6.sin6_addr, ip6_compat_prefix,
+    if (myaddr->sa.sa_family == AF_INET6 &&
+	!memcmp(&myaddr->s6.sin6_addr, ip6_compat_prefix,
 		sizeof ip6_compat_prefix)) {
 	bzero(&in, sizeof in);
 	in.sin_family = AF_INET;
@@ -129,13 +130,14 @@ static void normalize_ip6_compat(union sock_addr *myaddr)
 	       sizeof ip6_compat_prefix, sizeof in.sin_addr);
 	memcpy(&myaddr->si, &in, sizeof in);
     }
-}
+#else
+    (void)myaddr;
 #endif
+}
 
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
-           struct sockaddr *from, socklen_t * fromlen,
-           union sock_addr *myaddr)
+           union sock_addr *from, union sock_addr *myaddr)
 {
     struct msghdr msg;
     struct iovec iov;
@@ -168,16 +170,16 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
     /* Try to enable getting the return address */
 #ifdef IP_RECVDSTADDR
-    if (from->sa_family == AF_INET)
+    if (from->sa.sa_family == AF_INET)
         setsockopt(s, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on));
 #endif
 #ifdef IP_PKTINFO
-    if (from->sa_family == AF_INET)
+    if (from->sa.sa_family == AF_INET)
         setsockopt(s, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on));
 #endif
 #ifdef HAVE_IPV6
 #ifdef IPV6_RECVPKTINFO
-    if (from->sa_family == AF_INET6)
+    if (from->sa.sa_family == AF_INET6)
         setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));
 #endif
 #endif
@@ -186,8 +188,8 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
     msg.msg_controllen = sizeof(control_un);
     msg.msg_flags = 0;
 
-    msg.msg_name = from;
-    msg.msg_namelen = *fromlen;
+    msg.msg_name = &from->sa;
+    msg.msg_namelen = sizeof(*from);
     iov.iov_base = buf;
     iov.iov_len = len;
     msg.msg_iov = &iov;
@@ -196,11 +198,9 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
     if ((n = recvmsg(s, &msg, flags)) < 0)
         return n;               /* Error */
 
-    *fromlen = msg.msg_namelen;
-
     if (myaddr) {
         bzero(myaddr, sizeof(*myaddr));
-        myaddr->sa.sa_family = from->sa_family;
+        myaddr->sa.sa_family = from->sa.sa_family;
 
         if (msg.msg_controllen < sizeof(struct cmsghdr) ||
             (msg.msg_flags & MSG_CTRUNC))
@@ -209,7 +209,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
         for (cmptr = CMSG_FIRSTHDR(&msg); cmptr != NULL;
              cmptr = CMSG_NXTHDR(&msg, cmptr)) {
 
-            if (from->sa_family == AF_INET) {
+            if (from->sa.sa_family == AF_INET) {
                 myaddr->sa.sa_family = AF_INET;
 #ifdef IP_RECVDSTADDR
                 if (cmptr->cmsg_level == IPPROTO_IP &&
@@ -230,7 +230,7 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 #endif
             }
 #ifdef HAVE_IPV6
-            else if (from->sa_family == AF_INET6) {
+            else if (from->sa.sa_family == AF_INET6) {
                 myaddr->sa.sa_family = AF_INET6;
 #ifdef IP6_RECVDSTADDR
                 if (cmptr->cmsg_level == IPPROTO_IPV6 &&
@@ -252,7 +252,6 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 			   sizeof(struct in6_addr));
                 }
 #endif
-		normalize_ip6_compat(myaddr);
             }
 #endif
         }
@@ -268,6 +267,10 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 #endif
         }
     }
+
+    normalize_ip6_compat(myaddr);
+    normalize_ip6_compat(from);
+
     return n;
 }
 
@@ -275,16 +278,16 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
 
 int
 myrecvfrom(int s, void *buf, int len, unsigned int flags,
-           struct sockaddr *from, socklen_t * fromlen,
-           union sock_addr *myaddr)
+           union sock_addr *from, union sock_addr *myaddr)
 {
     /* There is no way we can get the local address, fudge it */
+    socklen_t fromlen = sizeof(*from);
 
     bzero(myaddr, sizeof(*myaddr));
-    myaddr->sa.sa_family = from->sa_family;
+    myaddr->sa.sa_family = from->sa.sa_family;
     sa_set_port(myaddr, htons(IPPORT_TFTP));
 
-    return recvfrom(s, buf, len, flags, from, fromlen);
+    return recvfrom(s, buf, len, flags, from, &fromlen);
 }
 
 #endif
