@@ -255,6 +255,9 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
             }
 #endif
         }
+
+	normalize_ip6_compat(myaddr);
+
         /* If the address is not a valid local address,
          * then bind to any address...
          */
@@ -268,7 +271,6 @@ myrecvfrom(int s, void *buf, int len, unsigned int flags,
         }
     }
 
-    normalize_ip6_compat(myaddr);
     normalize_ip6_compat(from);
 
     return n;
